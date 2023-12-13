@@ -14,13 +14,12 @@ bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 include("truncatednorm.jl")
 
-# GOAL: What approximations best match human performance:
-#         * using a sphere
-#         * a rigid body
-#         * add noise to orientation, etc.?
-# GOAL: Model sequential infernce for 3 seconds of observations followed by 3 seconds of prediction
-# TODO: Print / write the traces to a .csv file
-# TODO: Test whether it can recover elasticity
+# GOAL: Perform sequential inference of elasticity for 3 seconds of observations, followed by 3 seconds of prediction
+# GOAL: Test what settings of simulator (i.e. approximations) best match human performance:
+#        * using a rigid body
+#        * using a sphere
+#        * add noise to orientation, etc.?
+# TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
 # TODO: Add ceiling and fourth wall, consider different restitution values
 # DONE: Try out elasticity values 0.2 - 1.0
 # DONE: Try a sphere
@@ -207,10 +206,12 @@ function main()
     sim = BulletSim(; client=client)
     init_state = BulletState(sim, [rb_cube])
 
-    # traces = [first(generate(simulate, gargs)) for _=1:5]
+    
     args = (60, sim, init_state)
     gt_constraints = choicemap((:prior => 1 => :restitution, 0.2), (:prior => 1 => :mass, 1.0))
-    trace = first(generate(simulation, args, gt_constraints))
+    ground_truth = first(generate(simulation, args, gt_constraints))
+
+    #=
     traces = [trace]
     for i=2:5
         res = i*0.2
@@ -227,11 +228,11 @@ function main()
         coefficient_of_restitution = z_max / 3.0
         println(coefficient_of_restitution)
     end
+    =#
 
     #anim = animate_traces(traces)
     #gif(anim, fps = 24)
     
-    #=
     # Generate ground truth trajectory
     # ground_truth = first(generate(simulation, args, gt_constraints))
    
@@ -251,7 +252,6 @@ function main()
 
     # Visualize particles
     gif(animate_traces(result), fps=24)
-    =#
 
     # bullet.resetSimulation(bullet.RESET_USE_DEFORMABLE_WORLD)
 
