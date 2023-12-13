@@ -21,6 +21,7 @@ include("truncatednorm.jl")
 # GOAL: Model sequential infernce for 3 seconds of observations followed by 3 seconds of prediction
 # TODO: Print / write the traces to a .csv file
 # TODO: Test whether it can recover elasticity
+# TODO: Add ceiling and fourth wall, consider different restitution values
 # DONE: Try out elasticity values 0.2 - 1.0
 # DONE: Try a sphere
 
@@ -96,21 +97,21 @@ function init_scene(mass::Float64=1.0, restitution::Float64=0.9)
     # Create and position ground plane
     planeID = bullet.createCollisionShape(bullet.GEOM_PLANE)
     plane = bullet.createMultiBody(baseCollisionShapeIndex=planeID, basePosition=[0, 0, 0])
-    bullet.changeDynamics(plane, -1, mass=0.0, restitution=0.9)
+    bullet.changeDynamics(plane, -1, mass=0.0, restitution=0.5)
 
     # Create and position walls
     wall1ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.02, 1, 1])
     quaternion = bullet.getQuaternionFromEuler([0, 0, 0])
     plane2 = bullet.createMultiBody(baseCollisionShapeIndex=wall1ID, basePosition=[-1, 0, 1], baseOrientation=quaternion)
-    bullet.changeDynamics(plane2, -1, mass=0.0, restitution=0.9)
+    bullet.changeDynamics(plane2, -1, mass=0.0, restitution=0.5)
 
     wall2ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[1, .02, 1])
     plane3 = bullet.createMultiBody(baseCollisionShapeIndex=wall2ID, basePosition=[0, 1, 1], baseOrientation=quaternion)
-    bullet.changeDynamics(plane3, -1, mass=0.0, restitution=0.9)
+    bullet.changeDynamics(plane3, -1, mass=0.0, restitution=0.5)
 
     wall3ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.02, 1, 1])
     plane4 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[1, 0, 1], baseOrientation=quaternion)
-    bullet.changeDynamics(plane4, -1, mass=0.0, restitution=0.9)
+    bullet.changeDynamics(plane4, -1, mass=0.0, restitution=0.5)
 
     return sphere
 end
@@ -137,8 +138,8 @@ end
 end
 
 # Deterministically generate the next state, then sample an observation given that state
-@gen function kernel(t::Int, prev_state::BulletState, sim::BulletSim)
-    next_state::BulletState = PhySMC.step(sim, prev_state)
+@gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
+    next_state::BulletState = PhySMC.step(sim, current_state)
     {:observation} ~ Gen.Map(generate_observation)(next_state.kinematics)
     return next_state
 end
@@ -158,7 +159,7 @@ end
 @gen function proposal(trace::Gen.Trace)
 
     # Read previous mass and restitution estimates
-    choices  = get_choices(trace)
+    choices = get_choices(trace)
     prev_mass = choices[:prior => 1 => :mass]
     prev_res  = choices[:prior => 1 => :restitution]
 
@@ -186,6 +187,9 @@ function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20
             Gen.particle_filter_step!(state, get_args(t), argdiffs, obs)
         end
     end
+
+    # TODO: Add a prediction phase that simulates forward some output particles
+    # TODO: Multiple forward passes per particle, with some noise added over velocity
 
     return state.traces
 end
@@ -216,7 +220,7 @@ function main()
     end
 
     for trace in traces
-        choices = get_choices(trace)
+        choices = display(get_choices(trace))
         positions = [choices[:kernel => i => :observation => 1 => :position] for i=35:60]
         zs = map(x -> x[3], positions)
         z_max = maximum(zs)
