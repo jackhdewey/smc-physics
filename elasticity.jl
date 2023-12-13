@@ -14,11 +14,15 @@ bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 include("truncatednorm.jl")
 
-# GOAL: What settings best match performance - using a sphere, a rigid body, noise in orientation, etc.?
-# DONE: Try out elasticity values 0.2 - 0.9
-# DONE: Try a sphere
-# TODO: Test whether it can recover elasticity
+# GOAL: What approximations best match human performance:
+#         * using a sphere
+#         * a rigid body
+#         * add noise to orientation, etc.?
+# GOAL: Model sequential infernce for 3 seconds of observations followed by 3 seconds of prediction
 # TODO: Print / write the traces to a .csv file
+# TODO: Test whether it can recover elasticity
+# DONE: Try out elasticity values 0.2 - 1.0
+# DONE: Try a sphere
 
 
 # Plots
