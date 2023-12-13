@@ -14,8 +14,11 @@ bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 include("truncatednorm.jl")
 
-# TODO: Test cases - make sure it can recover elasticity
-# TODO: Find some way to sample from particles and compare
+# GOAL: What settings best match performance - using a sphere, a rigid body, noise in orientation, etc.?
+# DONE: Try out elasticity values 0.2 - 0.9
+# DONE: Try a sphere
+# TODO: Test whether it can recover elasticity
+# TODO: Print / write the traces to a .csv file
 
 
 # Plots
@@ -30,9 +33,9 @@ include("truncatednorm.jl")
     linewidth -->range(0,10, length = n)
     seriesalpha --> range(0,1,length = n)
     xguide --> "time"
+    xlims --> (1, 60)
     yguide --> "height of cube (z)"
     ylims --> (0, 4.0)
-    xlims --> (1, 60)
     label --> false
     inds, z[inds, :]
 end
@@ -50,7 +53,7 @@ end
 function animate_trace(traces::Gen.Trace; label = "trace")
     t = first(get_args(trace))
     zs = reshape(get_zs(trace), (t, 1))
-    anim = @animate for i = 2:t
+    @animate for i = 2:t
         simplot(zs, i, label = label)
     end
 end
@@ -59,7 +62,7 @@ function animate_traces(traces::Vector{<:Gen.Trace})
     n = length(traces)
     zzs = reduce(hcat, map(get_zs, traces))
     t = size(zzs, 1)
-    anim = @animate for i=2:t
+    @animate for i=2:t
         simplot(zzs, i)
     end
 end
@@ -72,11 +75,19 @@ function init_scene(mass::Float64=1.0, restitution::Float64=0.9)
 
     bullet.setGravity(0, 0, -10)
 
+    #=
     # Create and position cube
     cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.2, .2, .2])
     startOrientationCube = bullet.getQuaternionFromEuler([0, 0, 1])
     cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=[0., 0., 3.], baseOrientation=startOrientationCube)
     bullet.changeDynamics(cube, -1, mass=mass, restitution=restitution)
+    =#
+
+    # Create and position sphere
+    sphereBody = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.2)
+    startOrientationCube = bullet.getQuaternionFromEuler([0, 0, 1])
+    sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=[0., 0., 3.], baseOrientation=startOrientationCube)
+    bullet.changeDynamics(sphere, -1, mass=mass, restitution=restitution)
 
     # Create and position ground plane
     planeID = bullet.createCollisionShape(bullet.GEOM_PLANE)
@@ -97,7 +108,7 @@ function init_scene(mass::Float64=1.0, restitution::Float64=0.9)
     plane4 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[1, 0, 1], baseOrientation=quaternion)
     bullet.changeDynamics(plane4, -1, mass=0.0, restitution=0.9)
 
-    return cube
+    return sphere
 end
 
 
@@ -106,15 +117,13 @@ function update_latents(latents::RigidBodyLatents, mass::Float64, res::Float64)
     RigidBodyLatents(setproperties(latents.data, mass=mass, restitution=res))
 end
 
-
-# Sample initial estimates of mass and restitution from their priors
+# Initialize estimates of mass and restitution from their priors
 @gen function sample_from_prior(latents::RigidBodyLatents)
     mass = {:mass} ~ gamma(1.2, 10.)
     res = {:restitution} ~ uniform(0, 1)
     new_latents = update_latents(latents, mass, res)
     return new_latents
 end
-
 
 # Extract rigid body position and add noise
 @gen function generate_observation(k::RigidBodyState)
@@ -144,7 +153,7 @@ end
 # Rejuvenate latent estimates
 @gen function proposal(trace::Gen.Trace)
 
-    # Parse trace for previous mass and restitution estimates
+    # Read previous mass and restitution estimates
     choices  = get_choices(trace)
     prev_mass = choices[:prior => 1 => :mass]
     prev_res  = choices[:prior => 1 => :restitution]
@@ -190,11 +199,34 @@ function main()
     sim = BulletSim(; client=client)
     init_state = BulletState(sim, [rb_cube])
 
-    # Generate ground truth trajectory
+    # traces = [first(generate(simulate, gargs)) for _=1:5]
     args = (60, sim, init_state)
-    gt_constraints = choicemap((:prior => 1 => :restitution, 0.8), (:prior => 1 => :mass, 1.0))
-    ground_truth = first(generate(simulation, args, gt_constraints))
+    gt_constraints = choicemap((:prior => 1 => :restitution, 0.2), (:prior => 1 => :mass, 1.0))
+    trace = first(generate(simulation, args, gt_constraints))
+    traces = [trace]
+    for i=2:5
+        res = i*0.2
+        gt_constraints = choicemap((:prior => 1 => :restitution, res), (:prior => 1 => :mass, 1.0))
+        trace = first(generate(simulation, args, gt_constraints))
+        push!(traces, trace)
+    end
 
+    for trace in traces
+        choices = get_choices(trace)
+        positions = [choices[:kernel => i => :observation => 1 => :position] for i=35:60]
+        zs = map(x -> x[3], positions)
+        z_max = maximum(zs)
+        coefficient_of_restitution = z_max / 3.0
+        println(coefficient_of_restitution)
+    end
+
+    #anim = animate_traces(traces)
+    #gif(anim, fps = 24)
+    
+    #=
+    # Generate ground truth trajectory
+    # ground_truth = first(generate(simulation, args, gt_constraints))
+   
     # Read position observations from trace and store in a vector
     gt_choices = get_choices(ground_truth)
     t = args[1]
@@ -211,7 +243,7 @@ function main()
 
     # Visualize particles
     gif(animate_traces(result), fps=24)
-
+    =#
 
     # bullet.resetSimulation(bullet.RESET_USE_DEFORMABLE_WORLD)
 
@@ -219,111 +251,8 @@ function main()
 
     # run_sample(sphereBodies, sphere_locations)
 
-    # traces = [first(generate(simulate, gargs)) for _=1:5]
-    # anim = animate_traces(traces)
-    # gif(anim, fps = 24)
-
     bullet.disconnect()
 end
 
 
 main()
-
-#=
-
-cube_location, platform_location, platform_orientation = sample_init_state()
-cubeBodies = []
-
-cube_locations = Vector{Float64}[]
-push!(cube_locations, [0., 0., 3.])
-
-push!(cubeBodies, cubeBody)
-startPosCube = cube_locations[1]
-
-cube1 = p.loadSoftBody("soft_cube__sf.obj", simFileName="soft_cube.vtk", basePosition=cube_locations[0],
-                        mass=4, useNeoHookean=1, NeoHookeanMu=60, NeoHookeanLambda=600, NeoHookeanDamping=0.001,
-                        collisionMargin=0.006, useSelfCollision=1, frictionCoeff=0.5, repulsionStiffness=800)
-cubeBodies.append(cube1)
-
-cube2 = p.loadSoftBody("soft_cube__sf.obj", simFileName="soft_cube.vtk", basePosition=cube_locations[1],
-                        mass=4, useNeoHookean=1, NeoHookeanMu=280, NeoHookeanLambda=600, NeoHookeanDamping=0.001,
-                        collisionMargin=0.006, useSelfCollision=1, frictionCoeff=0.5, repulsionStiffness=700)
-cubeBodies.append(cube2)
-
-# Create and position cube
-cubeBody1 = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.1, .1, .1])
-cubeBodies.append(cubeBody1)
-startPosCube = cube_locations[1]
-startOrientationCube = p.getQuaternionFromEuler([0, 0, 1])
-cube1 = p.createMultiBody(baseCollisionShapeIndex=cubeBody1, basePosition=startPosCube,
-                          baseOrientation=startOrientationCube)
-p.changeDynamics(cube1, -1, mass=1.0, restitution=0.7)
-
-# Create and position cube
-cubeBody2 = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.1, .1, .1])
-cubeBodies.append(cubeBody2)
-startPosCube = cube_locations[2]
-startOrientationCube = p.getQuaternionFromEuler([0, 0, 1])
-cube2 = p.createMultiBody(baseCollisionShapeIndex=cubeBody2, basePosition=startPosCube,
-                          baseOrientation=startOrientationCube)
-p.changeDynamics(cube2, -1, mass=1.0, restitution=0.4)
-
-# Create and position cube
-cubeBody3 = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.1, .1, .1])
-cubeBodies.append(cubeBody3)
-startPosCube = cube_locations[3]
-startOrientationCube = p.getQuaternionFromEuler([0, 0, 1])
-cube3 = p.createMultiBody(baseCollisionShapeIndex=cubeBody3, basePosition=startPosCube,
-                          baseOrientation=startOrientationCube)
-p.changeDynamics(cube3, -1, mass=1.0, restitution=0.1)
-
-# Create and position platform
-platformBody = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.1, .1, .1])
-startPosPlatform = platform_location
-startOrientationPlatform = p.getQuaternionFromEuler([platform_orientation[0], platform_orientation[1],
-                                                     platform_orientation[2]])
-platform = p.createMultiBody(baseCollisionShapeIndex=platformBody, basePosition=startPosPlatform,
-                             baseOrientation=startOrientationPlatform)
-p.changeDynamics(platform, -1, mass=0.0, restitution=0.9)
-=#
-
-#=
-function sample_init_state()
-    # Generate platform's location from a range / uniform distribution
-    random.seed()
-    x = random.uniform(-2, 2)
-    z = random.uniform(-2, 2)
-    platform_location = [x, z, 2]
-
-    # Condition cube's location on platform location
-    x = random.uniform(x - .8, x + .8)
-    z = random.uniform(z - .3, z + .3)
-    cube_location = [x, z, 6]
-
-    # Generate platform orientation (Von Mises)
-    theta_y = random.vonmisesvariate(0, 30.06)
-    platform_orientation = [0, theta_y, 0]
-
-    return cube_location, platform_location, platform_orientation
-
-end
-=#
-
-#=
-function run_sample(cubeBodies, cube_locations)
-
-    cube_positions = cube_locations
-
-    for i=1:1000
-        bullet.stepSimulation()
-        current_position = bullet.getBasePositionAndOrientation(cubeBodies[1])[1]
-        position_array = [i for i in current_position]
-        push!(cube_positions, position_array)
-        sleep(.001)
-    end
-
-    #trace = {"cube_position": cube_positions}
-
-    #return trace
-end
-=#
