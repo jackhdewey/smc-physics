@@ -14,11 +14,11 @@ bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 include("truncatednorm.jl")
 
-# GOAL: Perform sequential inference of elasticity for 3 seconds of observations, followed by 3 seconds of prediction
-# GOAL: Test what settings of simulator (i.e. approximations) best match human performance:
+# GOAL: Perform sequential inference of elasticity using 3 seconds of observations, followed by 3 seconds of prediction
+# GOAL: Test what simulation settings (i.e. resource-rational approximations) best match human performance:
 #        * using a rigid body
 #        * using a sphere
-#        * add noise to orientation, etc.?
+#        * adding noise to orientation
 # TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
 # TODO: Add ceiling and fourth wall, consider different restitution values
 # DONE: Try out elasticity values 0.2 - 1.0
@@ -34,8 +34,8 @@ include("truncatednorm.jl")
     k = 10
     inds = (max(1, t-k):t)
     n = length(inds)
-    linewidth -->range(0,10, length = n)
-    seriesalpha --> range(0,1,length = n)
+    linewidth -->range(0,10, length=n)
+    seriesalpha --> range(0,1,length=n)
     xguide --> "time"
     xlims --> (1, 60)
     yguide --> "height of cube (z)"
@@ -57,13 +57,12 @@ end
 function animate_trace(traces::Gen.Trace; label = "trace")
     t = first(get_args(trace))
     zs = reshape(get_zs(trace), (t, 1))
-    @animate for i = 2:t
+    @animate for i=2:t
         simplot(zs, i, label = label)
     end
 end
 
 function animate_traces(traces::Vector{<:Gen.Trace})
-    n = length(traces)
     zzs = reduce(hcat, map(get_zs, traces))
     t = size(zzs, 1)
     @animate for i=2:t
@@ -74,7 +73,7 @@ end
 
 # Generative Model
 
-# Generate initial scene configuration
+# Stipulates initial scene configuration
 function init_scene(mass::Float64=1.0, restitution::Float64=0.9)
 
     bullet.setGravity(0, 0, -10)
@@ -116,7 +115,7 @@ function init_scene(mass::Float64=1.0, restitution::Float64=0.9)
 end
 
 
-# Update latent variables 
+# Updates latent variables
 function update_latents(latents::RigidBodyLatents, mass::Float64, res::Float64)
     RigidBodyLatents(setproperties(latents.data, mass=mass, restitution=res))
 end
@@ -154,10 +153,10 @@ end
 
 # Inference Procedure
 
-# Rejuvenate latent estimates
+# Rejuvenates latent estimates
 @gen function proposal(trace::Gen.Trace)
 
-    # Read previous mass and restitution estimates
+    # Read current mass and restitution estimates from trace
     choices = get_choices(trace)
     prev_mass = choices[:prior => 1 => :mass]
     prev_res  = choices[:prior => 1 => :restitution]
@@ -193,25 +192,12 @@ function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20
     return state.traces
 end
 
-
-# Main Function
-
-function main()
-    client = bullet.connect(bullet.DIRECT)::Int64
-    bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
-    bullet.resetDebugVisualizerCamera(5, 0, -5, [0, 0, 2])
-
-    # Initialize scene and simulation context
-    rb_cube = RigidBody(init_scene())
-    sim = BulletSim(; client=client)
-    init_state = BulletState(sim, [rb_cube])
-
-    
+# Tests whether different elasticity settings produce plausible trajectories
+function test_elasticity()
     args = (60, sim, init_state)
-    gt_constraints = choicemap((:prior => 1 => :restitution, 0.2), (:prior => 1 => :mass, 1.0))
-    ground_truth = first(generate(simulation, args, gt_constraints))
+    gt_constraints = choicemap((:prior => 1 => :restitution, 0.8), (:prior => 1 => :mass, 1.0))
+    trace = first(generate(simulation, args, gt_constraints))
 
-    #=
     traces = [trace]
     for i=2:5
         res = i*0.2
@@ -228,15 +214,28 @@ function main()
         coefficient_of_restitution = z_max / 3.0
         println(coefficient_of_restitution)
     end
-    =#
+end
 
-    #anim = animate_traces(traces)
-    #gif(anim, fps = 24)
-    
+
+# Main Function
+
+function main()
+    client = bullet.connect(bullet.DIRECT)::Int64
+    bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
+    bullet.resetDebugVisualizerCamera(5, 0, -5, [0, 0, 2])
+    # bullet.resetSimulation(bullet.RESET_USE_DEFORMABLE_WORLD)
+
+    # Initialize simulation context and scene
+    sim = BulletSim(; client=client)
+    rb_cube = RigidBody(init_scene())
+    init_state = BulletState(sim, [rb_cube])
+
     # Generate ground truth trajectory
-    # ground_truth = first(generate(simulation, args, gt_constraints))
+    args = (60, sim, init_state)
+    gt_constraints = choicemap((:prior => 1 => :restitution, 0.2), (:prior => 1 => :mass, 1.0))
+    ground_truth = first(generate(simulation, args, gt_constraints))
    
-    # Read position observations from trace and store in a vector
+    # Transfer position observations from trace to a vector
     gt_choices = get_choices(ground_truth)
     t = args[1]
     observations = Vector{Gen.ChoiceMap}(undef, t)
@@ -247,17 +246,11 @@ function main()
         observations[i] = obs
     end
 
-    # Execute inference
+    # Infer ground truth elasticity
     result = infer(args, observations)
 
     # Visualize particles
     gif(animate_traces(result), fps=24)
-
-    # bullet.resetSimulation(bullet.RESET_USE_DEFORMABLE_WORLD)
-
-    # gif(animate_trace(gt), fps=24)
-
-    # run_sample(sphereBodies, sphere_locations)
 
     bullet.disconnect()
 end
