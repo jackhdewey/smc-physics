@@ -166,7 +166,8 @@ function test_elasticity()
     end
 
     for trace in traces
-        choices = display(get_choices(trace))
+        choices = get_choices(trace)
+        display(choices)
         positions = [choices[:kernel => i => :observation => 1 => :position] for i=35:60]
         zs = map(x -> x[3], positions)
         z_max = maximum(zs)
@@ -193,16 +194,19 @@ function main()
 
     # Generate ground truth trajectory
     args = (60, sim, init_state)
-    gt_constraints = choicemap((:prior => 1 => :restitution, 0.2), (:prior => 1 => :mass, 1.0))
+    gt_constraints = choicemap((:prior => 1 => :restitution, 0.7), (:prior => 1 => :mass, 1.0))
     ground_truth = first(generate(simulation, args, gt_constraints))
+    gif(animate_trace(ground_truth), fps=24)
    
     # Transfer position observations from trace to a vector
     gt_choices = get_choices(ground_truth)
+    display(gt_choices)
+
     t = args[1]
     observations = Vector{Gen.ChoiceMap}(undef, t)
     for i = 1:t
         obs = choicemap()
-        address = :kernel => i => :observe
+        address = :kernel => i => :observation
         set_submap!(obs, address, get_submap(gt_choices, address))
         observations[i] = obs
     end

@@ -29,7 +29,7 @@ function get_zs(trace::Gen.Trace)
     return zs
 end
 
-function animate_trace(traces::Gen.Trace; label = "trace")
+function animate_trace(trace::Gen.Trace; label = "trace")
     t = first(get_args(trace))
     zs = reshape(get_zs(trace), (t, 1))
     @animate for i=2:t
