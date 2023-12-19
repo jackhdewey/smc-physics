@@ -8,8 +8,8 @@
 #        * using a rigid body
 #        * using a sphere
 #        * adding noise to orientation
-# TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
 # TODO: Add ceiling and fourth wall; consider different restitution values
+# TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
 # DONE: Try out elasticity values 0.2 - 1.0
 # DONE: Try a sphere
 
@@ -23,6 +23,29 @@ bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 include("truncatednorm.jl")
 include("plots.jl")
+
+
+# Utilities
+
+# Updates latent variables
+function update_latents(latents::RigidBodyLatents, mass::Float64, res::Float64)
+    RigidBodyLatents(setproperties(latents.data, mass=mass, restitution=res))
+end
+
+# Rejuvenate latent estimates
+@gen function proposal(trace::Gen.Trace)
+
+    # Read current mass and restitution estimates from trace
+    choices = get_choices(trace)
+    prev_mass = choices[:prior => 1 => :mass]
+    prev_res  = choices[:prior => 1 => :restitution]
+
+    # Resample mass and restitution from Gaussians centered at their previous values
+    mass = {:prior => 1 => :mass} ~ trunc_norm(prev_mass, 0.1, 0.0, Inf)
+    restitution = {:prior => 1 => :restitution} ~ trunc_norm(prev_res, 0.1, 0.0, 1.0)
+
+    return (mass, restitution)
+end
 
 
 # Generative Model
@@ -68,11 +91,6 @@ function init_scene(mass::Float64=1.0, restitution::Float64=0.9)
     return sphere
 end
 
-# Updates latent variables
-function update_latents(latents::RigidBodyLatents, mass::Float64, res::Float64)
-    RigidBodyLatents(setproperties(latents.data, mass=mass, restitution=res))
-end
-
 # Samples initial estimates of mass and restitution
 @gen function sample_from_prior(latents::RigidBodyLatents)
     mass = {:mass} ~ gamma(1.2, 10.)
@@ -104,22 +122,7 @@ end
 end
 
 
-# Inference Procedure
-
-# Rejuvenate latent estimates
-@gen function proposal(trace::Gen.Trace)
-
-    # Read current mass and restitution estimates from trace
-    choices = get_choices(trace)
-    prev_mass = choices[:prior => 1 => :mass]
-    prev_res  = choices[:prior => 1 => :restitution]
-
-    # Resample mass and restitution from Gaussians centered at their previous values
-    mass = {:prior => 1 => :mass} ~ trunc_norm(prev_mass, 0.1, 0.0, Inf)
-    restitution = {:prior => 1 => :restitution} ~ trunc_norm(prev_res, 0.1, 0.0, 1.0)
-
-    return (mass, restitution)
-end
+# Inference
 
 # Particle filter
 function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
@@ -144,6 +147,9 @@ function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20
 
     return state.traces
 end
+
+
+# Tests
 
 # Tests whether a range of elasticity settings produce plausible trajectories
 function test_elasticity()
