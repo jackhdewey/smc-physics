@@ -148,6 +148,12 @@ function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20
     return state.traces
 end
 
+# Prediction
+
+function predict() 
+
+end
+
 
 # Tests
 
@@ -212,13 +218,4 @@ function main()
     end
 
     # Infer ground truth elasticity
-    result = infer(args, observations)
-
-    # Visualize particles
-    gif(animate_traces(result), fps=24)
-
-    bullet.disconnect()
-end
-
-
-main()
+    result = i
