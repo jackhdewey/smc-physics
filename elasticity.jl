@@ -218,4 +218,25 @@ function main()
     end
 
     # Infer ground truth elasticity
-    result = i
+    result = infer(args, observations)
+    display(get_choices(result[1]))
+    println(length(result))
+
+    #=
+    for trace in result
+        args = (60, sim, BulletState(sim, [rb_cube]))
+        constraints = Gen.choicemap()
+        constraints[:prior => 1 => :mass] = trace[:prior => 1 => :mass]
+        constraints[:prior => 1 => :restitution] = trace[:prior => 1 => :restitution]
+        Gen.generate(simulation, args, constraints)
+    end
+    =#
+
+    # Visualize particles
+    gif(animate_traces(result), fps=24)
+
+    bullet.disconnect()
+end
+
+
+main()
