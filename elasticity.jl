@@ -28,11 +28,22 @@ include("plots.jl")
 # Utilities
 
 # Updates latent variables
+# The latents are the unobserved variables
+# They need to be updated in the mental representation
 function update_latents(latents::RigidBodyLatents, mass::Float64, res::Float64)
     RigidBodyLatents(setproperties(latents.data, mass=mass, restitution=res))
 end
 
+# Samples initial latent estimates
+@gen function sample_from_prior(latents::RigidBodyLatents)
+    mass = {:mass} ~ gamma(1.2, 10.)
+    res = {:restitution} ~ uniform(0, 1)
+    new_latents = update_latents(latents, mass, res)
+    return new_latents
+end
+
 # Rejuvenate latent estimates
+# For using during MCMC
 @gen function proposal(trace::Gen.Trace)
 
     # Read current mass and restitution estimates from trace
@@ -51,6 +62,7 @@ end
 # Generative Model
 
 # Sets initial scene configuration
+# In the future this will be an inverse graphics module
 function init_scene(mass::Float64=1.0, restitution::Float64=0.9)
 
     bullet.setGravity(0, 0, -10)
@@ -91,15 +103,7 @@ function init_scene(mass::Float64=1.0, restitution::Float64=0.9)
     return sphere
 end
 
-# Samples initial estimates of mass and restitution
-@gen function sample_from_prior(latents::RigidBodyLatents)
-    mass = {:mass} ~ gamma(1.2, 10.)
-    res = {:restitution} ~ uniform(0, 1)
-    new_latents = update_latents(latents, mass, res)
-    return new_latents
-end
-
-# Extracts ground truth position and adds measurement noise
+# Adds measurement noise to ground truth position
 @gen function generate_observation(k::RigidBodyState)
     pos = k.position
     obs = {:position} ~ broadcasted_normal(pos, 0.1)
@@ -113,7 +117,7 @@ end
     return next_state
 end
 
-# Samples latents, then runs complete forward simulation
+# Samples latents from priors, then runs complete forward simulation
 @gen function simulation(T::Int, sim::BulletSim, init_state::BulletState)
     latents = {:prior} ~ Gen.Map(sample_from_prior)(init_state.latents)
     init_state = Accessors.setproperties(init_state; latents=latents)
@@ -127,8 +131,11 @@ end
 # Particle filter
 function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
 
-    get_args(t) = (t, gm_args[2:3]...)
-    state = Gen.initialize_particle_filter(simulation, get_args(0), EmptyChoiceMap(), num_particles)
+    # Function to update first argument (time step) to generative model
+    model_args(t) = (t, gm_args[2:3]...)
+
+    # Initiliaze the particle filter with no observations
+    state = Gen.initialize_particle_filter(simulation, model_args(0), EmptyChoiceMap(), num_particles)
     argdiffs = (UnknownChange(), NoChange(), NoChange())
 
     for (t, obs) = enumerate(obs)
@@ -138,7 +145,8 @@ function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20
             end
             
             Gen.maybe_resample!(state, ess_threshold=num_particles/2)
-            Gen.particle_filter_step!(state, get_args(t), argdiffs, obs)
+
+            Gen.particle_filter_step!(state, model_args(t), argdiffs, obs)
         end
     end
 
@@ -183,7 +191,7 @@ function test_elasticity()
 end
 
 
-# Main Function
+# Main
 
 function main()
     client = bullet.connect(bullet.DIRECT)::Int64
@@ -203,6 +211,8 @@ function main()
     gt_constraints = choicemap((:prior => 1 => :restitution, 0.7), (:prior => 1 => :mass, 1.0))
     ground_truth = first(generate(simulation, args, gt_constraints))
     gif(animate_trace(ground_truth), fps=24)
+
+    # TODO: Add option to read ground truth from a .csv
    
     # Transfer position observations from trace to a vector
     gt_choices = get_choices(ground_truth)
@@ -231,6 +241,8 @@ function main()
         Gen.generate(simulation, args, constraints)
     end
     =#
+
+    # TODO: Write elasticities and trajectories for each particle to .csv 
 
     # Visualize particles
     gif(animate_traces(result), fps=24)
