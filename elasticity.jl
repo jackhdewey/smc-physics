@@ -58,6 +58,30 @@ end
     return (mass, restitution)
 end
 
+function write_to_csv(coll, fname=joinpath(pwd(), "test.csv"))
+    particles_data = []
+    append!(particles_data, ["particle, timestep, x, y, z, qx, qy, qz, qw"])
+
+    for p_num = 1:length(coll)
+        particle = coll[p_num]
+        for (t, frame) in enumerate(particle[:kernel])
+
+            pos = convert(Vector, frame.kinematics[1].position)
+            ori = convert(Vector, frame.kinematics[1].orientation)
+
+            data = Any[p_num; t; pos; ori]
+
+            push!(particles_data, data)
+        end
+    end
+
+    open(fname, "w") do f
+        println(f, particles_data[1])
+        for row in particles_data[2:end]
+            println(f, join(row, ","))
+        end
+    end
+end
 
 # Generative Model
 
@@ -246,6 +270,7 @@ function main()
 
     # Visualize particles
     gif(animate_traces(result), fps=24)
+    write_to_csv(result)
 
     bullet.disconnect()
 end
