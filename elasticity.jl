@@ -8,8 +8,9 @@
 #        * using a rigid body
 #        * using a sphere
 #        * adding noise to orientation
-# TODO: Add ceiling and fourth wall; consider different restitution values
+# TODO: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
 # TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
+# TODO: Add ceiling and fourth wall; consider different restitution values
 # DONE: Try out elasticity values 0.2 - 1.0
 # DONE: Try a sphere
 
@@ -42,8 +43,7 @@ end
     return new_latents
 end
 
-# Rejuvenate latent estimates
-# For using during MCMC
+# Rejuvenate latent estimates - for use during MCMC
 @gen function proposal(trace::Gen.Trace)
 
     # Read current mass and restitution estimates from trace
@@ -225,7 +225,7 @@ function main()
     # bullet.resetSimulation(bullet.RESET_USE_DEFORMABLE_WORLD)
 
     # Initialize simulation context 
-    sim = BulletSim(; client=client)
+    sim = BulletSim(step_dur=1/30; client=client)
 
     # Initialize scene
     rb_cube = RigidBody(init_scene())
