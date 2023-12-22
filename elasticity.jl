@@ -184,6 +184,7 @@ end
 
 function predict() 
 
+
 end
 
 
@@ -256,6 +257,15 @@ function main()
     display(get_choices(result[1]))
     println(length(result))
 
+    n = length(result)
+    ppd = Vector{Gen.Trace}(undef, n)
+    for i=1:n
+        prev_args = get_args(result[i])
+        new_args = (prev_args[1] + 60, prev_args[2:end]...)
+        arg_diffs = (UnknownChange(), NoChange(), NoChange())
+        ppd[i] = first(Gen.update(result[i], new_args, arg_diffs, choicemap()))
+    end
+
     #=
     for trace in result
         args = (60, sim, BulletState(sim, [rb_cube]))
@@ -271,6 +281,7 @@ function main()
     # Visualize particles
     gif(animate_traces(result), fps=24)
     write_to_csv(result)
+    gif(animate_traces(ppd), fps=24)
 
     bullet.disconnect()
 end

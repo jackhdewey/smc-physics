@@ -12,7 +12,7 @@ using Plots
     linewidth -->range(0,10, length=n)
     seriesalpha --> range(0,1,length=n)
     xguide --> "time"
-    xlims --> (1, 60)
+    xlims --> (1, 120)
     yguide --> "height of cube (z)"
     ylims --> (0, 4.0)
     label --> false
@@ -29,11 +29,11 @@ function get_zs(trace::Gen.Trace)
     return zs
 end
 
-function animate_trace(trace::Gen.Trace; label = "trace")
+function animate_trace(trace::Gen.Trace; label="trace")
     t = first(get_args(trace))
     zs = reshape(get_zs(trace), (t, 1))
     @animate for i=2:t
-        simplot(zs, i, label = label)
+        simplot(zs, i, label=label)
     end
 end
 
