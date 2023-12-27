@@ -13,7 +13,6 @@
 # TODO: Multiple forward passes per particle, with some noise added over velocity
 # TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
 
-
 using Accessors
 using Distributions
 using Gen
@@ -31,25 +30,12 @@ include("plots.jl")
 
 # Generative Model
 
-# Updates latent variables
-# The latents are the unobserved variables
-# They need to be updated in the mental representation
-function update_latents(latents::RigidBodyLatents, mass::Float64, res::Float64)
-    RigidBodyLatents(setproperties(latents.data, mass=mass, restitution=res))
-end
-
 # Samples initial latent estimates
-@gen function sample_from_prior(latents::RigidBodyLatents)
+@gen function sample_latents(latents::RigidBodyLatents)
     mass = {:mass} ~ gamma(1.2, 10.)
     res = {:restitution} ~ uniform(0, 1)
-    new_latents = update_latents(latents, mass, res)
+    new_latents = RigidBodyLatents(setproperties(latents.data, mass=mass, restitution=res))
     return new_latents
-end
-
-# Adds measurement noise to ground truth position
-@gen function generate_observation(k::RigidBodyState)
-    obs = {:position} ~ broadcasted_normal(k.position, 0.1)
-    return obs
 end
 
 # Sets initial scene configuration
@@ -91,30 +77,37 @@ function generate_scene(sim::PhySim, mass::Float64=1.0, restitution::Float64=0.9
     sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=[0., 0., 3.], baseOrientation=startOrientationCube)
     bullet.changeDynamics(sphere, -1, mass=mass, restitution=restitution)
 
-    # Generate representation of sphere's initial state
-    rb_sphere = RigidBody(sphere)
-    init_state = BulletState(sim, [rb_sphere])
+    # Store representation of sphere's initial state
+    init_state = BulletState(sim, [RigidBody(sphere)])
 
     return init_state
 end
 
-# Deterministically generates the next state, then samples an observation
+# Adds measurement noise to ground truth position
+@gen function generate_observation(k::RigidBodyState)
+    obs = {:position} ~ broadcasted_normal(k.position, 0.1)
+    return obs
+end
+
+# Syncs Bullet to the given state, generates the next state, then samples an observation
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
 
-    # Synchronize state, then use Bullet to generate next state
+    # Synchronizes state, then use Bullet to generate next state
     next_state::BulletState = PhySMC.step(sim, current_state)
 
-    # Apply noise to x, y, and z positions
+    # Applies noise to x, y, and z positions
     {:observation} ~ Gen.Map(generate_observation)(next_state.kinematics)
 
     return next_state
 end
 
-# Samples latents from priors, then run complete forward simulation
-@gen function generate_scene_trajectory(T::Int, init_state::BulletState, sim::BulletSim)
+# Samples latents from their priors, then runs complete forward simulation
+@gen function generate_trajectory(T::Int, init_state::BulletState, sim::BulletSim)
 
     # Resample the target object's latents - mass and restitution
-    latents = {:latents} ~ Gen.Map(sample_from_prior)(init_state.latents)
+    latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
+    
+    # init_state = generate_scene(sim, latents.mass, latents.restitution)
     init_state = Accessors.setproperties(init_state; latents=latents)
 
     # Simulate T time steps
@@ -126,14 +119,16 @@ end
 
 # Inference
 
-function get_observations(trace, T::Int)
+# Parses the full sequence of observations from choice map
+function get_observations(choices::Gen.ChoiceMap, T::Int)
     observations = Vector{Gen.ChoiceMap}(undef, T)
     for i=1:T
-        obs = choicemap()
-        address = :kernel => i => :observation
-        set_submap!(obs, address, get_submap(gt_choices, address))
-        observations[i] = obs
+        cm = choicemap()
+        addr = :trajectory => i => :observation => :position
+        set_submap!(cm, addr, get_submap(choices, addr))
+        observations[i] = cm
     end
+    return observations
 end
 
 # Propose new latents
@@ -141,12 +136,12 @@ end
 
     # Read current mass and restitution estimates from trace
     choices = get_choices(trace)
-    prev_mass = choices[:prior => 1 => :mass]
-    prev_res  = choices[:prior => 1 => :restitution]
+    prev_mass = choices[:latents => 1 => :mass]
+    prev_res  = choices[:latents => 1 => :restitution]
 
     # Resample mass and restitution from Gaussians centered at their previous values
-    mass = {:prior => 1 => :mass} ~ trunc_norm(prev_mass, 0.1, 0.0, Inf)
-    restitution = {:prior => 1 => :restitution} ~ trunc_norm(prev_res, 0.1, 0.0, 1.0)
+    mass = {:latents => 1 => :mass} ~ trunc_norm(prev_mass, 0.1, 0.0, Inf)
+    restitution = {:latents => 1 => :restitution} ~ trunc_norm(prev_res, 0.1, 0.0, 1.0)
 
     return (mass, restitution)
 end
@@ -158,22 +153,24 @@ function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20
     model_args(t) = (t, gm_args[2:3]...)
 
     # Initiliaze the particle filter with no observations
-    state = Gen.initialize_particle_filter(generate_scene_trajectory, model_args(0), EmptyChoiceMap(), num_particles)
-    argdiffs = (UnknownChange(), NoChange(), NoChange())
+    state = Gen.initialize_particle_filter(generate_trajectory, model_args(0), EmptyChoiceMap(), num_particles)
 
+    # Iteratively simulate and filter particles
+    argdiffs = (UnknownChange(), NoChange(), NoChange())
     for (t, obs) = enumerate(obs)
         @elapsed begin
+            
+            # Decide whether to cull and resample poorly performing particles
+            Gen.maybe_resample!(state, ess_threshold=num_particles/2)
+
+            # Simulate the next time step and score against new observation
+            Gen.particle_filter_step!(state, model_args(t), argdiffs, obs)
 
             # Rejuvenation
             for i=1:num_particles
                 state.traces[i], _ = Gen.mh(state.traces[i], proposal, ())
             end
-            
-            # Decide whether to cull poorly performing particles
-            Gen.maybe_resample!(state, ess_threshold=num_particles/2)
 
-            # Simulate the next time step and score against observation
-            Gen.particle_filter_step!(state, model_args(t), argdiffs, obs)
         end
     end
 
@@ -187,6 +184,7 @@ function predict(result, T::Int)
 
     n = length(result)
     ppd = Vector{Gen.Trace}(undef, n)
+
     for i=1:n
         prev_args = get_args(result[i])
         new_args = (prev_args[1] + T, prev_args[2:end]...)
@@ -210,24 +208,21 @@ end
 
 # Data
 
-function write_to_csv(coll, fname=joinpath(pwd(), "test.csv"))
+function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
     println("Writing simulation data to " * fname)
-    particles_data = DataFrame(particle=Int[], frame=Int[], x=[], y=[], z=[], ox=[], oy=[], oz=[], ow=[])
-    fname = "test.csv"
+    particle_data = DataFrame(particle=Int[], frame=Int[], x=[], y=[], z=[], ox=[], oy=[], oz=[], ow=[])
 
-    for p_num = 1:length(coll)
-        particle = coll[p_num]
-        for (f, frame) in enumerate(particle[:kernel])
+    for (p, particle) in enumerate(particles)
+        for (f, frame) in enumerate(particle[:trajectory])
             pos = convert(Vector, frame.kinematics[1].position)
             ori = convert(Vector, frame.kinematics[1].orientation)
-            data = [p_num; f; pos; ori]
-
-            push!(particles_data, data)
+            data = [p; f; pos; ori]
+            push!(particle_data, data)
         end
     end
 
-    CSV.write(fname, particles_data)
+    CSV.write(fname, particle_data)
 end
 
 function read_from_csv(fname)
@@ -240,13 +235,13 @@ end
 # Tests whether a range of elasticity settings produce plausible trajectories
 function test_elasticity()
     args = (60, sim, init_state)
-    gt_constraints = choicemap((9:prior => 1 => :restitution, 0.8), (:prior => 1 => :mass, 1.0))
+    gt_constraints = choicemap((:latents => 1 => :restitution, 0.8), (:latents => 1 => :mass, 1.0))
     trace = first(generate(simulation, args, gt_constraints))
 
     traces = [trace]
     for i=2:5
         res = i*0.2
-        gt_constraints = choicemap((:prior => 1 => :restitution, res), (:prior => 1 => :mass, 1.0))
+        gt_constraints = choicemap((:latents => 1 => :restitution, res), (:latents => 1 => :mass, 1.0))
         trace = first(generate(simulation, args, gt_constraints))
         push!(traces, trace)
     end
@@ -254,7 +249,7 @@ function test_elasticity()
     for trace in traces
         choices = get_choices(trace)
         display(choices)
-        positions = [choices[:kernel => i => :observation => 1 => :position] for i=35:60]
+        positions = [choices[:trajectory => i => :observation => 1 => :position] for i=35:60]
         zs = map(x -> x[3], positions)
         z_max = maximum(zs)
         coefficient_of_restitution = z_max / 3.0
@@ -274,24 +269,41 @@ function main()
     bullet.resetDebugVisualizerCamera(5, 0, -5, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
-    # Generate ground truth trajectory
     init_state = generate_scene(sim)
     args = (60, init_state, sim)
-    gt_constraints = choicemap((:latents => 1 => :restitution, 0.7), (:latents => 1 => :mass, 1.0))
-    ground_truth = first(generate(generate_scene_trajectory, args, gt_constraints))
 
+    #=
+    # Generate ground truth trajectory
+    gt_constraints = choicemap((:latents => 1 => :restitution, 0.7), (:latents => 1 => :mass, 1.0))
+    ground_truth = first(generate(generate_trajectory, args, gt_constraints))
+
+    # Display ground truth trajectory
     gif(animate_trace(ground_truth), fps=24)
-    display(get_choices(ground_truth))
+    gt_choices = get_choices(ground_truth)
+    display(gt_choices)
+    =#
+
+    # Read ground truth trajectory from file
+    # TODO: This isn't working currently.  Need to: 1) iterate data frame, 2) account for RealFlow's lower frame rate
+    fname = "Cube_Ela9_Var118_observed.csv"
+    data = CSV.read(fname, DataFrame)
+    observations = Vector{Gen.ChoiceMap}(undef, args[1])
+    for (i, datum) in enumerate(data)
+        addr = :trajectory => i => :observation => :position
+        cm = Gen.choicemap((addr, datum))
+        observations[i] = cm
+    end
 
     # Infer elasticity from observed trajectory 
-    constraints = get_observations(ground_truth, args[1])
-    result = infer(args, constraints)
-    write_to_csv(result)
+    #constraints = get_observations(gt_choices, args[1])
+    result = infer(args, observations)
     gif(animate_traces(result), fps=24)
+    write_to_csv(result, "observations.csv")
     
     # For each particle, predict the next 60 time steps
     ppd = predict(result, 60)    
-    gif(animate_traces(ppd), fps=24)        
+    gif(animate_traces(ppd), fps=24)  
+    write_to_csv(ppd, "predictions.csv")   
 
     bullet.disconnect()
 end
