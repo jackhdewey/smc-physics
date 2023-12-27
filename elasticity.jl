@@ -25,6 +25,9 @@ using PhyBullet
 using DataFrames
 using CSV
 
+using DataFrames
+using CSV
+
 bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 include("truncatednorm.jl")
