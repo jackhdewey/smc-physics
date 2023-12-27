@@ -20,6 +20,9 @@ using Gen
 using PyCall
 using PhySMC
 using PhyBullet
+using DataFrames
+using CSV
+
 bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 include("truncatednorm.jl")
@@ -58,29 +61,29 @@ end
     return (mass, restitution)
 end
 
+
 function write_to_csv(coll, fname=joinpath(pwd(), "test.csv"))
-    particles_data = []
-    append!(particles_data, ["particle, timestep, x, y, z, qx, qy, qz, qw"])
+
+    println("Writing simulation data to " * fname)
+    particles_data = DataFrame(particle=Int[], frame=Int[], x=[], y=[], z=[], ox=[], oy=[], oz=[], ow=[])
+    fname = "test.csv"
 
     for p_num = 1:length(coll)
         particle = coll[p_num]
-        for (t, frame) in enumerate(particle[:kernel])
-
+        for (f, frame) in enumerate(particle[:kernel])
             pos = convert(Vector, frame.kinematics[1].position)
             ori = convert(Vector, frame.kinematics[1].orientation)
-
-            data = Any[p_num; t; pos; ori]
+            data = [p_num; f; pos; ori]
 
             push!(particles_data, data)
         end
     end
 
-    open(fname, "w") do f
-        println(f, particles_data[1])
-        for row in particles_data[2:end]
-            println(f, join(row, ","))
-        end
-    end
+    CSV.write(fname, particles_data)
+end
+
+function read_from_csv(fname)
+    data = CSV.read(fname, DataFrame)
 end
 
 # Generative Model
