@@ -11,10 +11,8 @@
 # TODO: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
 # TODO: Add ceiling and fourth wall; consider different restitution values
 # TODO: Multiple forward passes per particle, with some noise added over velocity
-# DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
-# DONE: Add a prediction phase that simulates forward some output particles
-# DONE: Try out elasticity values 0.2 - 1.0
-# DONE: Try a sphere
+# TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
+
 
 using Accessors
 using Distributions
@@ -22,9 +20,6 @@ using Gen
 using PyCall
 using PhySMC
 using PhyBullet
-using DataFrames
-using CSV
-
 using DataFrames
 using CSV
 
@@ -106,21 +101,23 @@ end
 # Deterministically generates the next state, then samples an observation
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
 
-    # Synchronizes state and asks Bullet to generate next time step
+    # Synchronize state, then use Bullet to generate next state
     next_state::BulletState = PhySMC.step(sim, current_state)
 
-    # Applies noise independently to x, y, and z position
+    # Apply noise to x, y, and z positions
     {:observation} ~ Gen.Map(generate_observation)(next_state.kinematics)
 
     return next_state
 end
 
 # Samples latents from priors, then run complete forward simulation
-@gen function generate_scene_trajectory(T::Int, sim::BulletSim, init_state::BulletState)
+@gen function generate_scene_trajectory(T::Int, init_state::BulletState, sim::BulletSim)
 
+    # Resample the target object's latents - mass and restitution
     latents = {:latents} ~ Gen.Map(sample_from_prior)(init_state.latents)
     init_state = Accessors.setproperties(init_state; latents=latents)
 
+    # Simulate T time steps
     states = {:trajectory} ~ Gen.Unfold(kernel)(T, init_state, sim)
 
     return states
@@ -157,11 +154,11 @@ end
 # Particle filter
 function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
 
-    # Function to update first argument (time step) to generative model
+    # Update first argument (time step) to generative model
     model_args(t) = (t, gm_args[2:3]...)
 
     # Initiliaze the particle filter with no observations
-    state = Gen.initialize_particle_filter(simulation, model_args(0), EmptyChoiceMap(), num_particles)
+    state = Gen.initialize_particle_filter(generate_scene_trajectory, model_args(0), EmptyChoiceMap(), num_particles)
     argdiffs = (UnknownChange(), NoChange(), NoChange())
 
     for (t, obs) = enumerate(obs)
@@ -279,18 +276,16 @@ function main()
 
     # Generate ground truth trajectory
     init_state = generate_scene(sim)
-    args = (60, sim, init_state)
+    args = (60, init_state, sim)
     gt_constraints = choicemap((:latents => 1 => :restitution, 0.7), (:latents => 1 => :mass, 1.0))
     ground_truth = first(generate(generate_scene_trajectory, args, gt_constraints))
 
     gif(animate_trace(ground_truth), fps=24)
     display(get_choices(ground_truth))
 
-    # TODO: Add option to read ground truth from a .csv 
-
-    # Infer elasticity from position observations
-    get_observations(ground_truth, args[1])
-    result = infer(args, observations)
+    # Infer elasticity from observed trajectory 
+    constraints = get_observations(ground_truth, args[1])
+    result = infer(args, constraints)
     write_to_csv(result)
     gif(animate_traces(result), fps=24)
     
