@@ -285,8 +285,9 @@ function main()
     fname = "Cube_Ela9_Var118_observed.csv"
     data = CSV.read(fname, DataFrame)
     observations = Vector{Gen.ChoiceMap}(undef, args[1])
-    for (i, datum) in enumerate(data)
+    for i=1:size(data)[1]
         addr = :trajectory => i => :observation => :position
+        datum = values(data[i, :])
         cm = Gen.choicemap((addr, datum))
         observations[i] = cm
     end
