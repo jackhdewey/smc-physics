@@ -8,10 +8,10 @@
 #        * using a rigid body
 #        * using a sphere
 #        * adding noise to orientation
+# TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
 # TODO: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
 # TODO: Add ceiling and fourth wall; consider different restitution values
 # TODO: Multiple forward passes per particle, with some noise added over velocity
-# TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
 
 using Accessors
 using Distributions
@@ -131,7 +131,7 @@ function get_observations(choices::Gen.ChoiceMap, T::Int)
     return observations
 end
 
-# Propose new latents
+# Propose new latents - for MCMC
 @gen function proposal(trace::Gen.Trace)
 
     # Read current mass and restitution estimates from trace
@@ -225,10 +225,6 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
     CSV.write(fname, particle_data)
 end
 
-function read_from_csv(fname)
-    data = CSV.read(fname, DataFrame)
-end
-
 
 # Tests
 
@@ -270,7 +266,7 @@ function main()
     sim = BulletSim(step_dur=1/30; client=client)
 
     init_state = generate_scene(sim)
-    args = (60, init_state, sim)
+    args = (30, init_state, sim)
 
     #=
     # Generate ground truth trajectory
@@ -281,6 +277,7 @@ function main()
     gif(animate_trace(ground_truth), fps=24)
     gt_choices = get_choices(ground_truth)
     display(gt_choices)
+    constraints = get_observations(gt_choices, args[1])
     =#
 
     # Read ground truth trajectory from file
@@ -295,13 +292,12 @@ function main()
     end
 
     # Infer elasticity from observed trajectory 
-    #constraints = get_observations(gt_choices, args[1])
     result = infer(args, observations)
     gif(animate_traces(result), fps=24)
     write_to_csv(result, "observations.csv")
     
     # For each particle, predict the next 60 time steps
-    ppd = predict(result, 60)    
+    ppd = predict(result, 90)    
     gif(animate_traces(ppd), fps=24)  
     write_to_csv(ppd, "predictions.csv")   
 
