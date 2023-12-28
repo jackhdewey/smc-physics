@@ -8,7 +8,8 @@
 #        * using a rigid body
 #        * using a sphere
 #        * adding noise to orientation
-# TODO: Print / write the traces to a .csv file, check whether it recovers elasticity
+# DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
+# TODO: Account for initial position
 # TODO: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
 # TODO: Add ceiling and fourth wall; consider different restitution values
 # TODO: Multiple forward passes per particle, with some noise added over velocity
@@ -40,7 +41,7 @@ end
 
 # Sets initial scene configuration
 # In the future this will be an inverse graphics module
-function generate_scene(sim::PhySim, mass::Float64=1.0, restitution::Float64=0.9)
+@gen function generate_scene(sim::PhySim, mass::Float64=1.0, restitution::Float64=0.9)
 
     bullet.setGravity(0, 0, -10)
 
@@ -72,9 +73,14 @@ function generate_scene(sim::PhySim, mass::Float64=1.0, restitution::Float64=0.9
     =#
 
     # Create and position sphere
-    sphereBody = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.2)
+    init_position_x = {:init_state => :x0} ~ uniform(-1, 1)
+    init_position_y = {:init_state => :y0} ~ uniform(-1, 1)
+    init_position_z = {:init_state => :z0} ~ uniform(1, 3)
+    start_position = [init_position_x, init_position_y, init_position_z]
     startOrientationCube = bullet.getQuaternionFromEuler([0, 0, 1])
-    sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=[0., 0., 3.], baseOrientation=startOrientationCube)
+
+    sphereBody = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.2)
+    sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=start_position, baseOrientation=startOrientationCube)
     bullet.changeDynamics(sphere, -1, mass=mass, restitution=restitution)
 
     # Store representation of sphere's initial state
@@ -277,18 +283,19 @@ function main()
     gif(animate_trace(ground_truth), fps=24)
     gt_choices = get_choices(ground_truth)
     display(gt_choices)
-    constraints = get_observations(gt_choices, args[1])
+    observations = get_observations(gt_choices, args[1])
     =#
 
     # Read ground truth trajectory from file
-    # TODO: This isn't working currently.  Need to: 1) iterate data frame, 2) account for RealFlow's lower frame rate
     fname = "Cube_Ela9_Var118_observed.csv"
     data = CSV.read(fname, DataFrame)
     observations = Vector{Gen.ChoiceMap}(undef, args[1])
     for i=1:size(data)[1]
         addr = :trajectory => i => :observation => :position
         datum = values(data[i, :])
-        cm = Gen.choicemap((addr, datum))
+        new_datum = [datum[1], datum[3], datum[2]]
+        println(new_datum)
+        cm = Gen.choicemap((addr, new_datum))
         observations[i] = cm
     end
 
