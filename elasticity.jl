@@ -9,7 +9,7 @@
 #        * using a sphere
 #        * adding noise to orientation
 # DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
-# TODO: Account for initial position
+# TODO: Set initial position using RealFlow data
 # TODO: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
 # TODO: Add ceiling and fourth wall; consider different restitution values
 # TODO: Multiple forward passes per particle, with some noise added over velocity
@@ -41,7 +41,7 @@ end
 
 # Sets initial scene configuration
 # In the future this will be an inverse graphics module
-@gen function generate_scene(sim::PhySim, mass::Float64=1.0, restitution::Float64=0.9)
+@gen function generate_scene(sim::PhySim, init_position::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
 
     bullet.setGravity(0, 0, -10)
 
@@ -73,14 +73,18 @@ end
     =#
 
     # Create and position sphere
+    #=
     init_position_x = {:init_state => :x0} ~ uniform(-1, 1)
     init_position_y = {:init_state => :y0} ~ uniform(-1, 1)
     init_position_z = {:init_state => :z0} ~ uniform(1, 3)
     start_position = [init_position_x, init_position_y, init_position_z]
+    =#
+
+    startPositionCube = init_position
     startOrientationCube = bullet.getQuaternionFromEuler([0, 0, 1])
 
     sphereBody = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.2)
-    sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=start_position, baseOrientation=startOrientationCube)
+    sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=startPositionCube, baseOrientation=startOrientationCube)
     bullet.changeDynamics(sphere, -1, mass=mass, restitution=restitution)
 
     # Store representation of sphere's initial state
@@ -264,6 +268,20 @@ end
 
 function main()
 
+    # Read ground truth trajectory from file
+    fname = "Cube_Ela9_Var118_observed.csv"
+    data = CSV.read(fname, DataFrame)
+    datum = values(data[1, :])
+    initial_position = [datum[1], datum[3], datum[2]]
+    observations = Vector{Gen.ChoiceMap}(undef, size(data)[1]-1)
+    for i=1:size(data)[1]-1
+        addr = :trajectory => i => :observation => :position
+        datum = values(data[i, :])
+        new_datum = [datum[1], datum[3], datum[2]]
+        cm = Gen.choicemap((addr, new_datum))
+        observations[i] = cm
+    end
+
     # Initialize simulation context 
     client = bullet.connect(bullet.DIRECT)::Int64
     bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -271,8 +289,8 @@ function main()
     bullet.resetDebugVisualizerCamera(5, 0, -5, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
-    init_state = generate_scene(sim)
-    args = (30, init_state, sim)
+    init_state = generate_scene(sim, initial_position)
+    args = (29, init_state, sim)
 
     #=
     # Generate ground truth trajectory
@@ -285,19 +303,6 @@ function main()
     display(gt_choices)
     observations = get_observations(gt_choices, args[1])
     =#
-
-    # Read ground truth trajectory from file
-    fname = "Cube_Ela9_Var118_observed.csv"
-    data = CSV.read(fname, DataFrame)
-    observations = Vector{Gen.ChoiceMap}(undef, args[1])
-    for i=1:size(data)[1]
-        addr = :trajectory => i => :observation => :position
-        datum = values(data[i, :])
-        new_datum = [datum[1], datum[3], datum[2]]
-        println(new_datum)
-        cm = Gen.choicemap((addr, new_datum))
-        observations[i] = cm
-    end
 
     # Infer elasticity from observed trajectory 
     result = infer(args, observations)
