@@ -64,23 +64,20 @@ end
     plane4 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[1, 0, 1], baseOrientation=quaternion)
     bullet.changeDynamics(plane4, -1, mass=0.0, restitution=0.5)
 
-
-    
-
-
     #=
+    # Sample initial position
     init_position_x = {:init_state => :x0} ~ uniform(-1, 1)
     init_position_y = {:init_state => :y0} ~ uniform(-1, 1)
     init_position_z = {:init_state => :z0} ~ uniform(1, 3)
     start_position = [init_position_x, init_position_y, init_position_z]
     =#
 
-    startPositionCube = init_position
-    startOrientationCube = bullet.getQuaternionFromEuler([0, 0, 1])
+    startPosition = init_position
+    startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
 
     # Create and position cube
     cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.2, .2, .2])
-    cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=startPositionCube, baseOrientation=startOrientationCube)
+    cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=startPosition, baseOrientation=startOrientation)
 
     #=
     # Create and position sphere
@@ -88,10 +85,11 @@ end
     sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=startPositionCube, baseOrientation=startOrientationCube)
     =#
 
+    # Set kinematics and dynamics dynamics
     bullet.changeDynamics(cube, -1, mass=mass, restitution=restitution)
     bullet.resetBaseVelocity(cube, linearVelocity=init_velocity)
 
-    # Store representation of sphere's initial state
+    # Store representation of cube's initial state
     init_state = BulletState(sim, [RigidBody(cube)])
 
     return init_state
@@ -273,13 +271,30 @@ end
 
 function main()
 
-    # Read ground truth trajectory from file
+    # Initialize simulation context 
+    client = bullet.connect(bullet.DIRECT)::Int64
+    bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
+    #bullet.resetSimulation(bullet.RESET_USE_DEFORMABLE_WORLD)
+    bullet.resetDebugVisualizerCamera(5, 0, -5, [0, 0, 2])
+    sim = BulletSim(step_dur=1/30; client=client)
+
+    # Read ground truth initial velocity
+    fname = "Cube_Ela9_Var118.csv"
+    data = CSV.read(fname, DataFrame)
+    datum = values(data[1, 11:13])
+    initial_velocity = [datum[1], datum[3], datum[2]]
+    println(initial_velocity)
+
+    # Read ground truth initial position
     fname = "Cube_Ela9_Var118_observed.csv"
     data = CSV.read(fname, DataFrame)
     datum = values(data[1, :])
     initial_position = [datum[1], datum[3], datum[2]]
     println(initial_position)
 
+    init_state = generate_scene(sim, initial_position, initial_velocity)
+
+    # Read ground truth trajectory
     observations = Vector{Gen.ChoiceMap}(undef, size(data)[1]-1)
     zs = Vector{Float64}(undef, size(data)[1]-1)
     for i=1:size(data)[1]-1
@@ -291,23 +306,6 @@ function main()
         zs[i] = datum[2]
     end
     gif(animate_observations(zs))
-
-    # Read ground truth trajectory from file
-    fname = "Cube_Ela9_Var118.csv"
-    data = CSV.read(fname, DataFrame)
-    datum = values(data[1, 11:13])
-    initial_velocity = [datum[1], datum[3], datum[2]]
-    println(initial_velocity)
-
-    # Initialize simulation context 
-    client = bullet.connect(bullet.DIRECT)::Int64
-    bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
-    #bullet.resetSimulation(bullet.RESET_USE_DEFORMABLE_WORLD)
-    bullet.resetDebugVisualizerCamera(5, 0, -5, [0, 0, 2])
-    sim = BulletSim(step_dur=1/30; client=client)
-
-    init_state = generate_scene(sim, initial_position, initial_velocity)
-    args = (29, init_state, sim)
 
     #=
     # Generate ground truth trajectory
@@ -322,7 +320,9 @@ function main()
     =#
 
     # Infer elasticity from observed trajectory 
+    args = (29, init_state, sim)
     result = infer(args, observations)
+    display(get_choices(result[1]))
     gif(animate_traces(result), fps=24)
     write_to_csv(result, "observations.csv")
     
