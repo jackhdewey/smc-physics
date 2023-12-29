@@ -19,6 +19,12 @@ using Plots
     inds, z[inds, :]
 end
 
+function animate_observations(zs::Vector{Float64})
+    @animate for i=2:length(zs)
+        simplot(zs, i)
+    end
+end
+
 function get_zs(trace::Gen.Trace)
     t, _... = get_args(trace)
     states = get_retval(trace)

@@ -41,7 +41,7 @@ end
 
 # Sets initial scene configuration
 # In the future this will be an inverse graphics module
-@gen function generate_scene(sim::PhySim, init_position::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
+@gen function generate_scene(sim::PhySim, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
 
     bullet.setGravity(0, 0, -10)
 
@@ -64,15 +64,10 @@ end
     plane4 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[1, 0, 1], baseOrientation=quaternion)
     bullet.changeDynamics(plane4, -1, mass=0.0, restitution=0.5)
 
-    #=
-    # Create and position cube
-    cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.2, .2, .2])
-    startOrientationCube = bullet.getQuaternionFromEuler([0, 0, 1])
-    cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=[0., 0., 3.], baseOrientation=startOrientationCube)
-    bullet.changeDynamics(cube, -1, mass=mass, restitution=restitution)
-    =#
 
-    # Create and position sphere
+    
+
+
     #=
     init_position_x = {:init_state => :x0} ~ uniform(-1, 1)
     init_position_y = {:init_state => :y0} ~ uniform(-1, 1)
@@ -83,12 +78,21 @@ end
     startPositionCube = init_position
     startOrientationCube = bullet.getQuaternionFromEuler([0, 0, 1])
 
+    # Create and position cube
+    cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.2, .2, .2])
+    cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=startPositionCube, baseOrientation=startOrientationCube)
+
+    #=
+    # Create and position sphere
     sphereBody = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.2)
     sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=startPositionCube, baseOrientation=startOrientationCube)
-    bullet.changeDynamics(sphere, -1, mass=mass, restitution=restitution)
+    =#
+
+    bullet.changeDynamics(cube, -1, mass=mass, restitution=restitution)
+    bullet.resetBaseVelocity(cube, linearVelocity=init_velocity)
 
     # Store representation of sphere's initial state
-    init_state = BulletState(sim, [RigidBody(sphere)])
+    init_state = BulletState(sim, [RigidBody(cube)])
 
     return init_state
 end
@@ -184,7 +188,7 @@ function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20
         end
     end
 
-    return state.traces
+    return Gen.sample_unweighted_traces(state, 5)
 end
 
 
@@ -221,13 +225,14 @@ end
 function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
     println("Writing simulation data to " * fname)
-    particle_data = DataFrame(particle=Int[], frame=Int[], x=[], y=[], z=[], ox=[], oy=[], oz=[], ow=[])
+    particle_data = DataFrame(particle=Int[], elasticity=[], frame=Int[], x=[], y=[], z=[], ox=[], oy=[], oz=[], ow=[])
 
     for (p, particle) in enumerate(particles)
+        ela = particle[:latents => 1 => :restitution]
         for (f, frame) in enumerate(particle[:trajectory])
             pos = convert(Vector, frame.kinematics[1].position)
             ori = convert(Vector, frame.kinematics[1].orientation)
-            data = [p; f; pos; ori]
+            data = [p; ela; f; pos; ori]
             push!(particle_data, data)
         end
     end
@@ -273,14 +278,26 @@ function main()
     data = CSV.read(fname, DataFrame)
     datum = values(data[1, :])
     initial_position = [datum[1], datum[3], datum[2]]
+    println(initial_position)
+
     observations = Vector{Gen.ChoiceMap}(undef, size(data)[1]-1)
+    zs = Vector{Float64}(undef, size(data)[1]-1)
     for i=1:size(data)[1]-1
         addr = :trajectory => i => :observation => :position
         datum = values(data[i, :])
         new_datum = [datum[1], datum[3], datum[2]]
         cm = Gen.choicemap((addr, new_datum))
         observations[i] = cm
+        zs[i] = datum[2]
     end
+    gif(animate_observations(zs))
+
+    # Read ground truth trajectory from file
+    fname = "Cube_Ela9_Var118.csv"
+    data = CSV.read(fname, DataFrame)
+    datum = values(data[1, 11:13])
+    initial_velocity = [datum[1], datum[3], datum[2]]
+    println(initial_velocity)
 
     # Initialize simulation context 
     client = bullet.connect(bullet.DIRECT)::Int64
@@ -289,7 +306,7 @@ function main()
     bullet.resetDebugVisualizerCamera(5, 0, -5, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
-    init_state = generate_scene(sim, initial_position)
+    init_state = generate_scene(sim, initial_position, initial_velocity)
     args = (29, init_state, sim)
 
     #=
