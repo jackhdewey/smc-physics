@@ -104,11 +104,11 @@ end
 # Syncs Bullet to the given state, generates the next state, then samples an observation
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
 
+    # Applies noise to x, y, and z positions
+    {:observation} ~ Gen.Map(generate_observation)(current_state.kinematics)
+
     # Synchronizes state, then use Bullet to generate next state
     next_state::BulletState = PhySMC.step(sim, current_state)
-
-    # Applies noise to x, y, and z positions
-    {:observation} ~ Gen.Map(generate_observation)(next_state.kinematics)
 
     return next_state
 end
@@ -118,9 +118,10 @@ end
 
     # Resample the target object's latents - mass and restitution
     latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
-    
-    # init_state = generate_scene(sim, latents.mass, latents.restitution)
     init_state = Accessors.setproperties(init_state; latents=latents)
+
+    # init_state = generate_scene(sim, latents.mass, latents.restitution)
+    # {:init_position} ~ Gen.Map(generate_observation)(init_state.kinematics)
 
     # Simulate T time steps
     states = {:trajectory} ~ Gen.Unfold(kernel)(T, init_state, sim)
@@ -223,14 +224,14 @@ end
 function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
     println("Writing simulation data to " * fname)
-    particle_data = DataFrame(particle=Int[], elasticity=[], frame=Int[], x=[], y=[], z=[], ox=[], oy=[], oz=[], ow=[])
+    particle_data = DataFrame(particle=Int[], elasticity=[], frame=Int[], x=[], y=[], z=[])
 
     for (p, particle) in enumerate(particles)
         ela = particle[:latents => 1 => :restitution]
         for (f, frame) in enumerate(particle[:trajectory])
             pos = convert(Vector, frame.kinematics[1].position)
-            ori = convert(Vector, frame.kinematics[1].orientation)
-            data = [p; ela; f; pos; ori]
+            #ori = convert(Vector, frame.kinematics[1].orientation)
+            data = [p; ela; f; pos]
             push!(particle_data, data)
         end
     end
@@ -271,6 +272,31 @@ end
 
 function main()
 
+    # Read ground truth trajectory
+    fname = "RealFlowData/Cube_Ela9_Var118_observed.csv"
+    data = CSV.read(fname, DataFrame)
+    observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
+    zs = Vector{Float64}(undef, size(data)[1])
+    for i=1:size(data)[1]
+        addr = :trajectory => i => :observation => 1 => :position
+        datum = values(data[i, :])
+        new_datum = [datum[1], datum[3], datum[2]]
+        cm = Gen.choicemap((addr, new_datum))
+        observations[i] = cm
+        zs[i] = datum[2]
+    end
+    initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
+    println(initial_position)
+
+    # Read ground truth initial velocity
+    fname = "RealFlowData/Cube_Ela9_Var118.csv"
+    data = CSV.read(fname, DataFrame)
+    datum = values(data[1, 11:13])
+    initial_velocity = [datum[1], datum[2], datum[3]]
+    println(initial_velocity)
+
+    gif(animate_observations(zs))
+
     # Initialize simulation context 
     client = bullet.connect(bullet.DIRECT)::Int64
     bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -278,60 +304,31 @@ function main()
     bullet.resetDebugVisualizerCamera(5, 0, -5, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
-    for i=1:5
-        # Read ground truth initial velocity
-        fname = "RealFlowData/Cube_Ela9_Var118.csv"
-        data = CSV.read(fname, DataFrame)
-        datum = values(data[1, 11:13])
-        initial_velocity = [datum[1], datum[3], datum[2]]
-        println(initial_velocity)
+    init_state = generate_scene(sim, initial_position, initial_velocity)
+    args = (30, init_state, sim)
+    
+    #=
+    # Generate ground truth trajectory
+    gt_constraints = choicemap((:latents => 1 => :restitution, 0.7), (:latents => 1 => :mass, 1.0))
+    ground_truth = first(generate(generate_trajectory, args, gt_constraints))
 
-        # Read ground truth initial position
-        fname = "RealFlowData/Cube_Ela9_Var118_observed.csv"
-        data = CSV.read(fname, DataFrame)
-        datum = values(data[1, :])
-        initial_position = [datum[1], datum[3], datum[2]]
-        println(initial_position)
+    # Display ground truth trajectory
+    gif(animate_trace(ground_truth), fps=24)
+    gt_choices = get_choices(ground_truth)
+    display(gt_choices)
+    observations = get_observations(gt_choices, args[1])    
+    =#
 
-        init_state = generate_scene(sim, initial_position, initial_velocity)
-
-        # Read ground truth trajectory
-        observations = Vector{Gen.ChoiceMap}(undef, size(data)[1]-1)
-        zs = Vector{Float64}(undef, size(data)[1]-1)
-        for i=1:size(data)[1]-1
-            addr = :trajectory => i => :observation => :position
-            datum = values(data[i, :])
-            new_datum = [datum[1], datum[3], datum[2]]
-            cm = Gen.choicemap((addr, new_datum))
-            observations[i] = cm
-            zs[i] = datum[2]
-        end
-        gif(animate_observations(zs))
-
-        #=
-        # Generate ground truth trajectory
-        gt_constraints = choicemap((:latents => 1 => :restitution, 0.7), (:latents => 1 => :mass, 1.0))
-        ground_truth = first(generate(generate_trajectory, args, gt_constraints))
-
-        # Display ground truth trajectory
-        gif(animate_trace(ground_truth), fps=24)
-        gt_choices = get_choices(ground_truth)
-        display(gt_choices)
-        observations = get_observations(gt_choices, args[1])
-        =#
-
-        # Infer elasticity from observed trajectory 
-        args = (29, init_state, sim)
-        result = infer(args, observations)
-        display(get_choices(result[1]))
-        gif(animate_traces(result), fps=24)
-        write_to_csv(result, "BulletData/observations.csv")
+    # Infer elasticity from observed trajectory 
+    result = infer(args, observations)
+    display(get_choices(result[1]))
+    gif(animate_traces(result), fps=24)
+    write_to_csv(result, "BulletData/observations.csv")
         
-        # For each particle, predict the next 60 time steps
-        ppd = predict(result, 90)    
-        gif(animate_traces(ppd), fps=24)  
-        write_to_csv(ppd, "BulletData/predictions.csv")   
-    end
+    # For each particle, predict the next 60 time steps
+    ppd = predict(result, 90)    
+    gif(animate_traces(ppd), fps=24)  
+    write_to_csv(ppd, "BulletData/predictions.csv")   
 
     bullet.disconnect()
 end
