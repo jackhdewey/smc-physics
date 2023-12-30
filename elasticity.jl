@@ -292,7 +292,7 @@ function main()
     fname = "RealFlowData/Cube_Ela9_Var118.csv"
     data = CSV.read(fname, DataFrame)
     datum = values(data[1, 11:13])
-    initial_velocity = [datum[1], datum[2], datum[3]]
+    initial_velocity = [datum[1], datum[3], datum[2]]
     println(initial_velocity)
 
     gif(animate_observations(zs))
