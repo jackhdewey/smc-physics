@@ -53,16 +53,20 @@ end
     # Create and position walls
     wall1ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
     quaternion = bullet.getQuaternionFromEuler([0, 0, 0])
-    plane2 = bullet.createMultiBody(baseCollisionShapeIndex=wall1ID, basePosition=[-0.5, 0, 0.5], baseOrientation=quaternion)
-    bullet.changeDynamics(plane2, -1, mass=0.0, restitution=0.5)
+    wall1 = bullet.createMultiBody(baseCollisionShapeIndex=wall1ID, basePosition=[-0.5, 0, 0.5], baseOrientation=quaternion)
+    bullet.changeDynamics(wall1, -1, mass=0.0, restitution=0.5)
 
     wall2ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
-    plane3 = bullet.createMultiBody(baseCollisionShapeIndex=wall2ID, basePosition=[0, 0.5, 0.5], baseOrientation=quaternion)
-    bullet.changeDynamics(plane3, -1, mass=0.0, restitution=0.5)
+    wall2 = bullet.createMultiBody(baseCollisionShapeIndex=wall2ID, basePosition=[0, 0.5, 0.5], baseOrientation=quaternion)
+    bullet.changeDynamics(wall2, -1, mass=0.0, restitution=0.5)
 
     wall3ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
-    plane4 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[0.5, 0, 0.5], baseOrientation=quaternion)
-    bullet.changeDynamics(plane4, -1, mass=0.0, restitution=0.5)
+    wall3 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[0.5, 0, 0.5], baseOrientation=quaternion)
+    bullet.changeDynamics(wall3, -1, mass=0.0, restitution=0.5)
+
+    wall4ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
+    wall4 = bullet.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -0.5, 0.5], baseOrientation=quaternion)
+    bullet.changeDynamics(wall4, -1, mass=0.0, restitution=0.5)
 
     ceilingID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.5, 0.01])
     ceiling = bullet.createMultiBody(baseCollisionShapeIndex=ceilingID, basePosition=[0, 0, 1], baseOrientation=quaternion)
@@ -302,26 +306,27 @@ function main()
     gif(animate_observations(zs))
 
     # Initialize simulation context 
-    client = bullet.connect(bullet.DIRECT)::Int64
+    client = bullet.connect(bullet.GUI)::Int64
     bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
     #bullet.resetSimulation(bullet.RESET_USE_DEFORMABLE_WORLD)
-    #bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
+    bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
     init_state = generate_scene(sim, initial_position, initial_velocity)
     args = (30, init_state, sim)
     
-    #=
+    
     # Generate ground truth trajectory
     gt_constraints = choicemap((:latents => 1 => :restitution, 0.7), (:latents => 1 => :mass, 1.0))
-    ground_truth = first(generate(generate_trajectory, args, gt_constraints))
+    generate_trajectory(60, init_state, sim)
+    #ground_truth = first(generate(generate_trajectory, args, gt_constraints))
 
+    #=
     # Display ground truth trajectory
     gif(animate_trace(ground_truth), fps=24)
     gt_choices = get_choices(ground_truth)
     display(gt_choices)
     observations = get_observations(gt_choices, args[1])    
-    =#
 
     # Infer elasticity from observed trajectory 
     result = infer(args, observations)
@@ -332,7 +337,8 @@ function main()
     # For each particle, predict the next 60 time steps
     ppd = predict(result, 90)    
     gif(animate_traces(ppd), fps=24)  
-    write_to_csv(ppd, "BulletData/predictions_var2.csv")   
+    write_to_csv(ppd, "BulletData/predictions_var2.csv") 
+    =#  
 
     bullet.disconnect()
 end
