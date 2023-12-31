@@ -9,9 +9,9 @@
 #        * using a sphere
 #        * adding noise to orientation
 # DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
-# TODO: Set initial position using RealFlow data
-# TODO: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
+# DONE: Set initial position and velocity using RealFlow data
 # TODO: Add ceiling and fourth wall; consider different restitution values
+# TODO: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
 # TODO: Multiple forward passes per particle, with some noise added over velocity
 
 using Accessors
@@ -51,18 +51,22 @@ end
     bullet.changeDynamics(plane, -1, mass=0.0, restitution=0.5)
 
     # Create and position walls
-    wall1ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.02, 1, 1])
+    wall1ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
     quaternion = bullet.getQuaternionFromEuler([0, 0, 0])
-    plane2 = bullet.createMultiBody(baseCollisionShapeIndex=wall1ID, basePosition=[-1, 0, 1], baseOrientation=quaternion)
+    plane2 = bullet.createMultiBody(baseCollisionShapeIndex=wall1ID, basePosition=[-0.5, 0, 0.5], baseOrientation=quaternion)
     bullet.changeDynamics(plane2, -1, mass=0.0, restitution=0.5)
 
-    wall2ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[1, .02, 1])
-    plane3 = bullet.createMultiBody(baseCollisionShapeIndex=wall2ID, basePosition=[0, 1, 1], baseOrientation=quaternion)
+    wall2ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
+    plane3 = bullet.createMultiBody(baseCollisionShapeIndex=wall2ID, basePosition=[0, 0.5, 0.5], baseOrientation=quaternion)
     bullet.changeDynamics(plane3, -1, mass=0.0, restitution=0.5)
 
-    wall3ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.02, 1, 1])
-    plane4 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[1, 0, 1], baseOrientation=quaternion)
+    wall3ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
+    plane4 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[0.5, 0, 0.5], baseOrientation=quaternion)
     bullet.changeDynamics(plane4, -1, mass=0.0, restitution=0.5)
+
+    ceilingID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.5, 0.01])
+    ceiling = bullet.createMultiBody(baseCollisionShapeIndex=ceilingID, basePosition=[0, 0, 1], baseOrientation=quaternion)
+    bullet.changeDynamics(ceiling, -1, mass=0.0, restitution=0.5)
 
     #=
     # Sample initial position
@@ -76,7 +80,7 @@ end
     startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
 
     # Create and position cube
-    cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.2, .2, .2])
+    cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.1, .1, .1])
     cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=startPosition, baseOrientation=startOrientation)
 
     #=
@@ -273,7 +277,7 @@ end
 function main()
 
     # Read ground truth trajectory
-    fname = "RealFlowData/Cube_Ela9_Var118_observed.csv"
+    fname = "RealFlowData/Cube_Ela9_Var2_observed.csv"
     data = CSV.read(fname, DataFrame)
     observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
     zs = Vector{Float64}(undef, size(data)[1])
@@ -289,10 +293,10 @@ function main()
     println(initial_position)
 
     # Read ground truth initial velocity
-    fname = "RealFlowData/Cube_Ela9_Var118.csv"
+    fname = "RealFlowData/Cube_Ela9_Var2.csv"
     data = CSV.read(fname, DataFrame)
     datum = values(data[1, 11:13])
-    initial_velocity = [datum[1], datum[3], datum[2]]
+    initial_velocity = [datum[1], datum[2], datum[3]]
     println(initial_velocity)
 
     gif(animate_observations(zs))
@@ -301,7 +305,7 @@ function main()
     client = bullet.connect(bullet.DIRECT)::Int64
     bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
     #bullet.resetSimulation(bullet.RESET_USE_DEFORMABLE_WORLD)
-    bullet.resetDebugVisualizerCamera(5, 0, -5, [0, 0, 2])
+    #bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
     init_state = generate_scene(sim, initial_position, initial_velocity)
@@ -323,12 +327,12 @@ function main()
     result = infer(args, observations)
     display(get_choices(result[1]))
     gif(animate_traces(result), fps=24)
-    write_to_csv(result, "BulletData/observations.csv")
+    write_to_csv(result, "BulletData/observations_var2.csv")
         
     # For each particle, predict the next 60 time steps
     ppd = predict(result, 90)    
     gif(animate_traces(ppd), fps=24)  
-    write_to_csv(ppd, "BulletData/predictions.csv")   
+    write_to_csv(ppd, "BulletData/predictions_var2.csv")   
 
     bullet.disconnect()
 end
