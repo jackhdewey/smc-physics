@@ -140,6 +140,21 @@ end
 
 # Inference
 
+function generate_ground_truth()
+  
+    gt_constraints = choicemap((:latents => 1 => :restitution, 0.7), (:latents => 1 => :mass, 1.0))
+    generate_trajectory(60, init_state, sim)
+    ground_truth = first(generate(generate_trajectory, args, gt_constraints))
+        
+    # Display ground truth trajectory
+    gif(animate_trace(ground_truth), fps=24)
+    gt_choices = get_choices(ground_truth)
+    display(gt_choices)
+    observations = get_observations(gt_choices, args[1]) 
+    
+    return observations
+end
+
 # Parses the full sequence of observations from choice map
 function get_observations(choices::Gen.ChoiceMap, T::Int)
     observations = Vector{Gen.ChoiceMap}(undef, T)
@@ -231,6 +246,35 @@ end
 
 # Data
 
+function read_observation_file(fnames, i::Int)
+
+    fname = string("RealFlowData/", fnames[i+1])
+    data = CSV.read(fname, DataFrame)
+
+    # Read ground truth initial velocity
+    observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
+    zs = Vector{Float64}(undef, size(data)[1])
+    for i=1:size(data)[1]
+        addr = :trajectory => i => :observation => 1 => :position
+        datum = values(data[i, :])
+        new_datum = [datum[1], datum[3], datum[2]]
+        cm = Gen.choicemap((addr, new_datum))
+        observations[i] = cm
+        zs[i] = datum[2]
+    end
+    initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
+    gif(animate_observations(zs))
+
+    # Read ground truth initial velocity
+    fname = string("RealFlowData/", fnames[i]) 
+    data = CSV.read(fname, DataFrame)
+    datum = values(data[1, 11:13])
+    initial_velocity = [datum[1], datum[2], datum[3]]
+
+    return fname, initial_position, initial_velocity, observations
+end
+
+
 function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
     println("Writing simulation data to " * fname)
@@ -291,51 +335,13 @@ function main()
     sim = BulletSim(step_dur=1/30; client=client)
 
     # Read ground truth trajectory
-    fnames = readdir("RealFlowData")
-    println(fnames)
+    dir = "RealFlowData/"
+    fnames = readdir(dir)
 
     for i in 1:3:length(fnames)
-        fname = string("RealFlowData/", fnames[i+1])
-        println(fname)
-        #fname = "RealFlowData/Cube_Ela3_Var8_observed.csv"
-        data = CSV.read(fname, DataFrame)
-        observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
-        zs = Vector{Float64}(undef, size(data)[1])
-        for i=1:size(data)[1]
-            addr = :trajectory => i => :observation => 1 => :position
-            datum = values(data[i, :])
-            new_datum = [datum[1], datum[3], datum[2]]
-            cm = Gen.choicemap((addr, new_datum))
-            observations[i] = cm
-            zs[i] = datum[2]
-        end
-        initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
-        println(initial_position)
-        gif(animate_observations(zs))
-
-        # Read ground truth initial velocity
-        fname = string("RealFlowData/", fnames[i]) 
-        println(fname)
-        #fname = "RealFlowData/Cube_Ela3_Var8.csv"
-        data = CSV.read(fname, DataFrame)
-        datum = values(data[1, 11:13])
-        initial_velocity = [datum[1], datum[2], datum[3]]
-        println(initial_velocity)
-        
-        #=
-        # Generate ground truth trajectory
-        gt_constraints = choicemap((:latents => 1 => :restitution, 0.7), (:latents => 1 => :mass, 1.0))
-        generate_trajectory(60, init_state, sim)
-        ground_truth = first(generate(generate_trajectory, args, gt_constraints))
-        
-        # Display ground truth trajectory
-        gif(animate_trace(ground_truth), fps=24)
-        gt_choices = get_choices(ground_truth)
-        display(gt_choices)
-        observations = get_observations(gt_choices, args[1])    
-        =#
 
         # Initialize simulation using observed data
+        fname, initial_position, initial_velocity, observations = read_observation_file(fnames, i)
         init_state = generate_scene(sim, initial_position, initial_velocity)
         args = (30, init_state, sim)
 
