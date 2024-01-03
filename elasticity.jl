@@ -252,27 +252,24 @@ function read_observation_file(fnames, i::Int)
 
     # Read ground truth initial velocity
     fname = string("RealFlowData/", fnames[i]) 
-    println(fname)
+    println("Reading...", fname)
     data = CSV.read(fname, DataFrame)
     datum = values(data[1, 11:13])
     initial_velocity = [datum[1], datum[2], datum[3]]
-    println(initial_velocity)
 
     # Read ground truth trajectory
     fname = string("RealFlowData/", fnames[i+1])
-    println(fname)
+    println("Reading...", fname)
     data = CSV.read(fname, DataFrame)
     observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
     for i=1:size(data)[1]
         addr = :trajectory => i => :observation => 1 => :position
         datum = values(data[i, :])
-        println(typeof(datum))
         new_datum = [datum[1], datum[3], datum[2]]
         cm = Gen.choicemap((addr, new_datum))
         observations[i] = cm
     end
     initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
-    println(initial_position)
 
     return fname, initial_position, initial_velocity, observations
 end
@@ -337,10 +334,9 @@ function main()
     bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
-    # Read ground truth trajectory
+    # Read ground truth trajectories
     dir = "RealFlowData/"
     fnames = readdir(dir)
-    println(fnames)
 
     for i in 2:3:length(fnames)
 
@@ -351,7 +347,6 @@ function main()
 
         # Infer elasticity from observed trajectory 
         result, weights = infer(args, observations)
-        display(get_choices(result[1]))
         gif(animate_traces(result), fps=24)
         tokens = split(fname, "_")
         fname = string("BulletData/observations_", tokens[2], "_", tokens[3])
