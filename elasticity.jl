@@ -250,10 +250,18 @@ end
 
 function read_observation_file(fnames, i::Int)
 
-    fname = string("RealFlowData/", fnames[i+1])
-    data = CSV.read(fname, DataFrame)
-
     # Read ground truth initial velocity
+    fname = string("RealFlowData/", fnames[i]) 
+    println(fname)
+    data = CSV.read(fname, DataFrame)
+    datum = values(data[1, 11:13])
+    initial_velocity = [datum[1], datum[2], datum[3]]
+    println(initial_velocity)
+
+    # Read ground truth trajectory
+    fname = string("RealFlowData/", fnames[i+1])
+    println(fname)
+    data = CSV.read(fname, DataFrame)
     observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
     for i=1:size(data)[1]
         addr = :trajectory => i => :observation => 1 => :position
@@ -264,12 +272,7 @@ function read_observation_file(fnames, i::Int)
         observations[i] = cm
     end
     initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
-
-    # Read ground truth initial velocity
-    fname = string("RealFlowData/", fnames[i]) 
-    data = CSV.read(fname, DataFrame)
-    datum = values(data[1, 11:13])
-    initial_velocity = [datum[1], datum[2], datum[3]]
+    println(initial_position)
 
     return fname, initial_position, initial_velocity, observations
 end
@@ -337,8 +340,9 @@ function main()
     # Read ground truth trajectory
     dir = "RealFlowData/"
     fnames = readdir(dir)
+    println(fnames)
 
-    for i in 1:3:length(fnames)
+    for i in 2:3:length(fnames)
 
         # Initialize simulation using observed data
         fname, initial_position, initial_velocity, observations = read_observation_file(fnames, i)
