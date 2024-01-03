@@ -14,7 +14,7 @@ using Plots
     xguide --> "time"
     xlims --> (1, 120)
     yguide --> "height of cube (z)"
-    ylims --> (0, 4.0)
+    ylims --> (0, 2.0)
     label --> false
     inds, z[inds, :]
 end
