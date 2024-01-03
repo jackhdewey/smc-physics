@@ -255,17 +255,14 @@ function read_observation_file(fnames, i::Int)
 
     # Read ground truth initial velocity
     observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
-    zs = Vector{Float64}(undef, size(data)[1])
     for i=1:size(data)[1]
         addr = :trajectory => i => :observation => 1 => :position
         datum = values(data[i, :])
         new_datum = [datum[1], datum[3], datum[2]]
         cm = Gen.choicemap((addr, new_datum))
         observations[i] = cm
-        zs[i] = datum[2]
     end
     initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
-    gif(animate_observations(zs))
 
     # Read ground truth initial velocity
     fname = string("RealFlowData/", fnames[i]) 
