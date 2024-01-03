@@ -258,6 +258,7 @@ function read_observation_file(fnames, i::Int)
     for i=1:size(data)[1]
         addr = :trajectory => i => :observation => 1 => :position
         datum = values(data[i, :])
+        println(typeof(datum))
         new_datum = [datum[1], datum[3], datum[2]]
         cm = Gen.choicemap((addr, new_datum))
         observations[i] = cm
