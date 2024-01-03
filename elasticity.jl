@@ -212,7 +212,9 @@ function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20
 
     weights = Gen.get_log_weights(state)
 
-    return Gen.sample_unweighted_traces(state, 5), weights
+    # Gen.sample_unweighted_traces(state, 5)
+
+    return state.traces, weights
 end
 
 
@@ -350,13 +352,13 @@ function main()
         display(get_choices(result[1]))
         gif(animate_traces(result), fps=24)
         tokens = split(fname, "_")
-        fname = string("BulletData/observations_", tokens[2], "_", tokens[3], ".csv")
+        fname = string("BulletData/observations_", tokens[2], "_", tokens[3])
         write_to_csv(result, fname)
             
         # For each particle, predict the next 90 time steps
         ppd = predict(result, 90)    
         gif(animate_traces(ppd), fps=24)  
-        fname = string("BulletData/predictions_", tokens[2], "_", tokens[3], ".csv")
+        fname = string("BulletData/predictions_", tokens[2], "_", tokens[3])
         write_to_csv(ppd, fname) 
     end
 
