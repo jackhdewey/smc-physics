@@ -337,7 +337,6 @@ function main()
     # Read ground truth trajectories
     dir = "RealFlowData/"
     fnames = readdir(dir)
-    println(fnames)
 
     for i in 2:3:length(fnames)
 
