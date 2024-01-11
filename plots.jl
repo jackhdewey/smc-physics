@@ -12,9 +12,9 @@ using Plots
     linewidth -->range(0,10, length=n)
     seriesalpha --> range(0,1,length=n)
     xguide --> "time"
-    xlims --> (1, 120)
+    xlims --> (1, 40)
     yguide --> "height of cube (z)"
-    ylims --> (0, 2.0)
+    ylims --> (0, 1.0)
     label --> false
     inds, z[inds, :]
 end
