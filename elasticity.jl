@@ -12,6 +12,12 @@
 # DONE: Set initial position and velocity using RealFlow data
 # DONE: Add ceiling and fourth wall; consider different restitution values
 # DONE: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
+# TODO: Make the cube smaller
+# TODO: Fix off-by-one error
+# TODO: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
+# TODO: Consider using a sphere again - issue may be due to difference in collisions
+# TODO: Change prior for elasticity
+# TODO: Save itermediate state
 # TODO: Multiple forward passes per particle, with some noise added over velocity
 
 using Accessors
@@ -349,13 +355,13 @@ function main()
         result, weights = infer(args, observations)
         gif(animate_traces(result), fps=24)
         tokens = split(fname, "_")
-        fname = string("BulletData/observations_", tokens[2], "_", tokens[3])
+        fname = string("BulletData/observations_", tokens[2], "_", tokens[3], ".csv")
         write_to_csv(result, fname)
             
         # For each particle, predict the next 90 time steps
         ppd = predict(result, 90)    
         gif(animate_traces(ppd), fps=24)  
-        fname = string("BulletData/predictions_", tokens[2], "_", tokens[3])
+        fname = string("BulletData/predictions_", tokens[2], "_", tokens[3], ".csv")
         write_to_csv(ppd, fname) 
     end
 
