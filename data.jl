@@ -44,5 +44,7 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
         end
     end
 
-    CSV.write(fname, particle_data)
+    truncator(x) = trunc(x, digits=5)
+    transformer(vec) = map(truncator, vec)
+    CSV.write(fname, particle_data, transform=transformer)
 end
