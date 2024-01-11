@@ -15,9 +15,9 @@
 # DONE: Make the cube smaller
 # TODO: Fix off-by-one error
 # TODO: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
-# TODO: Consider using a sphere again - issue may be due to difference in collisions
+# TODO: Consider using a sphere again - issue may be due to differences in direction of bounces
 # TODO: Change prior for elasticity
-# TODO: Save itermediate state
+# TODO: Save itermediate states
 # TODO: Multiple forward passes per particle, with some noise added over velocity
 
 using Accessors
@@ -57,7 +57,6 @@ end
     plane = bullet.createMultiBody(baseCollisionShapeIndex=planeID, basePosition=[0, 0, 0])
     bullet.changeDynamics(plane, -1, mass=0.0, restitution=0.5)
 
-    #=
     # Create and position walls
     wall1ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
     quaternion = bullet.getQuaternionFromEuler([0, 0, 0])
@@ -75,7 +74,6 @@ end
     wall4ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
     wall4 = bullet.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -0.5, 0.5], baseOrientation=quaternion)
     bullet.changeDynamics(wall4, -1, mass=0.0, restitution=0.5)
-    =#
 
     #=
     ceilingID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.5, 0.01])
@@ -91,25 +89,22 @@ end
     start_position = [init_position_x, init_position_y, init_position_z]
     =#
 
+    # Create and position cube
     startPosition = init_position
     startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
+    #cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
+    #cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=startPosition, baseOrientation=startOrientation)
 
-    # Create and position cube
-    cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
-    cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=startPosition, baseOrientation=startOrientation)
-
-    #=
     # Create and position sphere
-    sphereBody = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.2)
-    sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=startPositionCube, baseOrientation=startOrientationCube)
-    =#
+    sphereBody = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.1)
+    sphere = bullet.createMultiBody(baseCollisionShapeIndex=sphereBody, basePosition=startPosition, baseOrientation=startOrientation)
 
     # Set kinematics and dynamics dynamics
-    bullet.changeDynamics(cube, -1, mass=mass, restitution=restitution)
-    bullet.resetBaseVelocity(cube, linearVelocity=init_velocity)
+    bullet.changeDynamics(sphere, -1, mass=mass, restitution=restitution)
+    bullet.resetBaseVelocity(sphere, linearVelocity=init_velocity)
 
     # Store representation of cube's initial state
-    init_state = BulletState(sim, [RigidBody(cube)])
+    init_state = BulletState(sim, [RigidBody(sphere)])
 
     return init_state
 end
@@ -157,7 +152,7 @@ function generate_ground_truth()
     generate_trajectory(60, init_state, sim)
     ground_truth = first(generate(generate_trajectory, args, gt_constraints))
         
-    # Display ground truth trajectory
+    # Display trajectory
     gif(animate_trace(ground_truth), fps=24)
     gt_choices = get_choices(ground_truth)
     display(gt_choices)
@@ -286,10 +281,13 @@ function test_elasticity(sim, init_state)
 
     for trace in traces
         choices = get_choices(trace)
-        positions = [choices[:trajectory => i => :observation => 1 => :position] for i=15:60]
+        positions = [choices[:trajectory => i => :observation => 1 => :position] for i=10:20]
         zs = map(x -> x[3], positions)
+        ys = map(y -> y[2], positions)
         z_max = maximum(zs)
-        println(z_max)
+        y_max = maximum(ys)
+        println("z", z_max)
+        println("y", y_max)
         #coefficient_of_restitution = z_max / 0.9
     end
 end
@@ -317,9 +315,9 @@ function main()
     initial_velocity = [0., 0., 0.]
     init_state = generate_scene(sim, initial_position, initial_velocity)
     println(initial_position)
-    trace, _ = generate(generate_trajectory, (60, init_state, sim))
-    display(get_choices(trace))
-    #test_elasticity(sim, init_state)
+    #trace, _ = generate(generate_trajectory, (60, init_state, sim))
+    #display(get_choices(trace))
+    test_elasticity(sim, init_state)
 
     #=
     for i in 2:3:length(fnames)
