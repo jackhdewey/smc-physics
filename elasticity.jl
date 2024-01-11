@@ -12,7 +12,7 @@
 # DONE: Set initial position and velocity using RealFlow data
 # DONE: Add ceiling and fourth wall; consider different restitution values
 # DONE: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
-# TODO: Make the cube smaller
+# DONE: Make the cube smaller
 # TODO: Fix off-by-one error
 # TODO: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
 # TODO: Consider using a sphere again - issue may be due to difference in collisions
@@ -33,6 +33,7 @@ bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 include("truncatednorm.jl")
 include("plots.jl")
+include("data.jl")
 
 
 # Generative Model
@@ -56,6 +57,7 @@ end
     plane = bullet.createMultiBody(baseCollisionShapeIndex=planeID, basePosition=[0, 0, 0])
     bullet.changeDynamics(plane, -1, mass=0.0, restitution=0.5)
 
+    #=
     # Create and position walls
     wall1ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
     quaternion = bullet.getQuaternionFromEuler([0, 0, 0])
@@ -73,10 +75,13 @@ end
     wall4ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
     wall4 = bullet.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -0.5, 0.5], baseOrientation=quaternion)
     bullet.changeDynamics(wall4, -1, mass=0.0, restitution=0.5)
+    =#
 
+    #=
     ceilingID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.5, 0.01])
     ceiling = bullet.createMultiBody(baseCollisionShapeIndex=ceilingID, basePosition=[0, 0, 1], baseOrientation=quaternion)
     bullet.changeDynamics(ceiling, -1, mass=0.0, restitution=0.5)
+    =#
 
     #=
     # Sample initial position
@@ -90,7 +95,7 @@ end
     startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
 
     # Create and position cube
-    cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.1, .1, .1])
+    cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
     cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=startPosition, baseOrientation=startOrientation)
 
     #=
@@ -252,79 +257,40 @@ function predict(result, T::Int)
 end
 
 
-# Data
-
-function read_observation_file(fnames, i::Int)
-
-    # Read ground truth initial velocity
-    fname = string("RealFlowData/", fnames[i]) 
-    println("Reading...", fname)
-    data = CSV.read(fname, DataFrame)
-    datum = values(data[1, 11:13])
-    initial_velocity = [datum[1], datum[2], datum[3]]
-
-    # Read ground truth trajectory
-    fname = string("RealFlowData/", fnames[i+1])
-    println("Reading...", fname)
-    data = CSV.read(fname, DataFrame)
-    observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
-    for i=1:size(data)[1]
-        addr = :trajectory => i => :observation => 1 => :position
-        datum = values(data[i, :])
-        new_datum = [datum[1], datum[3], datum[2]]
-        cm = Gen.choicemap((addr, new_datum))
-        observations[i] = cm
-    end
-    initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
-
-    return fname, initial_position, initial_velocity, observations
-end
-
-
-function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
-
-    println("Writing simulation data to " * fname)
-    particle_data = DataFrame(particle=Int[], elasticity=[], weight=[], frame=Int[], x=[], y=[], z=[])
-
-    for (p, particle) in enumerate(particles)
-        ela = particle[:latents => 1 => :restitution]
-        for (f, frame) in enumerate(particle[:trajectory])
-            pos = convert(Vector, frame.kinematics[1].position)
-            #ori = convert(Vector, frame.kinematics[1].orientation)
-            weight = get_score(particle)
-            data = [p; ela; weight; f; pos]
-            push!(particle_data, data)
-        end
-    end
-
-    CSV.write(fname, particle_data)
-end
-
-
 # Tests
 
 # Tests whether a range of elasticity settings produce plausible trajectories
-function test_elasticity()
-    args = (60, sim, init_state)
-    gt_constraints = choicemap((:latents => 1 => :restitution, 0.8), (:latents => 1 => :mass, 1.0))
-    trace = first(generate(simulation, args, gt_constraints))
+function test_elasticity(sim, init_state)
+    args = (60, init_state, sim)
+    gt_constraints = choicemap((:latents => 1 => :restitution, 0.2), (:latents => 1 => :mass, 1.0))
+    trace = first(generate(generate_trajectory, args, gt_constraints))
+
+    #=
+    choices = get_choices(trace)
+    positions = [choices[:trajectory => i => :observation => 1 => :position] for i=1:60]
+    zs = map(x -> x[3], positions)
+    for z in zs
+        println(z)
+    end
+    =#
 
     traces = [trace]
     for i=2:5
         res = i*0.2
         gt_constraints = choicemap((:latents => 1 => :restitution, res), (:latents => 1 => :mass, 1.0))
-        trace = first(generate(simulation, args, gt_constraints))
+        trace = first(generate(generate_trajectory, args, gt_constraints))
         push!(traces, trace)
     end
 
+    gif(animate_traces(traces), fps=24)
+
     for trace in traces
         choices = get_choices(trace)
-        display(choices)
-        positions = [choices[:trajectory => i => :observation => 1 => :position] for i=35:60]
+        positions = [choices[:trajectory => i => :observation => 1 => :position] for i=15:60]
         zs = map(x -> x[3], positions)
         z_max = maximum(zs)
-        coefficient_of_restitution = z_max / 3.0
-        println(coefficient_of_restitution)
+        println(z_max)
+        #coefficient_of_restitution = z_max / 0.9
     end
 end
 
@@ -343,11 +309,25 @@ function main()
     # Read ground truth trajectories
     dir = "RealFlowData/"
     fnames = readdir(dir)
+    fname = fnames[2]
+    fname2 = fnames[3]
+    #initial_position, initial_velocity, observations = read_observation_file(fname, fname2)
 
+    initial_position = [0., 0., 0.9]
+    initial_velocity = [0., 0., 0.]
+    init_state = generate_scene(sim, initial_position, initial_velocity)
+    println(initial_position)
+    trace, _ = generate(generate_trajectory, (60, init_state, sim))
+    display(get_choices(trace))
+    #test_elasticity(sim, init_state)
+
+    #=
     for i in 2:3:length(fnames)
 
         # Initialize simulation using observed data
-        fname, initial_position, initial_velocity, observations = read_observation_file(fnames, i)
+        fname = fnames[i]
+        fname2 = fnames[i+1]
+        initial_position, initial_velocity, observations = read_observation_file(fname, fname2)
         init_state = generate_scene(sim, initial_position, initial_velocity)
         args = (30, init_state, sim)
 
@@ -364,6 +344,7 @@ function main()
         fname = string("BulletData/predictions_", tokens[2], "_", tokens[3], ".csv")
         write_to_csv(ppd, fname) 
     end
+    =#
 
     bullet.disconnect()
 
