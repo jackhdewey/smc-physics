@@ -31,9 +31,9 @@ using CSV
 
 bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
-include("truncatednorm.jl")
-include("plots.jl")
-include("data.jl")
+include("Utilities/truncatednorm.jl")
+include("Utilities/plots.jl")
+include("Utilities/data.jl")
 
 
 # Generative Model
