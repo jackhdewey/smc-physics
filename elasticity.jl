@@ -13,9 +13,9 @@
 # DONE: Add ceiling and fourth wall; consider different restitution values
 # DONE: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
 # DONE: Make the cube smaller
-# TODO: Fix off-by-one error
 # TODO: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
-# TODO: Consider using a sphere again - issue may be due to differences in direction of bounces
+# TODO: Compare RealFlow and PyBullet bounce directions for different initial velocities 
+# TODO: Fix off-by-one error
 # TODO: Change prior for elasticity
 # TODO: Save itermediate states
 # TODO: Multiple forward passes per particle, with some noise added over velocity
@@ -37,14 +37,6 @@ include("data.jl")
 
 
 # Generative Model
-
-# Samples initial latent estimates
-@gen function sample_latents(latents::RigidBodyLatents)
-    mass = {:mass} ~ gamma(1.2, 10.)
-    res = {:restitution} ~ uniform(0, 1)
-    new_latents = RigidBodyLatents(setproperties(latents.data, mass=mass, restitution=res))
-    return new_latents
-end
 
 # Sets initial scene configuration
 # In the future this will be an inverse graphics module
@@ -89,9 +81,10 @@ end
     start_position = [init_position_x, init_position_y, init_position_z]
     =#
 
-    # Create and position cube
+    # Set initial position and orientation
     startPosition = init_position
     startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
+
     #cubeBody = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
     #cube = bullet.createMultiBody(baseCollisionShapeIndex=cubeBody, basePosition=startPosition, baseOrientation=startOrientation)
 
@@ -109,13 +102,21 @@ end
     return init_state
 end
 
+# Samples initial latent estimates
+@gen function sample_latents(latents::RigidBodyLatents)
+    # mass = {:mass} ~ gamma(1.2, 10.)
+    res = {:restitution} ~ uniform(0, 1)
+    new_latents = RigidBodyLatents(setproperties(latents.data, restitution=res))
+    return new_latents
+end
+
 # Adds measurement noise to ground truth position
 @gen function generate_observation(k::RigidBodyState)
     obs = {:position} ~ broadcasted_normal(k.position, 0.1)
     return obs
 end
 
-# Syncs Bullet to the given state, generates the next state, then samples an observation
+# Samples an observation, the syncs Bullet to the given state and generates the next state
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
 
     # Applies noise to x, y, and z positions
@@ -127,15 +128,12 @@ end
     return next_state
 end
 
-# Samples latents from their priors, then runs complete forward simulation
+# Samples latents from their priors then runs a complete forward simulation
 @gen function generate_trajectory(T::Int, init_state::BulletState, sim::BulletSim)
 
     # Resample the target object's latents - mass and restitution
     latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
     init_state = Accessors.setproperties(init_state; latents=latents)
-
-    # init_state = generate_scene(sim, latents.mass, latents.restitution)
-    # {:init_position} ~ Gen.Map(generate_observation)(init_state.kinematics)
 
     # Simulate T time steps
     states = {:trajectory} ~ Gen.Unfold(kernel)(T, init_state, sim)
@@ -146,22 +144,22 @@ end
 
 # Inference
 
-function generate_ground_truth()
+# Generates a single trace with the specified elasticity and arguments
+function generate_ground_truth(restitution::Float64, args::Tuple)
   
-    gt_constraints = choicemap((:latents => 1 => :restitution, 0.7), (:latents => 1 => :mass, 1.0))
-    generate_trajectory(60, init_state, sim)
+    gt_constraints = choicemap((:latents => 1 => :restitution, restitution))
     ground_truth = first(generate(generate_trajectory, args, gt_constraints))
+    # generate_trajectory(60, init_state, sim)
         
     # Display trajectory
-    gif(animate_trace(ground_truth), fps=24)
     gt_choices = get_choices(ground_truth)
     display(gt_choices)
-    observations = get_observations(gt_choices, args[1]) 
-    
-    return observations
+    gif(animate_trace(ground_truth), fps=24)
+
+    return ground_truth
 end
 
-# Parses the full sequence of observations from choice map
+# Parses a sequence of observations from a choice map
 function get_observations(choices::Gen.ChoiceMap, T::Int)
     observations = Vector{Gen.ChoiceMap}(undef, T)
     for i=1:T
@@ -173,19 +171,19 @@ function get_observations(choices::Gen.ChoiceMap, T::Int)
     return observations
 end
 
-# Propose new latents - for MCMC
+# Proposes new latents - for MCMC
 @gen function proposal(trace::Gen.Trace)
 
     # Read current mass and restitution estimates from trace
     choices = get_choices(trace)
-    prev_mass = choices[:latents => 1 => :mass]
+    # prev_mass = choices[:latents => 1 => :mass]
     prev_res  = choices[:latents => 1 => :restitution]
 
     # Resample mass and restitution from Gaussians centered at their previous values
-    mass = {:latents => 1 => :mass} ~ trunc_norm(prev_mass, 0.1, 0.0, Inf)
+    # mass = {:latents => 1 => :mass} ~ trunc_norm(prev_mass, 0.1, 0.0, Inf)
     restitution = {:latents => 1 => :restitution} ~ trunc_norm(prev_res, 0.1, 0.0, 1.0)
 
-    return (mass, restitution)
+    return (restitution)
 end
 
 # Particle filter
@@ -216,9 +214,8 @@ function infer(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20
         end
     end
 
-    weights = Gen.get_log_weights(state)
-
     # Gen.sample_unweighted_traces(state, 5)
+    weights = Gen.get_log_weights(state)
 
     return state.traces, weights
 end
@@ -256,23 +253,16 @@ end
 
 # Tests whether a range of elasticity settings produce plausible trajectories
 function test_elasticity(sim, init_state)
-    args = (60, init_state, sim)
-    gt_constraints = choicemap((:latents => 1 => :restitution, 0.2), (:latents => 1 => :mass, 1.0))
-    trace = first(generate(generate_trajectory, args, gt_constraints))
+    
+    gt_constraints = choicemap((:latents => 1 => :restitution, 0.2))
 
-    #=
-    choices = get_choices(trace)
-    positions = [choices[:trajectory => i => :observation => 1 => :position] for i=1:60]
-    zs = map(x -> x[3], positions)
-    for z in zs
-        println(z)
-    end
-    =#
+    args = (60, init_state, sim)
+    trace = first(generate(generate_trajectory, args, gt_constraints))
 
     traces = [trace]
     for i=2:5
-        res = i*0.2
-        gt_constraints = choicemap((:latents => 1 => :restitution, res), (:latents => 1 => :mass, 1.0))
+        res = i * 0.2
+        gt_constraints = choicemap((:latents => 1 => :restitution, res))
         trace = first(generate(generate_trajectory, args, gt_constraints))
         push!(traces, trace)
     end
@@ -282,13 +272,13 @@ function test_elasticity(sim, init_state)
     for trace in traces
         choices = get_choices(trace)
         positions = [choices[:trajectory => i => :observation => 1 => :position] for i=10:20]
-        zs = map(x -> x[3], positions)
-        ys = map(y -> y[2], positions)
-        z_max = maximum(zs)
+        ys = map(pos -> pos[2], positions)
+        zs = map(pos -> pos[3], positions)
         y_max = maximum(ys)
-        println("z", z_max)
-        println("y", y_max)
-        #coefficient_of_restitution = z_max / 0.9
+        z_max = maximum(zs)
+        println("y_max: ", y_max)
+        println("z_max: ", z_max)
+        coefficient_of_restitution = z_max / 0.9
     end
 end
 
@@ -304,22 +294,17 @@ function main()
     bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
-    # Read ground truth trajectories
-    dir = "RealFlowData/"
-    fnames = readdir(dir)
-    fname = fnames[2]
-    fname2 = fnames[3]
-    #initial_position, initial_velocity, observations = read_observation_file(fname, fname2)
-
+    # Testing a simple setup
     initial_position = [0., 0., 0.9]
     initial_velocity = [0., 0., 0.]
     init_state = generate_scene(sim, initial_position, initial_velocity)
-    println(initial_position)
-    #trace, _ = generate(generate_trajectory, (60, init_state, sim))
-    #display(get_choices(trace))
     test_elasticity(sim, init_state)
 
     #=
+    # Read ground truth trajectories
+    dir = "RealFlowData/"
+    fnames = readdir(dir)
+
     for i in 2:3:length(fnames)
 
         # Initialize simulation using observed data
