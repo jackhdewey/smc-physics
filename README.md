@@ -1,5 +1,5 @@
 # smc-physics
 1. Inferring latent physical properties of rigid bodies from trajectory observations.
-* Bullet
+2. * Bullet
 
 Using Sequential Monte Carlo (particle filtering) with MCMC rejuvenation.
