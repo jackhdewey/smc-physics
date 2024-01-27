@@ -300,17 +300,16 @@ function main()
     init_state = generate_scene(sim, initial_position, initial_velocity)
     test_elasticity(sim, init_state)
 
-    #=
     # Read ground truth trajectories
     dir = "RealFlowData/"
     fnames = readdir(dir)
+    fnames = filter_unwanted_filenames(fnames)
 
-    for i in 2:3:length(fnames)
+    for i in 1:length(fnames)
 
         # Initialize simulation using observed data
         fname = fnames[i]
-        fname2 = fnames[i+1]
-        initial_position, initial_velocity, observations = read_observation_file(fname, fname2)
+        initial_position, initial_velocity, observations = read_observation_file(fname)
         init_state = generate_scene(sim, initial_position, initial_velocity)
         args = (30, init_state, sim)
 
@@ -318,16 +317,15 @@ function main()
         result, weights = infer(args, observations)
         gif(animate_traces(result), fps=24)
         tokens = split(fname, "_")
-        fname = string("BulletData/observations_", tokens[2], "_", tokens[3], ".csv")
+        fname = string("BulletData/observations_", tokens[2], "_", tokens[3])
         write_to_csv(result, fname)
             
         # For each particle, predict the next 90 time steps
         ppd = predict(result, 90)    
         gif(animate_traces(ppd), fps=24)  
-        fname = string("BulletData/predictions_", tokens[2], "_", tokens[3], ".csv")
         write_to_csv(ppd, fname) 
+        fname = string("BulletData/predictions_", tokens[2], "_", tokens[3])
     end
-    =#
 
     bullet.disconnect()
 
