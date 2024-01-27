@@ -1,7 +1,7 @@
 # Helper functions for reading from and writing data to a .csv file
 
 # Extracts initial position, initial velocity, and trajectory from two .csv files
-function read_observation_file(fname, fname2)
+function read_observation_file(fname)
 
     # Read ground truth initial velocity
     fname = string("RealFlowData/", fname) 
@@ -11,11 +11,13 @@ function read_observation_file(fname, fname2)
     initial_velocity = [datum[1], datum[2], datum[3]]
 
     # Read ground truth trajectory
-    fname2 = string("RealFlowData/", fname2)
+
+    head, tail = split(fname, '.')
+    fname2 = join([head, "_observed.", tail])
     println("Reading...", fname2)
     data = CSV.read(fname2, DataFrame)
     observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
-    for i=1:size(data)[1]
+    for i = 1:size(data)[1]
         addr = :trajectory => i => :observation => 1 => :position
         datum = values(data[i, :])
         new_datum = [datum[1], datum[3], datum[2]]
@@ -27,6 +29,12 @@ function read_observation_file(fname, fname2)
     return initial_position, initial_velocity, observations
 end
 
+function filter_unwanted_filenames(fnames)
+    for i in ["predicted", "observed", "batch"]
+        fnames = filter(!contains(i), fnames)
+    end
+    return fnames
+end
 
 function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
@@ -46,5 +54,8 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
     truncator(x) = trunc(x, digits=5)
     transformer(vec) = map(truncator, vec)
+    # transformer(vec) = map(truncator, convert(vec, Array{Float64}))
+    # transformer(vec) = println(vec)
+
     CSV.write(fname, particle_data, transform=transformer)
 end
