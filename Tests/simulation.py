@@ -3,8 +3,8 @@ import time
 import random
 import csv
 
-# TODO: Drop sphere from 1m, vary elasticity from 0.0-1.0 with 0.1 increments, save to .csv 
-# TODO: Set elasticity of floor to 0.3
+# DONE: Drop sphere from 1m, vary elasticity from 0.0-1.0 with 0.1 increments, save to .csv 
+# DONE: Set elasticity of floor to 0.3
 # TODO: Rotate a cube to ~10 angles, then do the same test
 
 def init_scene():
@@ -42,7 +42,7 @@ def init_scene():
     cube = p.createMultiBody(baseCollisionShapeIndex=cubeShape, basePosition=startPosCube,
                              baseOrientation=startOrientationCube)
     p.changeDynamics(cube, -1, mass=1.0, restitution=0.9)
-    p.resetBaseVelocity(cube, [-.9, 0, 0])
+    # p.resetBaseVelocity(cube, [-.9, 0, 0])
     cubeBodies.append(cube)
 
     '''
@@ -81,6 +81,25 @@ def init_scene():
 
     return cubeBodies, cube_locations
 
+
+def run_sample(cubeBodies, cube_positions):
+
+    for i in range(10000):
+        p.stepSimulation()
+        current_position = p.getBasePositionAndOrientation(cubeBodies[0])[0]
+        # cube_positions.append(current_position)
+        time.sleep(1. / 3640.)
+
+
+    # Manually create an array / list (also check PyBullet docs)
+    # trace = {"cube_position": cube_positions}
+
+    # TODO: Return JSON data - cube positions, orientations, velocities
+    # json_trace = json.dumps(trace)
+
+    return
+
+
 def test_elasticity(cube):
 
     fields = ['Elasticity', 'X', 'Y', 'Z']
@@ -110,6 +129,40 @@ def test_elasticity(cube):
     return
 
 
+def test_orientation(cube):
+
+    fields = ['Theta Y', 'X', 'Y', 'Z', 'Theta X', 'Theta Y', 'Theta Z']
+
+    file = "test_orientation.csv"
+    csvfile = open(file, 'w')
+    writer = csv.writer(csvfile)
+    writer.writerow(fields)
+
+    for i in range(0, 10):
+
+        initial_position = [0.0, 0.0, 1.0]
+        theta_y_init = 90.0 - 10.0 * i
+        initial_orienation = [0.0, theta_y_init, 0.0]
+        initial_position.insert(0, theta_y_init)
+        initial_position.extend(initial_orienation)
+        writer.writerow(initial_position)
+
+        p.resetBasePositionAndOrientation(cube, [0, 0, 1], p.getQuaternionFromEuler([0, theta_y_init, 0]))
+
+        for t in range(0, 200):
+            p.stepSimulation()
+            position, quaternion = p.getBasePositionAndOrientation(cube)
+            orientation = p.getEulerFromQuaternion(quaternion)
+            position = list(position)
+            position.insert(0, theta_y_init)
+            position.extend(orientation)
+            writer.writerow(position)        
+
+        p.resetBasePositionAndOrientation(cube, [0, 0, 1], p.getQuaternionFromEuler([0, 0, 0]))
+
+    return
+
+
 def sample_init_state():
     # Generate platform's location from a range / uniform distribution
     random.seed()
@@ -127,20 +180,3 @@ def sample_init_state():
     platform_orientation = [0, theta_y, 0]
 
     return cube_location, platform_location, platform_orientation
-
-
-def run_sample(cubeBodies, cube_positions):
-
-    for i in range(10000):
-        p.stepSimulation()
-        current_position = p.getBasePositionAndOrientation(cubeBodies[0])[0]
-        # cube_positions.append(current_position)
-        time.sleep(1. / 3640.)
-
-    # Manually create an array / list (also check PyBullet docs)
-    trace = {"cube_position": cube_positions}
-
-    # TODO: Return JSON data - cube positions, orientations, velocities
-    # json_trace = json.dumps(trace)
-
-    return

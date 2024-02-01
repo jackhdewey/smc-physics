@@ -9,7 +9,7 @@ def main():
     p.resetDebugVisualizerCamera(4, 0, -1, [0, 0, 1])
 
     spheres, locations = simulation.init_scene()
-    simulation.test_elasticity(spheres[0])
+    simulation.test_orientation(spheres[0])
 
     p.disconnect()
     return
