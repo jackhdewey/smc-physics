@@ -15,10 +15,12 @@
 # DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
 # DONE: Visualize by plotting bounce locations in 3D
 
-# TODO: Change prior for elasticity?
 # TODO: Fix off-by-one error
 # TODO: Save itermediate particle filter states
-# TODO: Multiple forward passes per particle, with some noise added over velocity
+
+# CONSIDER: Change prior for elasticity?
+# CONSIDER: Add noise over velocity?
+# CONSIDER: Consider handling collisions separately? 
 
 using Accessors
 using Distributions
