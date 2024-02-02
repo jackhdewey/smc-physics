@@ -1,15 +1,17 @@
+# Functions for testing the behavior of PyBullet solver under different initial conditions
+
+# DONE: Set elasticity of floor to 0.3
+
+# DONE: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
+#   * Drop sphere from 1m, vary elasticity from 0.0-1.0 with 0.1 increments, save to .csv 
+
+# DONE: Compare RealFlow and PyBullet bounce directions for different initial orientations
+#   * Rotate a cube to ~10 angles, then do the same test
+
 import pybullet as p
 import time
 import numpy
 import csv
-
-# DONE: Set elasticity of floor to 0.3
-
-# TODO: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
-# DONE: Drop sphere from 1m, vary elasticity from 0.0-1.0 with 0.1 increments, save to .csv 
-
-# TODO: Compare RealFlow and PyBullet bounce directions for different initial orientations
-# TODO: Rotate a cube to ~10 angles, then do the same test
 
 def init_scene():
 
@@ -124,7 +126,7 @@ def test_orientation(cube):
     for i in range(0, 10):
 
         initial_position = [0.0, 0.0, 1.0]
-        theta_y_init = intervals[i]
+        theta_y_init = round(intervals[i], 3)
         initial_orienation = [0.0, theta_y_init, 0.0]
 
         initial_position.insert(0, theta_y_init)

@@ -1,21 +1,23 @@
 # Generates a scene containing an elastic cube within a larger cubic enclosure
 # Given its elasticity, geometry, and mass, etc. how will the cube bounce?
+
 # Implemented as a deterministic simulation over uncertain properties
-# Two ways to provide (fix) observed values - parameters and constraints
+# Two ways to fix observed values - parameters and constraints
 
 # GOAL: Perform sequential inference of elasticity using 3 seconds of observations, followed by 3 seconds of prediction
 # GOAL: Test what simulation settings (i.e. resource-rational approximations) best match human performance:
 #        * using a rigid body
 #        * using a sphere
 #        * adding noise to orientation
+
 # DONE: Add ceiling and fourth wall
 # DONE: Set initial position and velocity using RealFlow data
 # DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
 # DONE: Visualize by plotting bounce locations in 3D
 
+# TODO: Change prior for elasticity?
 # TODO: Fix off-by-one error
-# TODO: Change prior for elasticity
-# TODO: Save itermediate states
+# TODO: Save itermediate particle filter states
 # TODO: Multiple forward passes per particle, with some noise added over velocity
 
 using Accessors
