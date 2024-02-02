@@ -1,4 +1,5 @@
-# Main function for running pybullet tests defined in simulation.py
+# Main function for running PyBullet tests defined in simulation.py
+
 # TODO: Find a way to save simulations in order to display as video later
 
 import pybullet as p
