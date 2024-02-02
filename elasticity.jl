@@ -8,13 +8,11 @@
 #        * using a rigid body
 #        * using a sphere
 #        * adding noise to orientation
-# DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
+# DONE: Add ceiling and fourth wall
 # DONE: Set initial position and velocity using RealFlow data
-# DONE: Add ceiling and fourth wall; consider different restitution values
-# DONE: Visualize by plotting bounce locations in 3D, with walls 'sketched' in
-# DONE: Make the cube smaller
-# TODO: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
-# TODO: Compare RealFlow and PyBullet bounce directions for different initial velocities 
+# DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
+# DONE: Visualize by plotting bounce locations in 3D
+
 # TODO: Fix off-by-one error
 # TODO: Change prior for elasticity
 # TODO: Save itermediate states
