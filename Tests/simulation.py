@@ -87,7 +87,7 @@ def test_elasticity(cube):
 
     fields = ['Elasticity', 'X', 'Y', 'Z']
 
-    file = "test.csv"
+    file = "Tests/test_elasticity.csv"
     csvfile = open(file, 'w')
     writer = csv.writer(csvfile)
     writer.writerow(fields)
@@ -116,7 +116,7 @@ def test_orientation(cube):
 
     fields = ['Theta Y', 'X', 'Y', 'Z', 'Theta X', 'Theta Y', 'Theta Z']
 
-    file = "test_orientation.csv"
+    file = "Tests/test_orientation.csv"
     csvfile = open(file, 'w')
     writer = csv.writer(csvfile)
     writer.writerow(fields)

@@ -12,7 +12,7 @@ def main():
     p.resetDebugVisualizerCamera(3, 0, -1, [0, 0, 1])
 
     cubes, locations = simulation.init_scene()
-    simulation.test_orientation(cubes[0])
+    simulation.test_elasticity(cubes[0])
 
     p.disconnect()
     return
