@@ -52,10 +52,8 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
         end
     end
 
-    truncator(x) = trunc(x, digits=5)
-    transformer(vec) = map(truncator, vec)
-    # transformer(vec) = map(truncator, convert(vec, Array{Float64}))
-    # transformer(vec) = println(vec)
+    truncator(col, val) = trunc(val, digits=5)
+    truncator(col, val::Int) = val
 
-    CSV.write(fname, particle_data, transform=transformer)
+    CSV.write(fname, particle_data, transform=truncator)
 end
