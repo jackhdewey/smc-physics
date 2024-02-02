@@ -1,6 +1,6 @@
 import pybullet as p
 import time
-import random
+import numpy
 import csv
 
 # DONE: Set elasticity of floor to 0.3
@@ -119,11 +119,14 @@ def test_orientation(cube):
     writer = csv.writer(csvfile)
     writer.writerow(fields)
 
+    intervals = numpy.linspace(0, numpy.pi / 2, 10)
+
     for i in range(0, 10):
 
         initial_position = [0.0, 0.0, 1.0]
-        theta_y_init = 90.0 - 10.0 * i
+        theta_y_init = intervals[i]
         initial_orienation = [0.0, theta_y_init, 0.0]
+
         initial_position.insert(0, theta_y_init)
         initial_position.extend(initial_orienation)
         writer.writerow(initial_position)
@@ -131,14 +134,21 @@ def test_orientation(cube):
         p.resetBasePositionAndOrientation(cube, [0, 0, 1], p.getQuaternionFromEuler([0, theta_y_init, 0]))
 
         for t in range(0, 200):
+
             p.stepSimulation()
+
             position, quaternion = p.getBasePositionAndOrientation(cube)
             orientation = p.getEulerFromQuaternion(quaternion)
+
             position = list(position)
             position.insert(0, theta_y_init)
             position.extend(orientation)
+            
+            for i in range(len(position)):
+                position[i] = round(position[i], 3)
+
             writer.writerow(position)        
 
-        p.resetBasePositionAndOrientation(cube, [0, 0, 1], p.getQuaternionFromEuler([0, 0, 0]))
+            time.sleep(1. / 3640.)
 
     return
