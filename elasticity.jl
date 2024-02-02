@@ -323,10 +323,10 @@ function main()
         write_to_csv(result, fname)
             
         # For each particle, predict the next 90 time steps
-        ppd = predict(result, 90)    
-        gif(animate_traces(ppd), fps=24)  
-        write_to_csv(ppd, fname) 
+        ppd = predict(result, 90)
+        gif(animate_traces(ppd), fps=24)
         fname = string("BulletData/predictions_", tokens[2], "_", tokens[3])
+        write_to_csv(ppd, fname)
     end
 
     bullet.disconnect()
