@@ -126,7 +126,7 @@ def test_orientation(cube):
     for i in range(0, 10):
 
         initial_position = [0.0, 0.0, 1.0]
-        theta_y_init = intervals[i]
+        theta_y_init = round(intervals[i], 3)
         initial_orienation = [0.0, theta_y_init, 0.0]
 
         initial_position.insert(0, theta_y_init)
