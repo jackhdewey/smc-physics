@@ -2,7 +2,6 @@
 # Given its elasticity, geometry, and mass, etc. how will the cube bounce?
 
 # Implemented as a deterministic simulation over uncertain properties
-# Two ways to fix observed values - parameters and constraints
 
 # GOAL: Perform sequential inference of elasticity using 3 seconds of observations, followed by 3 seconds of prediction
 # GOAL: Test what simulation settings (i.e. resource-rational approximations) best match human performance:
@@ -10,7 +9,6 @@
 #        * using a sphere
 #        * adding noise to orientation
 
-# DONE: Add ceiling and fourth wall
 # DONE: Set initial position and velocity using RealFlow data
 # DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
 # DONE: Visualize by plotting bounce locations in 3D
