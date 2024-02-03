@@ -101,11 +101,15 @@ def test_elasticity(cube):
         writer.writerow(initial_position)
 
         for t in range(0, 200):
+
             p.stepSimulation()
+            
             position = p.getBasePositionAndOrientation(cube)[0]
             position = list(position)
             position.insert(0, elasticity)
-            writer.writerow(position)        
+            writer.writerow(position)       
+
+            time.sleep(1. / 3640.) 
 
         p.resetBasePositionAndOrientation(cube, [0, 0, 1], p.getQuaternionFromEuler([0, 0, 0]))
 
