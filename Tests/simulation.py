@@ -15,7 +15,7 @@ import csv
 
 def init_scene():
 
-    p.setGravity(0, 0, -10)
+    p.setGravity(0, 0, -9.81)
 
     # Create and position ground plane
     planeID = p.createCollisionShape(p.GEOM_PLANE)
@@ -23,22 +23,26 @@ def init_scene():
     p.changeDynamics(plane, -1, restitution=0.3)
 
     # Create and position walls
-    plane2ID = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.01, 1, 1])
+    wall1ID = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.01, .5, .5])
     quaternion = p.getQuaternionFromEuler([0, 0, 0])
-    plane2 = p.createMultiBody(baseCollisionShapeIndex=plane2ID, basePosition=[1, 0, 1], baseOrientation=quaternion)
-    p.changeDynamics(plane2, -1, restitution=0.3)
+    wall1 = p.createMultiBody(baseCollisionShapeIndex=wall1ID, basePosition=[1, 0, 1], baseOrientation=quaternion)
+    p.changeDynamics(wall1, -1, restitution=0.3)
 
-    plane3ID = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.01, 1, 1])
-    plane3 = p.createMultiBody(baseCollisionShapeIndex=plane3ID, basePosition=[-1, 0, 1], baseOrientation=quaternion)
-    p.changeDynamics(plane3, -1, restitution=0.3)
+    wall2ID = p.createCollisionShape(p.GEOM_BOX, halfExtents=[0.01, .5, .5])
+    wall2 = p.createMultiBody(baseCollisionShapeIndex=wall2ID, basePosition=[-1, 0, 1], baseOrientation=quaternion)
+    p.changeDynamics(wall2, -1, restitution=0.3)
 
-    plane4ID = p.createCollisionShape(p.GEOM_BOX, halfExtents=[1, 0.01, 1])
-    plane4 = p.createMultiBody(baseCollisionShapeIndex=plane4ID, basePosition=[0, 1, 1], baseOrientation=quaternion)
-    p.changeDynamics(plane4, -1, restitution=0.3)
+    wall3ID = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.5, 0.01, .5])
+    wall3 = p.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[0, 1, 1], baseOrientation=quaternion)
+    p.changeDynamics(wall3, -1, restitution=0.3)
+
+    wall4ID = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.5, 0.01, .5])
+    wall4 = p.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -1, 1], baseOrientation=quaternion)
+    p.changeDynamics(wall4, -1, restitution=0.3)
 
     # Create base cube shape
-    cubeShape = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.1, .1, .1])
-    cube_locations = [[-0.6, 0, 3], [-0.2, 0, 3], [0.2, 0, 3], [0.6, 0, 3]]
+    cubeShape = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.05, .05, .05])
+    cube_locations = [[-0.6, 0, 1], [-0.2, 0, 1], [0.2, 0, 1], [0.6, 0, 1]]
     startOrientationCube = p.getQuaternionFromEuler([0, 0, 0])
     cubeBodies = []
     
