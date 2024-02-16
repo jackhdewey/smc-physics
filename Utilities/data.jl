@@ -30,7 +30,7 @@ function read_observation_file(fname)
 end
 
 function filter_unwanted_filenames(fnames)
-    for i in ["predicted", "observed", "batch"]
+    for i in ["predicted", "observed", "batch", "Store"]
         fnames = filter(!contains(i), fnames)
     end
     return fnames
