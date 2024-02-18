@@ -1,7 +1,5 @@
 # Functions for testing the behavior of PyBullet solver under different initial conditions
 
-# DONE: Set elasticity of floor to 0.3
-
 # TODO: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
 #   * Drop sphere from 1m, vary elasticity from 0.0-1.0 with 0.1 increments, save to .csv 
 
