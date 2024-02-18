@@ -2,10 +2,10 @@
 
 # DONE: Set elasticity of floor to 0.3
 
-# DONE: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
+# TODO: Compare RealFlow and PyBullet bounce heights for different elasticities in very simple example (dropping a sphere)
 #   * Drop sphere from 1m, vary elasticity from 0.0-1.0 with 0.1 increments, save to .csv 
 
-# DONE: Compare RealFlow and PyBullet bounce directions for different initial orientations
+# TODO: Compare RealFlow and PyBullet bounce directions for different initial orientations
 #   * Rotate a cube to ~10 angles, then do the same test
 
 import pybullet as p
@@ -92,6 +92,7 @@ def init_scene():
 
     return rigidBodies
 
+############### TESTS ################
 
 # Run a basic simulation
 def run_sample(cubeBodies, cube_positions):
@@ -103,7 +104,6 @@ def run_sample(cubeBodies, cube_positions):
         time.sleep(1. / 3640.)
 
     return cube_positions
-
 
 # Run ten simulations with elasticity progressively increased from 0.0 to 1.0
 def test_elasticity(object, shape):
