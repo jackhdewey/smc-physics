@@ -12,7 +12,7 @@ def main():
     p.resetDebugVisualizerCamera(2, 0, -1, [0, 0, .5])
 
     rigidBodies = tests.init_scene()
-    tests.test_orientation(rigidBodies[0])
+    tests.test_elasticity(rigidBodies[0], "cube")
 
     p.disconnect()
     return

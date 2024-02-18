@@ -106,10 +106,10 @@ def run_sample(cubeBodies, cube_positions):
 
 
 # Run ten simulations with elasticity progressively increased from 0.0 to 1.0
-def test_elasticity(cube):
+def test_elasticity(object, shape):
 
     # Open a .csv file
-    file = "Tests/test_elasticity.csv"
+    file = "Tests/test_elasticity_" + shape + ".csv"
     csvfile = open(file, 'w')
     writer = csv.writer(csvfile)
 
@@ -121,8 +121,7 @@ def test_elasticity(cube):
 
         # Procedurally vary elasticity
         elasticity = 0.1 * i
-        p.changeDynamics(cube, -1, restitution=elasticity)
-        print(elasticity)
+        p.changeDynamics(object, -1, restitution=elasticity)
 
         # Concatenate initial position and velocity
         initial_position = [0.0, 0.0, 1.0]
@@ -134,7 +133,7 @@ def test_elasticity(cube):
 
             p.stepSimulation()
             
-            position = p.getBasePositionAndOrientation(cube)[0]
+            position = p.getBasePositionAndOrientation(object)[0]
             position = list(position)
             position.insert(0, elasticity)
             writer.writerow(position)       
@@ -142,14 +141,14 @@ def test_elasticity(cube):
             time.sleep(1. / 3640.) 
 
         # Reset to starting position / orientation
-        p.resetBasePositionAndOrientation(cube, [0, 0, 1], p.getQuaternionFromEuler([0, 0, 0]))
+        p.resetBasePositionAndOrientation(object, [0, 0, 1], p.getQuaternionFromEuler([0, 0, 0]))
 
     return
 
 # Run ten simulations with orientation progressively increased from 0.0 to pi/2
-def test_orientation(cube):
+def test_orientation(object, shape):
 
-    file = "Tests/test_orientation.csv"
+    file = file = "Tests/test_orientation_" + shape + ".csv"
     csvfile = open(file, 'w')
     writer = csv.writer(csvfile)
 
@@ -172,7 +171,7 @@ def test_orientation(cube):
         writer.writerow(initial_position)
 
         # Set to correct position and orientation in simulation
-        p.resetBasePositionAndOrientation(cube, [0, 0, 1], p.getQuaternionFromEuler([0, theta_y_init, 0]))
+        p.resetBasePositionAndOrientation(object, [0, 0, 1], p.getQuaternionFromEuler([0, theta_y_init, 0]))
 
         # Simulate 200 time steps and record trajectory
         for _ in range(0, 200):
@@ -180,7 +179,7 @@ def test_orientation(cube):
             p.stepSimulation()
 
             # Extract current position and orientation
-            position, quaternion = p.getBasePositionAndOrientation(cube)
+            position, quaternion = p.getBasePositionAndOrientation(object)
             orientation = p.getEulerFromQuaternion(quaternion)
             position = list(position)
             position.insert(0, theta_y_init)
