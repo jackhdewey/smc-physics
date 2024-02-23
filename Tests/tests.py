@@ -43,7 +43,7 @@ def init_scene():
     # Create cube collision shape
     cubeShape = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.05, .05, .05])
 
-    # Position and orient cube
+    """ # Position and orient cube
     startPosCube = [0, 0, 1]
     startOrientationCube = p.getQuaternionFromEuler([0, 0, 0])
     cube = p.createMultiBody(baseCollisionShapeIndex=cubeShape, basePosition=startPosCube, baseOrientation=startOrientationCube)
@@ -52,9 +52,9 @@ def init_scene():
     p.setGravity(0, 0, -9.81)
     p.changeDynamics(cube, -1, mass=1.0, restitution=0.9)
 
-    rigidBodies.append(cube)
+    rigidBodies.append(cube) """
 
-    '''
+
     # Create sphere collision shape
     sphereShape = p.createCollisionShape(p.GEOM_SPHERE, radius=.062)
 
@@ -63,10 +63,10 @@ def init_scene():
     startOrientationSphere = p.getQuaternionFromEuler([0, 0, 0])
     sphere = p.createMultiBody(baseCollisionShapeIndex=sphereShape, basePosition=startPosSphere, baseOrientation=startOrientationSphere)
 
-    p.changeDynamics(sphere, -1, mass=1.0, restitutation=0.9)
+    p.changeDynamics(sphere, -1, mass=1.0, restitution=0.9)
 
     rigidBodies.append(sphere)
-    '''
+ 
 
     '''
     # Position and orient second cube
