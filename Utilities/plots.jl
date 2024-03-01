@@ -2,6 +2,7 @@
 
 using Plots
 
+# Generates an animated 2D plot of height over time 
 @userplot SimPlot
 @recipe function f(cp::SimPlot)
     z, t = cp.args
@@ -19,12 +20,7 @@ using Plots
     inds, z[inds, :]
 end
 
-function animate_observations(zs::Vector{Float64})
-    @animate for i=2:length(zs)
-        simplot(zs, i)
-    end
-end
-
+# Extract height measurements from the given trace
 function get_zs(trace::Gen.Trace)
     t, _... = get_args(trace)
     states = get_retval(trace)
@@ -35,6 +31,7 @@ function get_zs(trace::Gen.Trace)
     return zs
 end
 
+# Animate a single trajectory
 function animate_trace(trace::Gen.Trace; label="trace")
     t = first(get_args(trace))
     zs = reshape(get_zs(trace), (t, 1))
@@ -43,10 +40,17 @@ function animate_trace(trace::Gen.Trace; label="trace")
     end
 end
 
+# Animate multiple trajectories in one plot
 function animate_traces(traces::Vector{<:Gen.Trace})
     zzs = reduce(hcat, map(get_zs, traces))
     t = size(zzs, 1)
     @animate for i=2:t
         simplot(zzs, i)
     end
+end
+
+# 
+function plot_traj(all_particles)
+    traj = filter(:particle => x -> x == 1, all_particles)
+    plt = plot3d(traj.x, traj.y, traj.z)
 end
