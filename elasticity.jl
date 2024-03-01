@@ -20,8 +20,6 @@
 # CONSIDER: Adding noise over velocity
 # CONSIDER: Handling collisions separately
 
-# I MADE A CHANGE
-
 using Accessors
 using Distributions
 using Gen
@@ -35,7 +33,7 @@ bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 include("Utilities/truncatednorm.jl")
 include("Utilities/plots.jl")
-include("Utilities/data.jl")
+include("Utilities/fileio.jl")
 
 
 # Generative Model
@@ -127,6 +125,8 @@ end
 
     # Sample values for the target object's latents - i.e. a restitution
     latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
+
+    # Update initial state with sampled latent values
     init_state = Accessors.setproperties(init_state; latents=latents)
 
     # Simulate T time steps
@@ -182,7 +182,7 @@ end
 # Particle filter
 function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
 
-    # Extract test information    
+    # Extract trial identification    
     tokens = split(fname, "_")
 
     # Initiliaze the particle filter (with no observations)
@@ -199,7 +199,7 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
             # Simulate the next time step and score against new observation
             Gen.particle_filter_step!(state, (t, gm_args[2:3]...), argdiffs, obs)
 
-            # Resample elasticity, test by simulating to current time step, then accept / reject
+            # Resample elasticity, resimulate to current time step, then accept / reject
             for i=1:num_particles
                 state.traces[i], _ = Gen.mh(state.traces[i], proposal, ())
             end
@@ -224,7 +224,7 @@ function predict(particles, T::Int)
     n = length(particles)
     ppd = Vector{Gen.Trace}(undef, n)
     for i=1:n
-        # Reset the number of time steps, leave other arguments and existing trace intact
+        # Reset the number of time steps
         prev_args = get_args(particles[i])
         new_args = (prev_args[1] + T, prev_args[2:end]...)
         arg_diffs = (UnknownChange(), NoChange(), NoChange())
@@ -262,11 +262,11 @@ function main()
         init_state = generate_scene(sim, initial_position, initial_velocity)
         args = (30, init_state, sim)
 
-        # Infer elasticity from observed trajectory 
+        # Simulate 20 particles to estimate elasticity from observed trajectory 
         results, weights = infer(fname, args, observations, 20)
         gif(animate_traces(results), fps=24)
 
-        # Write inferred elasticities to a .csv file
+        # Write out put particles to a .csv file
         tokens = split(fname, "_")
         fname = string("BulletData/Observations/observations_", tokens[2], "_", tokens[3])
         write_to_csv(results, fname)
@@ -275,7 +275,7 @@ function main()
         ppd = predict(results, 90)
         gif(animate_traces(ppd), fps=24)
 
-        # Write predicted trajectory to a .csv file
+        # Write predicted trajectories to a .csv file
         fname = string("BulletData/Predictions/predictions_", tokens[2], "_", tokens[3])
         write_to_csv(ppd, fname)
 
