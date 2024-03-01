@@ -184,6 +184,7 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
 
     # Extract trial identification    
     tokens = split(fname, "_")
+    csv = split(tokens[3], ".")
 
     # Initiliaze the particle filter (with no observations)
     state = Gen.initialize_particle_filter(generate_trajectory, (0, gm_args[2:3]...), EmptyChoiceMap(), num_particles)
@@ -205,7 +206,7 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
             end
             
             # Dump current particles to a .csv file
-            fname = string("BulletData/Intermediate/particles_", tokens[2], "_", tokens[3], "_", t)
+            fname = string("BulletData/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
             write_to_csv(state.traces, fname)
 
         end
