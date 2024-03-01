@@ -11,7 +11,6 @@ function read_observation_file(fname)
     initial_velocity = [datum[1], datum[2], datum[3]]
 
     # Read ground truth trajectory
-
     head, tail = split(fname, '.')
     fname2 = join([head, "_observed.", tail])
     println("Reading...", fname2)
@@ -24,11 +23,13 @@ function read_observation_file(fname)
         cm = Gen.choicemap((addr, new_datum))
         observations[i] = cm
     end
+
     initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
 
     return initial_position, initial_velocity, observations
 end
 
+# Given a vector of filenames, remove any that contain certain tokens
 function filter_unwanted_filenames(fnames)
     for i in ["predicted", "observed", "batch", "Store"]
         fnames = filter(!contains(i), fnames)
@@ -36,11 +37,14 @@ function filter_unwanted_filenames(fnames)
     return fnames
 end
 
+# Writes data for each particle (elasticity, log weight, and trajectory) to a .csv file with the given name
 function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
+    # Initialize a data frame with appropriate 
     println("Writing simulation data to " * fname)
     particle_data = DataFrame(particle=Int[], elasticity=[], weight=[], frame=Int[], x=[], y=[], z=[])
 
+    # Iterate over the particles 
     for (p, particle) in enumerate(particles)
         ela = particle[:latents => 1 => :restitution]
         for (f, frame) in enumerate(particle[:trajectory])
@@ -52,6 +56,7 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
         end
     end
 
+    # Truncate the devimal values
     truncator(col, val) = trunc(val, digits=5)
     truncator(col, val::Int) = val
 
