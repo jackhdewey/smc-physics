@@ -1,6 +1,7 @@
 # Helper functions for reading from and writing data to a .csv file
 
 using DataFrames
+using CSV
 
 # Extracts initial position, initial velocity, and trajectory from two .csv files
 function read_observation_file(fname)
@@ -63,4 +64,39 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
     truncator(col, val::Int) = val
 
     CSV.write(fname, particle_data, transform=truncator)
+end
+
+# Comparator to sort intermediate particle filter state files into correct order
+function trial_particle_order(x, y)
+
+    x_tokens = split(x, "_")
+    y_tokens = split(y, "_")
+
+    elasticity1 = replace(x_tokens[2], "Ela" => "")
+    elasticity2 = replace(y_tokens[2], "Ela" => "")
+
+    as_int1 = parse(Int64, elasticity1)
+    as_int2 = parse(Int64, elasticity2)
+
+    if (as_int1 != as_int2)
+        return as_int1 < as_int2
+    end
+
+    trial1 = replace(x_tokens[3], "Var" => "")
+    trial2 = replace(y_tokens[3], "Var" => "")
+
+    as_int1 = parse(Int64, trial1)
+    as_int2 = parse(Int64, trial2)
+
+    if (as_int1 != as_int2)
+        return as_int1 < as_int2
+    end
+
+    particle1 = replace(x_tokens[4], ".csv" => "")
+    particle2 = replace(y_tokens[4], ".csv" => "")
+
+    particle1_as_int = parse(Int64, particle1)
+    particle2_as_int = parse(Int64, particle2)
+
+    return particle1_as_int < particle2_as_int
 end
