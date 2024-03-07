@@ -1,6 +1,7 @@
 # Custom distribution extending Gen.random
 # By Mario Belledonne
 # Truncated Distributions
+
 using Distributions
 
 struct TruncNorm <: Gen.Distribution{Float64} end
