@@ -1,5 +1,7 @@
 # Helper functions for reading from and writing data to a .csv file
 
+using DataFrames
+
 # Extracts initial position, initial velocity, and trajectory from two .csv files
 function read_observation_file(fname)
 
