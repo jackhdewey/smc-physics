@@ -1,7 +1,7 @@
 # Provides functionality for visualizing the output of a particle filter
 
 using Plots
-#=
+using Gen
 
 # Generates an animated 2D plot of height over time 
 @userplot SimPlot
@@ -99,8 +99,6 @@ function overlay_particles(renderer, traces; same_data=true, args...)
 
     return fig
 end
-=#
-
 
 # 
 function plot_traj(all_particles)

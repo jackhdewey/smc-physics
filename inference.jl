@@ -3,8 +3,6 @@
 include("elasticity.jl")
 include("Utilities/fileio.jl")
 
-using CSV
-
 # Resamples latent(s) from a Gaussian proposal distribution
 @gen function proposal(trace::Gen.Trace)
 
