@@ -63,10 +63,12 @@ function visualize_particle_unfold(trace; show_data=true, max_T=get_args(trace)[
     # Populate vectors with observations and estimated positions
     xs = Vector{Float64}(undef, T+1)
     ys = Vector{Float64}(undef, T+1)
+    zs = Vector{Float64}(undef, T+1)
     obs = Vector{Float64}(undef, T+1)
     obs[1] = choices[:init_state => :obs => :bearing]
     xs[1] = init_state.x
     ys[1] = init_state.y
+
     for i=1:T
         obs[i+1] = choices[:trajectory => i => :obs => :bearing]
         xs[i+1] = states[i].x
@@ -75,22 +77,14 @@ function visualize_particle_unfold(trace; show_data=true, max_T=get_args(trace)[
 
     # Plot the estimated positions 
     f = overlay ? scatter! : scatter
-    fig = f(xs[1:max_T+1], ys[1:max_T+1], s=:auto, label=nothing)
+    fig = f(xs[1:max_T+1], ys[1:max_T+1], zs[1:max_T+1], s=:auto, label=nothing)
 
-    # Plot the estimated bearings
-    if show_data
-        for z in obs[1:max_T+1]
-            dx = cos(z) * 0.5
-            dy = sin(z) * 0.5
-            plot!([0., dx], [0., dy], color="red", alpha=0.3, label=nothing)
-        end
-    end
 end
 
 # Overlay multiple particles onto a single plot
 function overlay_particles(renderer, traces; same_data=true, args...)
 
-    fig = plot(title="Observed bearings (red) and \npositions of individual traces (one color per trace)", xlabel="X", ylabel="Y")
+    fig = plot(title="Observed bearings (red) and \npositions of individual traces (one color per trace)", xlabel="X", ylabel="Y", zlabel="Z")
     
     renderer(traces[1], show_data=true, overlay=true, args...)
     for i=2:length(traces)
