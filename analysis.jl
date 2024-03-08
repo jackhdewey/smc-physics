@@ -1,4 +1,9 @@
-# TODO: Visualize by plotting bounce locations in 3D
+# Data analysis module
+
+# Organization: grid by trial, with 30 grids for each time step, gris is 1x1x1
+# TODO: Set the alpha / intensity to reflect the log weight
+# TODO: Add the ground truth to each plot
+
 
 include("Utilities/plots.jl")
 include("Utilities/fileio.jl")
