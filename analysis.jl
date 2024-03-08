@@ -4,7 +4,6 @@
 # TODO: Set the alpha / intensity to reflect the log weight
 # TODO: Add the ground truth to each plot
 
-
 include("Utilities/plots.jl")
 include("Utilities/fileio.jl")
 
@@ -13,7 +12,7 @@ function main()
 
     all_files = filter_unwanted_filenames(readdir("BulletData/Intermediate/")) 
     sort!(all_files, lt=trial_particle_order)
-    file = all_files[2]
+    file = all_files[3]
 
     #for file in all_files
 
@@ -22,7 +21,7 @@ function main()
         tokens = split(file, "_")
         time_step = parse(Int64, replace(tokens[4], ".csv" => ""))
         
-        trajectories = cat([], dims = 3)
+        trajectories = Array{Array{Float64, 1}, 1}
         for i=1:time_step:20*time_step
             trajectory = []
             for j=1:time_step
@@ -32,10 +31,9 @@ function main()
                 z_pos = data[col, 7]
                 trajectory = [trajectory; [x_pos, y_pos, z_pos]]
             end
-            trajectories = [trajectories; trajectory]
+            println(trajectory)
         end
-
-        println(trajectories)
+        
     #end
     #plt = plot3d()
 end
