@@ -19,14 +19,16 @@ include("Utilities/fileio.jl")
 end
 
 # Particle filter
-function filter(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, fname)
+function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
 
     # Extract trial identification    
     tokens = split(fname, "_")
     csv = split(tokens[3], ".")
 
     # Initiliaze the particle filter (with no observations)
-    state = Gen.initialize_particle_filter(generate_trajectory, (0, gm_args[2:3]...), EmptyChoiceMap(), num_particles)
+    state = Gen.initialize_particle_filter(generate_trajectory, (gm_args[1], gm_args[2], 0), EmptyChoiceMap(), num_particles)
+
+    display(get_choices(state.traces[1]))
     
     # Iteratively simulate and filter particles
     argdiffs = (UnknownChange(), NoChange(), NoChange())
@@ -37,7 +39,7 @@ function filter(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=2
             Gen.maybe_resample!(state, ess_threshold=num_particles/2)
 
             # Simulate the next time step and score against new observation
-            Gen.particle_filter_step!(state, (t, gm_args[2:3]...), argdiffs, obs)
+            Gen.particle_filter_step!(state, (gm_args[1],gm_args[2], t), argdiffs, obs)
 
             # Resample elasticity, resimulate to current time step, then accept / reject
             for i=1:num_particles

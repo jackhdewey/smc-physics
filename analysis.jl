@@ -23,7 +23,7 @@ function main()
     )
 
     # Plot ground truth trajectory
-    ground_truth = CSV.read("RealFlowData/Cube_Ela3_Var26_observed.csv", DataFrame)
+    ground_truth = CSV.read("RealFlowData/Cube_Ela3_Var38_observed.csv", DataFrame)
     true_x = []
     true_y = []
     true_z = []
@@ -40,7 +40,7 @@ function main()
     sort!(all_files, lt=trial_particle_order)
 
     # For each time step in the first trial
-    for x=1:30
+    for x=151:180
 
         file = all_files[x]
         data = CSV.read(string("BulletData/Intermediate/", file), DataFrame)
@@ -77,4 +77,3 @@ function main()
 end
 
 main()
-

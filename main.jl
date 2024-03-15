@@ -11,6 +11,10 @@
 # DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
 # DONE: Save itermediate particle filter state
 #
+# TODO: Analyze the average performance at inferring elasticity value
+# TODO: Infer cubes using spheres
+# TODO: Infer spheres using spheres
+#
 # TODO: Fix off-by-one error
 
 include("inference.jl")
@@ -40,12 +44,12 @@ function main()
 
         # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
         args = (sim, init_state, 30)
-        results, weights = filter(args, observations, 20, fname)
-        gif(animate_traces(results), fps=24)
+        results, weights = infer(fname, args, observations, 20)
+        #gif(animate_traces(results), fps=24)
 
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)
-        gif(animate_traces(ppd), fps=24)
+        #gif(animate_traces(ppd), fps=24)
 
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
