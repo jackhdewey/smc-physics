@@ -19,7 +19,7 @@ include("Utilities/fileio.jl")
 end
 
 # Particle filter
-function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
+function filter(gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, fname)
 
     # Extract trial identification    
     tokens = split(fname, "_")
