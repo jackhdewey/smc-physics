@@ -67,7 +67,7 @@ function predict(particles, T::Int)
     for i=1:n
         # Reset the number of time steps
         prev_args = get_args(particles[i])
-        new_args = (prev_args[1] + T, prev_args[2:end]...)
+        new_args = (prev_args[1], prev_args[2], prev_args[3] + T)
         arg_diffs = (UnknownChange(), NoChange(), NoChange())
         
         # Generate the next T time steps

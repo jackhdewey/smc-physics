@@ -45,7 +45,7 @@ function main()
         # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
         args = (sim, init_state, 30)
         results, weights = infer(fname, args, observations, 20)
-        #gif(animate_traces(results), fps=24)
+        gif(animate_traces(results), fps=24)
 
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)

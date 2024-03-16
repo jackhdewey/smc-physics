@@ -73,7 +73,7 @@ end
 
 # Extract height measurements from the given trace
 function get_zs(trace::Gen.Trace)
-    t, _... = get_args(trace)
+    _, _, t = get_args(trace)
     states = get_retval(trace)
     zs = Vector{Float64}(undef, t)
     for i = 1:t
@@ -84,7 +84,7 @@ end
 
 # Animate a single trajectory
 function animate_trace(trace::Gen.Trace; label="trace")
-    t = first(get_args(trace))
+    t = get_args(trace)[3]
     zs = reshape(get_zs(trace), (t, 1))
     @animate for i=2:t
         simplot(zs, i, label=label)
