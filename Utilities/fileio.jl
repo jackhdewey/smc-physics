@@ -7,7 +7,7 @@ using CSV
 function read_observation_file(fname)
 
     # Read ground truth initial velocity
-    fname = string("RealFlowData/", fname) 
+    fname = string("RealFlowData/Sphere/", fname) 
     println("Reading...", fname)
     data = CSV.read(fname, DataFrame)
     datum = values(data[1, 11:13])
