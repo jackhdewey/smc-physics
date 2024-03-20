@@ -1,8 +1,7 @@
 # Data analysis module
 
-# Organization: grid by trial, with 30 grids for each time step, gris is 1x1x1
+# Organization: 30 plots for each triel, one for each time step - ground truth trajectory plotted in red
 # TODO: Set the alpha / intensity to reflect the log weight
-# TODO: Add the ground truth to each plot
 
 include("Utilities/plots.jl")
 include("Utilities/fileio.jl")
@@ -40,7 +39,7 @@ function main()
     sort!(all_files, lt=trial_particle_order)
 
     # For each time step in the first trial
-    for x=151:180
+    for x=1:30
 
         file = all_files[x]
         data = CSV.read(string("BulletData/Intermediate/", file), DataFrame)

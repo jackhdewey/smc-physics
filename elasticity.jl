@@ -1,4 +1,7 @@
-# Generates a scene containing an elastic cube or sphere within a larger cubic enclosure
+# Generative Model
+#
+# Generates an elastic cube or sphere with specified position and velocity within a larger cubic enclosure
+# Simulates rigid body physics for specified number of time steps, recording a series of noisy position observations
 # Implemented as a deterministic simulation over uncertain properties
 #
 # CONSIDER: Changing prior for elasticity
@@ -16,9 +19,7 @@ pybullet_data = pyimport("pybullet_data")
 include("Utilities/truncatednorm.jl")
 
 
-# Generative Model
-
-# Sets initial scene configuration, including kinematics and dynamics
+# Sets initial scene configuration
 # In the future this will be an inverse graphics module
 function init_scene()
 
@@ -54,6 +55,7 @@ function init_scene()
 
 end
 
+# Sets the initial state (shape, position, velocity, and optionally mass and restitution of the target object)
 function init_target_state(sim::PhySim, shape::String, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
 
      # Set target object initial position and orientation
@@ -80,13 +82,21 @@ function init_target_state(sim::PhySim, shape::String, init_position::Vector{Flo
      return init_state
 end
 
+# Samples an initial estimate of latent properties
+@gen function sample_latents(latents::RigidBodyLatents)
+    # mass = {:mass} ~ gamma(1.2, 10.)
+    res = {:restitution} ~ uniform(0, 1)
+    new_latents = RigidBodyLatents(setproperties(latents.data, restitution=res))
+    return new_latents
+end
+
 # Adds measurement noise to ground truth position
 @gen function generate_observation(k::RigidBodyState)
     obs = {:position} ~ broadcasted_normal(k.position, 0.1)
     return obs
 end
 
-# Samples an observation, syncs Bullet to the given state, and generates the next state
+# Given an input state, samples an observation, syncs Bullet simulator, and generates the next state
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
 
     # Applies noise to x, y, and z positions
@@ -96,14 +106,6 @@ end
     next_state::BulletState = PhySMC.step(sim, current_state)
 
     return next_state
-end
-
-# Samples initial latent estimate
-@gen function sample_latents(latents::RigidBodyLatents)
-    # mass = {:mass} ~ gamma(1.2, 10.)
-    res = {:restitution} ~ uniform(0, 1)
-    new_latents = RigidBodyLatents(setproperties(latents.data, restitution=res))
-    return new_latents
 end
 
 # Given an initial state, samples latents from their priors then runs a complete forward simulation

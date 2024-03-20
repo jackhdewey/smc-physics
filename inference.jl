@@ -1,4 +1,7 @@
 # Inference and Prediction
+#
+# Defines a particle filter and proposal distribution that can be used to generate a set of concurrent simulations (particles)
+# Each simulation is procedurally updated by one time step, scored, rejuvenated, and (potentially) resampled
 
 include("elasticity.jl")
 include("Utilities/fileio.jl")
@@ -34,9 +37,6 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
     argdiffs = (UnknownChange(), NoChange(), NoChange())
     for (t, obs) = enumerate(obs)
         @elapsed begin
-            
-            # Decide whether to cull and resample poorly performing particles
-            Gen.maybe_resample!(state, ess_threshold=num_particles/2)
 
             # Simulate the next time step and score against new observation
             Gen.particle_filter_step!(state, (gm_args[1],gm_args[2], t), argdiffs, obs)
@@ -45,9 +45,12 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
             for i=1:num_particles
                 state.traces[i], _ = Gen.mh(state.traces[i], proposal, ())
             end
+
+            # Decide whether to cull and resample poorly performing particles
+            Gen.maybe_resample!(state, ess_threshold=num_particles/2)
             
             # Dump current particles to a .csv file
-            fname = string("BulletData/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
+            fname = string("BulletData/Sphere/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
             write_to_csv(state.traces, fname)
 
         end

@@ -11,11 +11,11 @@
 # DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
 # DONE: Save itermediate particle filter state
 #
-# TODO: Analyze the average performance at inferring elasticity value
-# TODO: Infer cubes using spheres
 # TODO: Infer spheres using spheres
+# TODO: Analyze average performance at inferring elasticity value
 #
-# TODO: Fix off-by-one error
+# CONSIDER: Infer cubes using spheres
+# CONSIDER: Fix off-by-one error
 
 include("inference.jl")
 include("Utilities/plots.jl")
@@ -23,7 +23,7 @@ include("Utilities/plots.jl")
 function main()
 
     # Read ground truth trajectories
-    dir = "RealFlowData/"
+    dir = "RealFlowData/Sphere/"
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     println(fnames)
@@ -40,7 +40,7 @@ function main()
         # Initialize target state using observed data
         fname = fnames[i]
         initial_position, initial_velocity, observations = read_observation_file(fname)
-        init_state = init_target_state(sim, "cube", initial_position, initial_velocity)
+        init_state = init_target_state(sim, "sphere", initial_position, initial_velocity)
 
         # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
         args = (sim, init_state, 30)
@@ -53,11 +53,11 @@ function main()
 
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
-        fname = string("BulletData/Observations/observations_", tokens[2], "_", tokens[3])
+        fname = string("BulletData/Sphere/Observations/observations_", tokens[2], "_", tokens[3])
         write_to_csv(results, fname)
 
         # Write predicted trajectories to a .csv file
-        fname = string("BulletData/Predictions/predictions_", tokens[2], "_", tokens[3])
+        fname = string("BulletData/Sphere/Predictions/predictions_", tokens[2], "_", tokens[3])
         write_to_csv(ppd, fname)
 
         bullet.disconnect()
