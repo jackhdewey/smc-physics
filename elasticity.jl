@@ -20,7 +20,7 @@ include("Utilities/truncatednorm.jl")
 
 # Sets initial scene configuration, including kinematics and dynamics
 # In the future this will be an inverse graphics module
-function generate_scene(sim::PhySim, shape::String, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
+function init_scene()
 
     # Create and position ground plane
     planeID = bullet.createCollisionShape(bullet.GEOM_PLANE)
@@ -28,8 +28,9 @@ function generate_scene(sim::PhySim, shape::String, init_position::Vector{Float6
     bullet.changeDynamics(plane, -1, mass=0.0, restitution=0.5)
 
     # Create and position walls
-    wall1ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
     quaternion = bullet.getQuaternionFromEuler([0, 0, 0])
+
+    wall1ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
     wall1 = bullet.createMultiBody(baseCollisionShapeIndex=wall1ID, basePosition=[-0.5, 0, 0.5], baseOrientation=quaternion)
     bullet.changeDynamics(wall1, -1, mass=0.0, restitution=0.5)
 
@@ -49,29 +50,34 @@ function generate_scene(sim::PhySim, shape::String, init_position::Vector{Float6
     ceiling = bullet.createMultiBody(baseCollisionShapeIndex=ceilingID, basePosition=[0, 0, 1], baseOrientation=quaternion)
     bullet.changeDynamics(ceiling, -1, mass=0.0, restitution=0.5)
 
-    # Set initial position and orientation
-    startPosition = init_position
-    startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
-
-    # Select shape representation
-    if (shape === "cube")
-        body = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
-    else
-        body = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.1)
-    end
-
-    # Create, position, and orient target object
-    target = bullet.createMultiBody(baseCollisionShapeIndex=body, basePosition=startPosition, baseOrientation=startOrientation)
-
-    # Set dynamic properties and initial kinematic state
     bullet.setGravity(0, 0, -10)
-    bullet.changeDynamics(sphere, -1, mass=mass, restitution=restitution)
-    bullet.resetBaseVelocity(sphere, linearVelocity=init_velocity)
 
-    # Store representation of cube's initial state
-    init_state = BulletState(sim, [RigidBody(target)])
+end
 
-    return init_state
+function init_target_state(sim::PhySim, shape::String, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
+
+     # Set target object initial position and orientation
+     startPosition = init_position
+     startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
+ 
+     # Select shape representation
+     if (shape === "cube")
+         body = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
+     else
+         body = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.1)
+     end
+ 
+     # Create, position, and orient target object
+     target = bullet.createMultiBody(baseCollisionShapeIndex=body, basePosition=startPosition, baseOrientation=startOrientation)
+ 
+     # Set dynamic properties and initial kinematic state
+     bullet.changeDynamics(target, -1, mass=mass, restitution=restitution)
+     bullet.resetBaseVelocity(target, linearVelocity=init_velocity)
+ 
+     # Store representation of cube's initial state
+     init_state = BulletState(sim, [RigidBody(target)])
+
+     return init_state
 end
 
 # Adds measurement noise to ground truth position
@@ -101,7 +107,7 @@ end
 end
 
 # Given an initial state, samples latents from their priors then runs a complete forward simulation
-@gen function generate_trajectory(T::Int, init_state::BulletState, sim::BulletSim)
+@gen function generate_trajectory(sim::BulletSim, init_state::BulletState, T::Int)
 
     # Sample values for the target object's latents - i.e. a restitution
     latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)

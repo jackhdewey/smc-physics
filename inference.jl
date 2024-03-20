@@ -26,7 +26,9 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
     csv = split(tokens[3], ".")
 
     # Initiliaze the particle filter (with no observations)
-    state = Gen.initialize_particle_filter(generate_trajectory, (0, gm_args[2:3]...), EmptyChoiceMap(), num_particles)
+    state = Gen.initialize_particle_filter(generate_trajectory, (gm_args[1], gm_args[2], 0), EmptyChoiceMap(), num_particles)
+
+    display(get_choices(state.traces[1]))
     
     # Iteratively simulate and filter particles
     argdiffs = (UnknownChange(), NoChange(), NoChange())
@@ -37,7 +39,7 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
             Gen.maybe_resample!(state, ess_threshold=num_particles/2)
 
             # Simulate the next time step and score against new observation
-            Gen.particle_filter_step!(state, (t, gm_args[2:3]...), argdiffs, obs)
+            Gen.particle_filter_step!(state, (gm_args[1],gm_args[2], t), argdiffs, obs)
 
             # Resample elasticity, resimulate to current time step, then accept / reject
             for i=1:num_particles
@@ -65,7 +67,7 @@ function predict(particles, T::Int)
     for i=1:n
         # Reset the number of time steps
         prev_args = get_args(particles[i])
-        new_args = (prev_args[1] + T, prev_args[2:end]...)
+        new_args = (prev_args[1], prev_args[2], prev_args[3] + T)
         arg_diffs = (UnknownChange(), NoChange(), NoChange())
         
         # Generate the next T time steps
