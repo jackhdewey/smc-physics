@@ -33,9 +33,11 @@ def init_scene():
     wall3 = p.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[0, .5, .5], baseOrientation=quaternion)
     p.changeDynamics(wall3, -1, restitution=0.3)
 
+    '''
     wall4ID = p.createCollisionShape(p.GEOM_BOX, halfExtents=[.5, 0.01, .5])
     wall4 = p.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -.5, .5], baseOrientation=quaternion)
     p.changeDynamics(wall4, -1, restitution=0.3)
+    '''
     
     rigidBodies = []
     init_locations = [[-0.6, 0, 1], [-0.2, 0, 1], [0.2, 0, 1], [0.6, 0, 1]]
@@ -59,14 +61,13 @@ def init_scene():
     sphereShape = p.createCollisionShape(p.GEOM_SPHERE, radius=.062)
 
     # Position and orient sphere
-    startPosSphere= [0, 0, 1]
+    startPosSphere = [0, -1, 1]
     startOrientationSphere = p.getQuaternionFromEuler([0, 0, 0])
     sphere = p.createMultiBody(baseCollisionShapeIndex=sphereShape, basePosition=startPosSphere, baseOrientation=startOrientationSphere)
 
     p.changeDynamics(sphere, -1, mass=1.0, restitution=0.9)
 
     rigidBodies.append(sphere)
- 
 
     '''
     # Position and orient second cube
