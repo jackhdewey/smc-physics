@@ -4,7 +4,7 @@ using DataFrames
 using CSV
 
 # Extracts initial position, initial velocity, and trajectory from two .csv files
-function read_observation_file(fname)
+function read_observation_file(fname, i)
 
     # Read ground truth initial velocity
     fname = string("RealFlowData/Sphere/", fname) 
@@ -22,7 +22,7 @@ function read_observation_file(fname)
     for i = 1:size(data)[1]
         addr = :trajectory => i => :observation => 1 => :position
         datum = values(data[i, :])
-        new_datum = [datum[1], datum[3], datum[2]]
+        new_datum = [datum[1], datum[2], datum[3]]
         cm = Gen.choicemap((addr, new_datum))
         observations[i] = cm
     end

@@ -22,7 +22,7 @@ function main()
     )
 
     # Plot ground truth trajectory
-    ground_truth = CSV.read("RealFlowData/Cube_Ela3_Var38_observed.csv", DataFrame)
+    ground_truth = CSV.read("RealFlowData/Sphere/SoftSphere_Ela3_Var1_observed.csv", DataFrame)
     true_x = []
     true_y = []
     true_z = []
@@ -35,14 +35,14 @@ function main()
     plot!(plt1, true_x, true_y, true_z, linewidth=3, linecolor=:red)
 
     # Read all particle files
-    all_files = filter_unwanted_filenames(readdir("BulletData/Intermediate/")) 
+    all_files = filter_unwanted_filenames(readdir("BulletData/Sphere/Intermediate/")) 
     sort!(all_files, lt=trial_particle_order)
 
     # For each time step in the first trial
     for x=1:30
 
         file = all_files[x]
-        data = CSV.read(string("BulletData/Intermediate/", file), DataFrame)
+        data = CSV.read(string("BulletData/Sphere/Intermediate/", file), DataFrame)
         tokens = split(file, "_")
         time_step = parse(Int64, replace(tokens[4], ".csv" => ""))
        

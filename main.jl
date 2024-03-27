@@ -28,7 +28,8 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     println(fnames)
 
-    for i in eachindex(fnames)
+    #for i in eachindex(fnames)
+    for i in range(16):
 
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
@@ -38,8 +39,8 @@ function main()
         init_scene()
 
         # Initialize target state using observed data
-        fname = fnames[i]
-        initial_position, initial_velocity, observations = read_observation_file(fname)
+        fname = fnames[1]
+        initial_position, initial_velocity, observations = read_observation_file(fname, i)
         init_state = init_target_state(sim, "sphere", initial_position, initial_velocity)
 
         # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
@@ -61,7 +62,7 @@ function main()
         write_to_csv(ppd, fname)
 
         bullet.disconnect()
-    end
+    #end
 end
 
 
