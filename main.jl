@@ -29,7 +29,6 @@ function main()
     println(fnames)
 
     #for i in eachindex(fnames)
-    for i in range(16):
 
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
