@@ -39,7 +39,7 @@ function main()
 
         # Initialize target state using observed data
         fname = fnames[1]
-        initial_position, initial_velocity, observations = read_observation_file(fname, i)
+        initial_position, initial_velocity, observations = read_observation_file(fname)
         init_state = init_target_state(sim, "sphere", initial_position, initial_velocity)
 
         # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
