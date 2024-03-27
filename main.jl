@@ -12,7 +12,7 @@
 # DONE: Save itermediate particle filter state
 #
 # TODO: Infer spheres using spheres
-# TODO: Analyze average performance at inferring elasticity value
+# TODO: Analyze average performance at inferring elasticity
 #
 # CONSIDER: Infer cubes using spheres
 # CONSIDER: Fix off-by-one error

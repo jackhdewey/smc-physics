@@ -35,11 +35,11 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
     
     # Iteratively simulate and filter particles
     argdiffs = (UnknownChange(), NoChange(), NoChange())
-    for (t, obs) = enumerate(obs)
+    for t=1:gm_args[3]
         @elapsed begin
 
             # Simulate the next time step and score against new observation
-            Gen.particle_filter_step!(state, (gm_args[1],gm_args[2], t), argdiffs, obs)
+            Gen.particle_filter_step!(state, (gm_args[1],gm_args[2], t), argdiffs, obs[t])
 
             # Resample elasticity, resimulate to current time step, then accept / reject
             for i=1:num_particles
