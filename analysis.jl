@@ -1,7 +1,9 @@
 # Data analysis module
-
 # Organization: 30 plots for each triel, one for each time step - ground truth trajectory plotted in red
+
 # TODO: Set the alpha / intensity to reflect the log weight
+# TODO: Save plots in a folder
+# TODO: Allow more flexible selection of elasticity / trial interval
 
 include("Utilities/plots.jl")
 include("Utilities/fileio.jl")

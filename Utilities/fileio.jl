@@ -11,18 +11,20 @@ function read_observation_file(fname)
     println("Reading...", fname)
     data = CSV.read(fname, DataFrame)
     datum = values(data[1, 11:13])
-    initial_velocity = [datum[2], datum[1], datum[3]]
+    initial_velocity = [datum[1], datum[2], datum[3]]
 
     # Read ground truth trajectory
     head, tail = split(fname, '.')
     fname2 = join([head, "_observed.", tail])
     println("Reading...", fname2)
     data = CSV.read(fname2, DataFrame)
+
+    # Populate choice map
     observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
     for i = 1:size(data)[1]
         addr = :trajectory => i => :observation => 1 => :position
         datum = values(data[i, :])
-        new_datum = [datum[2], datum[1], datum[3]]
+        new_datum = [datum[1], datum[2], datum[3]]
         cm = Gen.choicemap((addr, new_datum))
         observations[i] = cm
     end
@@ -72,6 +74,7 @@ function trial_particle_order(x, y)
     x_tokens = split(x, "_")
     y_tokens = split(y, "_")
 
+    # Second token is elasticity
     elasticity1 = replace(x_tokens[2], "Ela" => "")
     elasticity2 = replace(y_tokens[2], "Ela" => "")
 
@@ -82,6 +85,7 @@ function trial_particle_order(x, y)
         return as_int1 < as_int2
     end
 
+    # Third token is trial number
     trial1 = replace(x_tokens[3], "Var" => "")
     trial2 = replace(y_tokens[3], "Var" => "")
 
@@ -92,6 +96,7 @@ function trial_particle_order(x, y)
         return as_int1 < as_int2
     end
 
+    # Fourth token is particle number
     particle1 = replace(x_tokens[4], ".csv" => "")
     particle2 = replace(y_tokens[4], ".csv" => "")
 
@@ -99,4 +104,35 @@ function trial_particle_order(x, y)
     particle2_as_int = parse(Int64, particle2)
 
     return particle1_as_int < particle2_as_int
+end
+
+function trial_order(x, y)
+
+    x_tokens = split(x, "_")
+    y_tokens = split(y, "_")
+
+    # Second token is elasticity
+    elasticity1 = replace(x_tokens[2], "Ela" => "")
+    elasticity2 = replace(y_tokens[2], "Ela" => "")
+
+    as_int1 = parse(Int64, elasticity1)
+    as_int2 = parse(Int64, elasticity2)
+
+    if (as_int1 != as_int2)
+        return as_int1 < as_int2
+    end
+
+    # Third token is trial number
+    trial1 = replace(x_tokens[3], "Var" => "")
+    trial2 = replace(y_tokens[3], "Var" => "")
+
+    trial1 = replace(trial1, ".csv" => "")
+    trial2 = replace(trial2, ".csv" => "")
+
+    as_int1 = parse(Int64, trial1)
+    as_int2 = parse(Int64, trial2)
+
+    if (as_int1 != as_int2)
+        return as_int1 < as_int2
+    end
 end
