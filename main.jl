@@ -23,12 +23,11 @@ include("Utilities/plots.jl")
 function main()
 
     # Read ground truth trajectories
-    dir = "RealFlowData/Sphere/"
-    fnames = readdir(dir)
+    fnames = readdir("RealFlowData/Sphere/")
     fnames = filter_unwanted_filenames(fnames)
-    println(fnames)
+    sort!(fnames, lt=trial_order)
 
-    #for i in eachindex(fnames)
+    for i in eachindex(fnames)
 
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
@@ -38,17 +37,18 @@ function main()
         init_scene()
 
         # Initialize target state using observed data
-        fname = fnames[1]
+        fname = fnames[i]
         initial_position, initial_velocity, observations = read_observation_file(fname)
         init_state = init_target_state(sim, "sphere", initial_position, initial_velocity)
 
         # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
         args = (sim, init_state, 30)
         results, weights = infer(fname, args, observations, 20)
-        gif(animate_traces(results), fps=24)
 
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)
+
+        #gif(animate_traces(results), fps=24)
         #gif(animate_traces(ppd), fps=24)
 
         # Write inferred trajectories to a .csv file
@@ -61,7 +61,7 @@ function main()
         write_to_csv(ppd, fname)
 
         bullet.disconnect()
-    #end
+    end
 end
 
 

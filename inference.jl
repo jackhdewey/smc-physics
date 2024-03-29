@@ -30,8 +30,6 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
 
     # Initiliaze the particle filter (with no observations)
     state = Gen.initialize_particle_filter(generate_trajectory, (gm_args[1], gm_args[2], 0), EmptyChoiceMap(), num_particles)
-
-    display(get_choices(state.traces[1]))
     
     # Iteratively simulate and filter particles
     argdiffs = (UnknownChange(), NoChange(), NoChange())
