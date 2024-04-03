@@ -63,10 +63,12 @@ function init_target_state(sim::PhySim, shape::String, init_position::Vector{Flo
      startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
  
      # Select shape representation
-     if (shape === "cube")
-         body = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
+     if (shape === "Cube")
+        print("Initializing Cube\n")
+        body = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
      else
-         body = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.1)
+        print("Initializing Sphere\n")
+        body = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.1)
      end
  
      # Create, position, and orient target object

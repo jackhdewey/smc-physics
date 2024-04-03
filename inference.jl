@@ -22,7 +22,7 @@ include("Utilities/fileio.jl")
 end
 
 # Particle filter
-function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
+function infer(fname::String, id::String, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
 
     # Extract trial identification    
     tokens = split(fname, "_")
@@ -48,7 +48,7 @@ function infer(fname, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles:
             Gen.maybe_resample!(state, ess_threshold=num_particles/2)
             
             # Dump current particles to a .csv file
-            fname = string("BulletData/Sphere/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
+            fname = string("BulletData/", id, "/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
             write_to_csv(state.traces, fname)
 
         end

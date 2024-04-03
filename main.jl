@@ -11,8 +11,7 @@
 # DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
 # DONE: Save itermediate particle filter state
 #
-# TODO: Infer spheres using spheres
-# TODO: Analyze average performance at inferring elasticity
+# TODO: Analyze average performance at inferring elasticity of spheres vs. cubes
 #
 # CONSIDER: Infer cubes using spheres
 # CONSIDER: Fix off-by-one error
@@ -22,12 +21,18 @@ include("Utilities/plots.jl")
 
 function main()
 
+    # Select the target object type
+    id = "Cube"
+
     # Read ground truth trajectories
-    fnames = readdir("RealFlowData/Sphere/")
+    dir = string("RealFlowData/", id, "/")
+    fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    for i in eachindex(fnames)
+    #for i in eachindex(fnames)
+
+    for i=200:length(fnames)
 
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
@@ -37,13 +42,13 @@ function main()
         init_scene()
 
         # Initialize target state using observed data
-        fname = fnames[i]
+        fname = string(id, "/", fnames[i])
         initial_position, initial_velocity, observations = read_observation_file(fname)
-        init_state = init_target_state(sim, "sphere", initial_position, initial_velocity)
+        init_state = init_target_state(sim, id, initial_position, initial_velocity)
 
         # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
         args = (sim, init_state, 30)
-        results, weights = infer(fname, args, observations, 20)
+        results, weights = infer(fname, id, args, observations, 20)
 
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)
@@ -53,11 +58,11 @@ function main()
 
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
-        fname = string("BulletData/Sphere/Observations/observations_", tokens[2], "_", tokens[3])
+        fname = string("BulletData/", id, "/Observations/observations_", tokens[2], "_", tokens[3])
         write_to_csv(results, fname)
 
         # Write predicted trajectories to a .csv file
-        fname = string("BulletData/Sphere/Predictions/predictions_", tokens[2], "_", tokens[3])
+        fname = string("BulletData/", id, "/Predictions/predictions_", tokens[2], "_", tokens[3])
         write_to_csv(ppd, fname)
 
         bullet.disconnect()

@@ -11,7 +11,21 @@ include("Utilities/fileio.jl")
 
 function main()
 
-    for i=1:10
+    # Select the target object type
+    id = "Sphere"
+
+    # Read from corresponding directory
+    dir = string("RealFlowData/", id, "/")
+    fnames = readdir(dir)
+    fnames = filter_unwanted_filenames(fnames)
+    sort!(fnames, lt=trial_order)
+
+    # Read all particle files
+    dir = string("BulletData/", id, "/Intermediate/")
+    all_files = filter_unwanted_filenames(readdir(dir)) 
+    sort!(all_files, lt=trial_particle_order)
+
+    for i in eachindex(fnames)
 
         # Generate plot base
         plt1 = plot3d( 
@@ -25,47 +39,41 @@ function main()
             seriestype=:scatter
         )
 
-        trial = i
-
         # Read ground truth trajectory
-        gt_file = string("RealFlowData/Sphere/SoftSphere_Ela3_Var", trial, "_observed.csv")
+        gt_file = string("RealFlowData/", id, "/", fnames[i])
         print(gt_file)
         ground_truth = CSV.read(gt_file, DataFrame)
         true_x = []
         true_y = []
         true_z = []
 
-        # Read all particle files
-        all_files = filter_unwanted_filenames(readdir("BulletData/Sphere/Intermediate/")) 
-        sort!(all_files, lt=trial_particle_order)
-
-        # For each time step in the first trial
+        # For each time step
         for x=1:30
 
-            index = 30 * (trial-1) + x
-
+            # Extend ground truth trajectory by one time step and add to plot
             true_x = [true_x; ground_truth[x, 1]]
             true_y = [true_y; ground_truth[x, 2]]
             true_z = [true_z; ground_truth[x, 3]]
-
             plot!(plt1, true_x, true_y, true_z, linewidth=3, linecolor=:red)
 
+            # Extract the particle states at this time step
+            index = 30 * (i-1) + x
             file = all_files[index]
-            data = CSV.read(string("BulletData/Sphere/Intermediate/", file), DataFrame)
+            data = CSV.read(string(dir, file), DataFrame)
             tokens = split(file, "_")
             time_step = parse(Int64, replace(tokens[4], ".csv" => ""))
+            print(string("\nT:", time_step))
         
-            # For each particle at this time step
+            # For each particle
             for i=1:20    
 
                 particle = data[data.particle .== i, :]
 
-                elasticity = data[data.particle .== i, 2]
-                weight = data[data.particle .== i, 3]
-
+                # elasticity = data[data.particle .== i, 2]
+                # weight = data[data.particle .== i, 3]
                 # @df plot!(plt1, particle[:, 5:7])
 
-                # Iterate over each time step and push to plot
+                # Concatenate time steps to generate particle trajectory and add to plot
                 x_trajectory = []
                 y_trajectory = []
                 z_trajectory = []
@@ -74,13 +82,13 @@ function main()
                     y_trajectory = [y_trajectory; particle[row, 6]]
                     z_trajectory = [z_trajectory; particle[row, 7]]
                 end
-
                 plot!(plt1, x_trajectory, y_trajectory, z_trajectory)
 
             end
 
             # Plot the current particles
             display(plt1)
+            savefig(string("Plots/", id, "/", tokens[2], "_", tokens[3], "_", x))
         end
     end
 end
