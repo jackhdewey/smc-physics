@@ -12,7 +12,7 @@ include("Utilities/fileio.jl")
 function main()
 
     # Select the target object type
-    id = "Sphere"
+    id = "Cube"
 
     # Read from corresponding directory
     dir = string("RealFlowData/", id, "/")
