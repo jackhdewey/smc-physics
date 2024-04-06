@@ -10,7 +10,10 @@ using Plots
 # TODO look at stats of sphere data
 
 project_path = dirname(@__DIR__)
-folder = joinpath(project_path, "BulletData/Sphere/Observations/")
+
+object = "Cube"
+
+folder = joinpath(project_path, "BulletData", object, "Observations/")
 
 include(joinpath(project_path, "Utilities/fileio.jl"))
 
@@ -83,9 +86,12 @@ function plot_all_estimates()
         ests_mat[:, 2],
         markeralpha=0.1,
         markersize=0.2,
+        xlims = (0, 1),
+        ylims = (0, 1),
+        aspect_ratio = :equal,
         xlabel="Ground truth elasticity",
         ylabel="Estimated elasticity",
-        title="All simulations",
+        title="All " * object * " Simulations",
         legend=false
     )
 end
@@ -102,10 +108,20 @@ plot(
     yerror=errorbars,
     xlabel="Ground truth elasticity",
     ylabel="Estimated elasticity",
-    title="Averages",
+    xlims = (0, 1),
+    ylims = (0, 1),
+    aspect_ratio = :equal,
+    title="Averaged Estimates for " * object,
     legend=false
 )
-savefig("average.png")
+
+using Statistics
+corr_string = "r = " * string(round(cor(estimates, rf), digits=3))
+annotate!(.5, .3, corr_string)
+
+savefig("average_elasticity_estimates_" * object * ".png")
 
 plot_all_estimates()
-savefig("all_estimates.png")
+savefig("all_elasticity_estimates_" * object * ".png")
+
+# println("Correlation between estimates and ground truth for " * object * ": " * string(cor(estimates, rf)))
