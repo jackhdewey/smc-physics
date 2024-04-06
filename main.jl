@@ -30,9 +30,7 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    #for i in eachindex(fnames)
-
-    for i=200:length(fnames)
+    for i in eachindex(fnames)
 
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
