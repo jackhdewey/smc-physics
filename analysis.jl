@@ -12,16 +12,17 @@ include("Utilities/fileio.jl")
 function main()
 
     # Select the target object type
-    id = "Cube"
+    stimulus_id = "Cube"
+    output_id = "SpherexCube"
 
     # Read from corresponding directory
-    dir = string("RealFlowData/", id, "/")
+    dir = string("RealFlowData/", stimulus_id, "/")
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
     # Read all particle files
-    dir = string("BulletData/", id, "/Intermediate/")
+    dir = string("BulletData/", output_id, "/Intermediate/")
     all_files = filter_unwanted_filenames(readdir(dir)) 
     sort!(all_files, lt=trial_particle_order)
 
@@ -49,7 +50,7 @@ function main()
             # Read ground truth trajectory
             head, tail = split(fnames[trial_index], '.')
             fname = join([head, "_observed.", tail])
-            gt_file = string("RealFlowData/", id, "/", fname)
+            gt_file = string("RealFlowData/", stimulus_id, "/", fname)
             print(string(gt_file, "\n"))
             ground_truth = CSV.read(gt_file, DataFrame)
             true_x = []
@@ -98,7 +99,7 @@ function main()
                 # Plot the current particles
                 if x % 5 == 0
                     display(plt1)
-                    savefig(string("Plots/", id, "/", tokens[2], "_", tokens[3], "_", x))
+                    savefig(string("Plots/", output_id, "/", tokens[2], "_", tokens[3], "_", x))
                 end
             end
         end
