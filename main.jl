@@ -1,30 +1,32 @@
-# For each of a set of files describing 'ground truth' trajectories, attempt to infer the elasticity of the bouncing object and predict the next 60 frames
-# Given its elasticity and geometry, how will the object bounce (what will be its trajectory)?
+# Experiment - Galileo 3
 #
-# GOAL: Infer elasticity from 30 frames of observations, then predict the next 60 frames
-# GOAL: Test what simulation settings (i.e. resource-rational approximations) best match human performance:
-#          * using a rigid body
-#          * using a sphere
-#          * adding noise to orientation
-#          * etc.
+# Infers the elasticity and predicts the future trajectory of a bouncing object from 1 second (30 frames) of observation
+# 'Ground truth' trajectories generated in RealFlow and read from .csv files
 #
-# DONE: Print / write the traces to a .csv file, check whether it recovers elasticity
-# DONE: Save itermediate particle filter state
+# QUESTION: Given how it has bounced so far, what will be the target object's future trajectory?
 #
-# TODO: Analyze average performance at inferring elasticity of spheres vs. cubes
+# What kind of generative model correlates best with human judgments?
+#       * using a rigid body
+#       * using a sphere
+#       * adding noise to orientation
+#       * etc.
 #
-# CONSIDER: Infer cubes using spheres
-# CONSIDER: Fix off-by-one error
+# TODO: Fix off-by-one error
 
-include("inference.jl")
+include("Inference/particle_filter.jl")
 include("Utilities/plots.jl")
+
 
 function main()
 
-    # Select the target object type
+    # Select the target object types
     stimulus_id = "Cube"
     target_id = "Sphere"
     output_id = "SpherexCube"
+
+    # Select particle filter parameters
+    num_timesteps = 30
+    num_particles = 20
 
     # Read ground truth trajectories
     dir = string("RealFlowData/", stimulus_id, "/")
@@ -47,8 +49,8 @@ function main()
         init_state = init_target_state(sim, target_id, initial_position, initial_velocity)
 
         # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
-        args = (sim, init_state, 30)
-        results, weights = infer(fname, output_id, args, observations, 20)
+        args = (sim, init_state, num_timesteps)
+        results, weights = infer(fname, output_id, args, observations, num_particles)
 
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)

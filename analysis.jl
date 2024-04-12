@@ -1,9 +1,10 @@
-# Data analysis module
-# Organization: 30 plots for each triel, one for each time step - ground truth trajectory plotted in red
-
+# Data analysis
+# Generates 3D plots showing particle trajectories vs ground truth, with ground truth plotted in red
+#
+# DONE: Save plots in a folder
+# DONE: Allow more flexible selection of elasticity / trial interval
+#
 # TODO: Set the alpha / intensity to reflect the log weight
-# TODO: Save plots in a folder
-# TODO: Allow more flexible selection of elasticity / trial interval
 
 include("Utilities/plots.jl")
 include("Utilities/fileio.jl")
@@ -15,25 +16,36 @@ function main()
     stimulus_id = "Cube"
     output_id = "SpherexCube"
 
+    # Trial parameters
+    num_timesteps = 30
+    num_particles = 20
+
+    # Other parameters
+    elasticities = 10
+    num_trials = 4
+    plot_interval = 5
+
     # Read from corresponding directory
     dir = string("RealFlowData/", stimulus_id, "/")
-    fnames = readdir(dir)
-    fnames = filter_unwanted_filenames(fnames)
-    sort!(fnames, lt=trial_order)
+    gt_files = filter_unwanted_filenames(readdir(dir))
+    sort!(gt_files, lt=trial_order)
 
-    # Read all particle files
+    # Read corresponding particle files
     dir = string("BulletData/", output_id, "/Intermediate/")
-    all_files = filter_unwanted_filenames(readdir(dir)) 
-    sort!(all_files, lt=trial_particle_order)
+    particle_files = filter_unwanted_filenames(readdir(dir)) 
+    sort!(particle_files, lt=trial_particle_order)
 
-    #for i in eachindex(fnames)
-    for i=0:9
+    #for i in eachindex(gt_files)
 
-        ela = 100*i
+    # For each elasticity
+    for ela=1:elasticities
+
+        start_trial = 100 * (ela-1)
         
-        for var=1:4
+        # For first four trials
+        for var=1:num_trials
 
-            trial_index = ela + var
+            trial_index = start_trial + var
 
             # Generate plot base
             plt1 = plot3d( 
@@ -41,24 +53,26 @@ function main()
                 xlim = (-.5, .5),
                 ylim = (-.5, .5),
                 zlim = (0, 1),
-                title = fnames[trial_index],
+                title = gt_files[trial_index],
                 legend = false,
                 marker = 2,
                 seriestype=:scatter
             )
 
-            # Read ground truth trajectory
-            head, tail = split(fnames[trial_index], '.')
+            # Index into correct ground truth file
+            head, tail = split(gt_files[trial_index], '.')
             fname = join([head, "_observed.", tail])
             gt_file = string("RealFlowData/", stimulus_id, "/", fname)
             print(string(gt_file, "\n"))
+
+            # Read ground truth trajectory
             ground_truth = CSV.read(gt_file, DataFrame)
             true_x = []
             true_y = []
             true_z = []
 
             # For each time step
-            for x=1:30
+            for x=1:num_timesteps
 
                 # Extend ground truth trajectory by one time step and add to plot
                 true_x = [true_x; ground_truth[x, 1]]
@@ -66,16 +80,17 @@ function main()
                 true_z = [true_z; ground_truth[x, 3]]
                 plot!(plt1, true_x, true_y, true_z, linewidth=3, linecolor=:red)
 
-                # Extract the particle states at this time step
+                # Index into correct particle filter file
                 particle_index = 30 * (trial_index-1) + x
-                file = all_files[particle_index]
-                print(string(file, "\n"))
+                file = particle_files[particle_index]
+
+                # Extract the particle states at this time step
                 data = CSV.read(string(dir, file), DataFrame)
                 tokens = split(file, "_")
                 time_step = parse(Int64, replace(tokens[4], ".csv" => ""))
             
                 # For each particle
-                for i=1:20    
+                for i=1:num_particles
 
                     particle = data[data.particle .== i, :]
 
@@ -96,11 +111,12 @@ function main()
 
                 end
 
-                # Plot the current particles
-                if x % 5 == 0
+                # Plot the particles at every fifth time step
+                if x % plot_interval == 0
                     display(plt1)
                     savefig(string("Plots/", output_id, "/", tokens[2], "_", tokens[3], "_", x))
                 end
+
             end
         end
     end

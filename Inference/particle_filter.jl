@@ -3,8 +3,21 @@
 # Defines a particle filter and proposal distribution that can be used to generate a set of concurrent simulations (particles)
 # Each simulation is procedurally updated by one time step, scored, rejuvenated, and (potentially) resampled
 
-include("elasticity.jl")
-include("Utilities/fileio.jl")
+include("../Model/bouncing_object.jl")
+include("../Utilities/fileio.jl")
+
+
+# Parses a sequence of observations from a choice map into a vector
+function get_observations(choices::Gen.ChoiceMap, T::Int)
+    observations = Vector{Gen.ChoiceMap}(undef, T)
+    for i=1:T
+        cm = choicemap()
+        addr = :trajectory => i => :observation => :position
+        set_submap!(cm, addr, get_submap(choices, addr))
+        observations[i] = cm
+    end
+    return observations
+end
 
 # Resamples latent(s) from a Gaussian proposal distribution
 @gen function proposal(trace::Gen.Trace)
