@@ -67,10 +67,6 @@ end
 
 # Sets the initial state (shape, position, velocity, and optionally mass and restitution of the target object)
 @gen function init_target_state(sim::PhySim, shape::String, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
-
-    # Set target object initial position and orientation
-    startPosition = init_position
-    startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
  
     # Select shape representation
     if (shape === "Cube")
@@ -80,22 +76,24 @@ end
         print("Initializing Sphere\n")
         body = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.1)
     end
+
+    # Set target object initial position and orientation
+    # TODO: Add noise and/or sample from priors
+    startPosition = init_position
+    startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
  
     # Create, position, and orient target object
     target = bullet.createMultiBody(baseCollisionShapeIndex=body, basePosition=startPosition, baseOrientation=startOrientation)
  
-    # Set dynamic properties and initial kinematic state
-    bullet.changeDynamics(target, -1, mass=mass, restitution=restitution)
+    # Set initial kinematic state
+    # TODO: Add noise and/or sample from priors
     bullet.resetBaseVelocity(target, linearVelocity=init_velocity)
+
+    # Set latent dynamic state
+    bullet.changeDynamics(target, -1, mass=mass, restitution=restitution)
  
     # Store representation of cube's initial state
     init_state = BulletState(sim, [RigidBody(target)])
-
-    # Sample values for the target object's latents - i.e. a restitution
-    latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
-
-    # Update initial state with sampled latent values
-    init_state = Accessors.setproperties(init_state; latents=latents)
 
     return init_state
 end
@@ -122,6 +120,12 @@ end
 
 # Given an initial state, samples latents from their priors then runs a complete forward simulation
 @gen function generate_trajectory(sim::BulletSim, init_state::BulletState, T::Int)
+
+    # Sample the target object's latents - i.e. restitution
+    latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
+
+    # Update initial state with sampled latent values
+    init_state = Accessors.setproperties(init_state; latents=latents)
 
     # Simulate T time steps
     states = {:trajectory} ~ Gen.Unfold(kernel)(T, init_state, sim)

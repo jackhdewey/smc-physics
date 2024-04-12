@@ -3,9 +3,9 @@
 # Defines a particle filter and proposal distribution that can be used to generate a set of concurrent simulations (particles)
 # Each simulation is procedurally updated by one time step, scored, rejuvenated, and (potentially) resampled
 
-include("../Model/bouncing_object.jl")
 include("../Utilities/fileio.jl")
 
+using Gen
 
 # Parses a sequence of observations from a choice map into a vector
 function get_observations(choices::Gen.ChoiceMap, T::Int)
@@ -35,14 +35,14 @@ end
 end
 
 # Particle filter
-function infer(fname::String, id::String, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
+function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
 
     # Extract trial identification    
     tokens = split(fname, "_")
     csv = split(tokens[3], ".")
 
     # Initiliaze the particle filter (with no observations)
-    state = Gen.initialize_particle_filter(generate_trajectory, (gm_args[1], gm_args[2], 0), EmptyChoiceMap(), num_particles)
+    state = Gen.initialize_particle_filter(gm, (gm_args[1], gm_args[2], 0), EmptyChoiceMap(), num_particles)
     
     # Iteratively simulate and filter particles
     argdiffs = (UnknownChange(), NoChange(), NoChange())

@@ -13,6 +13,7 @@
 #
 # TODO: Fix off-by-one error
 
+include("Model/bouncing_object.jl")
 include("Inference/particle_filter.jl")
 include("Utilities/plots.jl")
 
@@ -34,7 +35,7 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    for i in eachindex(fnames)
+    #for i in eachindex(fnames)
 
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
@@ -44,13 +45,17 @@ function main()
         init_scene()
 
         # Initialize target state using observed data
-        fname = string(stimulus_id, "/", fnames[i])
+        fname = string(stimulus_id, "/", fnames[1])
         initial_position, initial_velocity, observations = read_observation_file(fname)
         init_state = init_target_state(sim, target_id, initial_position, initial_velocity)
 
         # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
         args = (sim, init_state, num_timesteps)
-        results, weights = infer(fname, output_id, args, observations, num_particles)
+        
+        #trace, _ = generate(generate_trajectory, args)
+        #display(get_choices(trace))
+
+        results, weights = infer(fname, output_id, generate_trajectory, args, observations, num_particles)
 
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)
@@ -68,7 +73,7 @@ function main()
         write_to_csv(ppd, fname)
 
         bullet.disconnect()
-    end
+    #end
 end
 
 
