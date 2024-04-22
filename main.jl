@@ -26,7 +26,7 @@ function main()
     output_id = "SpherexCube"
 
     # Select particle filter parameters
-    num_timesteps = 30
+    num_timesteps = 30 # TODO: set this by checking the length of the file
     num_particles = 20
 
     # Read ground truth trajectories
@@ -35,7 +35,15 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    #for i in eachindex(fnames)
+    #=
+    provide file names as a csv / text file
+    read them into a dictionary / set
+    if (dictionary.contains(names[i])) 
+        else 
+    =#
+
+    # Possibly add ability to run a specific trial / file
+    for i in eachindex(fnames)
 
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
@@ -73,7 +81,7 @@ function main()
         write_to_csv(ppd, fname)
 
         bullet.disconnect()
-    #end
+    end
 end
 
 

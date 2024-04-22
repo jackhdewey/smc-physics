@@ -53,7 +53,7 @@ function init_scene()
     ceiling = bullet.createMultiBody(baseCollisionShapeIndex=ceilingID, basePosition=[0, 0, 1], baseOrientation=quaternion)
     bullet.changeDynamics(ceiling, -1, mass=0.0, restitution=0.5)
 
-    bullet.setGravity(0, 0, -10)
+    bullet.setGravity(0, 0, -9.81)
 
 end
 
