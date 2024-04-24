@@ -20,13 +20,12 @@ include("Utilities/plots.jl")
 
 function main()
 
-    # Select the target object types
-    stimulus_id = "Cube"
-    target_id = "Sphere"
-    output_id = "SpherexCube"
+    # Select the target object type(s)
+    stimulus_id = "Cube/Variable Frames/Exp1"
+    output_id = "Cube/Variable Frames/Exp1"
+    target_id = "Cube"
 
-    # Select particle filter parameters
-    num_timesteps = 30 # TODO: set this by checking the length of the file
+    # Number of particles to be sampled during inference
     num_particles = 20
 
     # Read ground truth trajectories
@@ -44,7 +43,7 @@ function main()
 
     # Possibly add ability to run a specific trial / file
     for i in eachindex(fnames)
-
+        
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
         bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -53,18 +52,15 @@ function main()
         init_scene()
 
         # Initialize target state using observed data
-        fname = string(stimulus_id, "/", fnames[1])
+        fname = string(stimulus_id, "/", fnames[i])
         initial_position, initial_velocity, observations = read_observation_file(fname)
         init_state = init_target_state(sim, target_id, initial_position, initial_velocity)
 
-        # Given an initial state and observed trajectory, filter 20 particles to estimate elasticity
+        # Filter 20 particles through the complete trajectory
+        num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
-        
-        #trace, _ = generate(generate_trajectory, args)
-        #display(get_choices(trace))
-
         results, weights = infer(fname, output_id, generate_trajectory, args, observations, num_particles)
-
+        
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)
 
