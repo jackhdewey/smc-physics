@@ -35,7 +35,7 @@ end
 end
 
 # Particle filter
-function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20)
+function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles)
 
     # Extract trial identification    
     tokens = split(fname, "_")
@@ -61,8 +61,10 @@ function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.Ch
             Gen.maybe_resample!(state, ess_threshold=num_particles/2)
             
             # Dump current particles to a .csv file
-            fname = string("BulletData/", id, "/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
-            write_to_csv(state.traces, fname)
+            if save_particles
+                fname = string("BulletData/", id, "/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
+                write_to_csv(state.traces, fname)
+            end
 
         end
     end
