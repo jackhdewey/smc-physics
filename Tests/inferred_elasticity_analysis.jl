@@ -1,3 +1,4 @@
+using Plots: StatsBase, get_aspect_ratio
 using DataFrames
 using DataFramesMeta
 using Statistics
@@ -10,19 +11,48 @@ using Plots
 # TODO look at trajectories of sphere data
 # TODO look at stats of sphere data
 
+
+# plot defaults
+
 sim_object = "Cube"
 
 project_path = dirname(@__DIR__)
-folder = joinpath(project_path, "BulletData", sim_object, "Observations/")
+simulation_folder = joinpath(project_path, "BulletData", sim_object, "Variable Frames", "Exp1", "Observations")
+# simulation_folder = joinpath(project_path, "BulletData", sim_object, "30 Frames", "Observations")
+
+subject_folder = "/Users/maxs/smc-physics/Data&StimuliForGenModel/"
 
 function read_simulation_file(fname)
     data = CSV.read(fname, DataFrame)
 
     # unpack filename
-    sim_object, elasticity_string, replicate = split(fname, ['_', '.'])
+    _, elasticity_string, variation = split(fname, ['_', '.'])
     elasticity = parse(Int, elasticity_string[end]) * 0.1 # fix order of magnitude
-    return data, elasticity
+
+    data = insertcols(
+        data,
+        "filename" => fname,
+        "stimulusID" => sim_object * "_" * elasticity_string * "_" * variation,
+        "gtElasticity" => elasticity,
+        "variation" => parse(Int64, variation[4:end])
+    )
+    return data
 end
+
+function read_all_simulation_data()
+    all_data = []
+    for file in readdir(simulation_folder)
+        full_file_path = joinpath(simulation_folder, file)
+        data = read_simulation_file(full_file_path)
+        push!(all_data, data)
+    end
+
+    all_data = vcat(all_data...)    # join all dfs
+    # println(all_data)
+    return filter(:variation => x -> x <= 15, all_data)
+end
+
+
 
 function get_particle_elasticity_estimate(data, i)
     # get particle i
@@ -33,141 +63,203 @@ function get_particle_elasticity_estimate(data, i)
     return row.elasticity
 end
 
-function calc_average_elasticity_estimate()
-    elasticity_estimates = Dict()
+function get_simulation_elasticity_estimates()
+    elasticity_estimates = []
 
-    for file in readdir(folder)
-        full_file_path = joinpath(folder, file)
+    for file in readdir(simulation_folder)
+        full_file_path = joinpath(simulation_folder, file)
+        data = read_simulation_file(full_file_path)
+        # estimates_this_data_file = []
 
-        data, elasticity = read_simulation_file(full_file_path)
-        estimates_this_data_file = []
+        # for i = 1:maximum(data.particle) # total # particles
+        #     # get estimate for particle i
+        #     particle_estimate = get_particle_elasticity_estimate(data, i)
+        #     push!(estimates_this_data_file, particle_estimate)
+        # vcat!(elasticity_estimates, particle)
+        # end
 
-        for i = 1:maximum(data.particle) # total # particles
-            # get estimate for particle i
-            particle_estimate = get_particle_elasticity_estimate(data, i)
+        # @autoinfiltrate
+        elasticity_estimates = vcat(data, elasticity_estimates)
 
-            push!(estimates_this_data_file, particle_estimate)
-        end
-
-        if elasticity in keys(elasticity_estimates)
-            push!(elasticity_estimates[elasticity], mean(estimates_this_data_file))
-        else
-            elasticity_estimates[elasticity] = [mean(estimates_this_data_file)]
-        end
     end
-    mean_particle_elasticity = Dict((i) => mean(elasticity_estimates[i]) for i in keys(elasticity_estimates))
-    mean_particle_elasticity = sort(mean_particle_elasticity)
+    sim_data = vcat(elasticity_estimates...)
 
-    errorbars = Dict((i) => std(elasticity_estimates[i]) / length(elasticity_estimates[i]) for i in keys(elasticity_estimates))
-    errorbars = sort(errorbars)
-
-    return (mean_particle_elasticity, errorbars)
-end
-
-function plot_all_estimates()
-    all_estimates = []
-    for file in readdir(folder)
-        full_file_path = joinpath(folder, file)
-        data, rf_ela = read_simulation_file(full_file_path)
-
-        for i = 1:maximum(data.particle)
-            est_ela = get_particle_elasticity_estimate(data, i)
-            push!(all_estimates, [rf_ela, est_ela])
-        end
+    simulation_predictions = @chain sim_data begin
+        @groupby
     end
 
-    ests_mat = hcat(all_estimates...)'
-
-    scatter(
-        ests_mat[:, 1],
-        ests_mat[:, 2],
-        markeralpha=0.1,
-        markersize=0.2,
-        xlims=(0, 1),
-        ylims=(0, 1),
-        aspect_ratio=:equal,
-        xlabel="Ground truth elasticity",
-        ylabel="Estimated elasticity",
-        title="All " * sim_object * " Simulations",
-        legend=false
-    )
+    return
 end
 
-function plot_individual_stimuli()
-
-        full_file_path = vcat([CSV.read(joinpath(folder, file), DataFrame) for file in readdir(folder)])
-
-        data, elasticity = read_simulation_file(full_file_path)
-
-end
-
-function calc_model_predictions()
-
-
-    include(joinpath(project_path, "Utilities/fileio.jl"))
-
-    mean_elasticity, errorbars = calc_average_elasticity_estimate()
-
-    rf = collect(keys(mean_elasticity))
-    estimates = collect(values(mean_elasticity))
-    errorbars = collect(values(errorbars))
-
-    plot(
-        rf,
-        estimates,
-        yerror=errorbars,
-        xlabel="Ground truth elasticity",
-        ylabel="Estimated elasticity",
-        xlims=(0, 1),
-        ylims=(0, 1),
-        aspect_ratio=:equal,
-        title="Averaged Estimates for " * sim_object,
-        legend=false
-    )
-
-    corr_string = "r = " * string(round(cor(estimates, rf), digits=3))
-    annotate!(0.5, 0.3, corr_string)
-
-    savefig("average_elasticity_estimates_" * sim_object * ".png")
-
-    plot_all_estimates()
-    savefig("all_elasticity_estimates_" * sim_object * ".png")
-
-    # println("Correlation between estimates and ground truth for " * sim_object * ": " * string(cor(estimates, rf)))
-    estimates
-end
-
-function read_subject_data(path)
+function read_subject_data()
+    exp_data_folder = joinpath(project_path, "HumanData", "EstimationTask", "Exp1_allElasticities_fullMotion", "Results")
     data = []
-    for fname in readdir(path)
-        println(fname)
-        sub_data = CSV.read(joinpath(project_path, path, fname), DataFrame)
-        sub_data = insertcols(sub_data, :ID => fname)
-        data = vcat(data, sub_data) # this is a vector of dataframes
+    for fname in readdir(exp_data_folder)
+        sub_data = CSV.read(joinpath(exp_data_folder, fname), DataFrame)
+        sub_data = insertcols(sub_data, :filename => fname)
+        # @autoinfiltrate
+        # data = vcat(data, sub_data) # this is a vector of dataframes
+        # sub_data[!, :rating] = StatsBase.zscore(sub_data[!, :rating])
+        push!(data, sub_data) # this is a vector of dataframes
     end
-    data = vcat(data...)        # combine all together with splat operator
 
+    return vcat(data...)        # combine all together with splat operator
 end
 
-function get_sub_predictions()
-    sub_data = read_subject_data(joinpath(project_path, "SubjectDataCubes"))
+function individual_stimuli_sim()
+    sim_data = read_all_simulation_data()
 
-    preds = @chain sub_data begin
-        @groupby(:elasticity)
-        @combine(:prediction = mean(:rating))
-        @orderby(:elasticity)
+    sim_data_pred = @chain sim_data begin
+        # @groupby :gtElasticity
+        @groupby :stimulusID
+        @combine begin
+            :judgment = mean(:elasticity) # :elasticity = :gtElasticity
+            :elasticity = first(:gtElasticity)
+        end
+        # @orderby :stimulusID
+        # @orderby :gtElasticity
     end
-    preds.prediction
+
+    return sim_data_pred
+end
+function individual_stimuli_human()
+    sub_data = read_subject_data()
+
+    nsubs = length(unique(sub_data.filename))
+
+    sub_data_pred = @chain sub_data begin
+        @groupby :stimulusID
+        # @groupby :elasticity# :filename
+        # @DataFramesMeta.transform :prediction = mean(:rating) # Gen also has a transform macro
+        @combine begin
+            :judgment = mean(:rating)
+            :std_err_mean = std(:rating) / sqrt(nsubs) # number of subjects
+            :gtElasticity = mean(:elasticity)
+        end
+        @orderby :stimulusID
+        # @orderby :elasticity
+    end
+
+    # scatter(
+    #     sub_data_pred.elasticity,
+    #     sub_data_pred.prediction,
+    #     aspect_ratio = :equal,
+    #     xlims = (0, 1),
+    #     ylims = (0, 1),
+    #     markeralpha = .2,
+    #     # markersize = 2,
+    #     xlabel = "Elasticity",
+    #     ylabel = "Average Subject Rating",
+    #     title = "Stimulus-specific ratings in " * sim_object * " condition",
+    #     legend = false
+    # )
+    # plot!(0:1, 0:1)
+    # savefig(string("stimulus_specific_estimates_", sim_object, "_model.png"))
+    return sub_data_pred
 end
 
-sub_predictions = get_sub_predictions()
-model_predictions = calc_model_predictions()
+function plot_individual_stimuli_judgments()
+    human = individual_stimuli_human()
+    sim = individual_stimuli_sim()
 
-scatter(model_predictions, sub_predictions, aspect_ratio=:equal, legend=false, xlabel="Model elasticity",
-ylabel = "Subject prediction", title = sim_object)
-plot!(0:1, 0:1)
-gui()
-savefig(string("sub_model_", sim_object, ".png"))
-cor(model_predictions, sub_predictions)
+    p = Plots.palette(:jet)
+    # default(aspect_ratio = :equal)
+    scatter(sim.judgment,
+            human.judgment,
+            yerror=human.std_err_mean ./ 2,
+            aspect_ratio=:equal,
+            markersize=5,
+            markeralpha=0.5,
+            zcolor=human.gtElasticity,# zcolor = :gtElasticity,
+            xlims=(0, 1.05),
+            ylims=(0, 1),
+            xlabel="Model",
+            ylabel="Human",
+            title="Stimulus-specific Elasticity Ratings",
+            legend=false,
+            palette=p)
+
+    plot!(0:1, 0:1, line=:dash)
+    corr_string = "r = " * string(round(cor(sim.judgment, human.judgment), digits=3))
+    annotate!(0.2, 0.8, corr_string, 10)
+
+
+    gui()
+end
+
+function plot_mean_elasticity_judgments()
+
+    human = individual_stimuli_human()
+    sim = individual_stimuli_sim()
+    print(first(human))
+    print(first(sim))
+    p = Plots.palette(:jet)
+    # default(aspect_ratio = :equal)
+    model_mean_elasticity = @chain sim begin
+        @groupby :elasticity
+        @combine :judgment = mean(:judgment)
+    end
+
+    human_mean_elasticity = @chain human begin
+        @groupby :gtElasticity
+        @combine :judgment = mean(:judgment)
+    end
+
+    scatter(model_mean_elasticity.judgment,
+            human_mean_elasticity.judgment,
+            yerror=human.std_err_mean ./ 2,
+            aspect_ratio=:equal,
+            markersize=5,
+            markeralpha=0.5,
+            zcolor=human.gtElasticity,# zcolor = :gtElasticity,
+            xlims=(0, 1.05),
+            ylims=(0, 1),
+            xlabel="Model",
+            ylabel="Human",
+            title="Averaged across stimuli",
+            legend=false,
+            palette=p)
+
+    plot!(0:1, 0:1, line=:dash)
+    corr_string = "r = " * string(round(cor(model_mean_elasticity.judgment, human_mean_elasticity.judgment), digits=3))
+    annotate!(0.2, 0.8, corr_string, 10)
+
+    gui()
+end
+
+
+# plot_individual_stimuli_judgments()
+plot_mean_elasticity_judgments()
+# function read_all_subject_data()
+#     all_data = []
+#     subject_data_folder = joinpath(project_path, "DaHumanData "EstimationTask", "Exp1_allElasticities_fullMotion", "Results")
+#     for exp in [dir for dir in readdir(subject_data_folders) if !startswith(dir, ".DS")][1:1]
+#         full_file_path = joinpath(subject_data_folders, exp, "Results")
+#         println(full_file_path)
+#         data = read_subject_data(full_file_path)
+#         push!(all_data, data)
+#     end
+
+#     return vcat(all_data...)    # join all dfs
+# end
+
+# human_judgments = get_sub_judgments()
+# model_judgments = calc_model_judgments()
+
+# scatter(
+#     model_judgments,
+#     human_judgments,
+#     aspect_ratio=:equal,
+#     legend=false,
+#     xlabel="Model elasticity",
+#     ylabel="Subject prediction",
+#     title=sim_object
+# )
+
+# plot!(0:1, 0:1)
+# gui()
+# savefig(string("sub_model_", sim_object, ".png"))
+
+# cor(model_judgments, human_judgments)
 
 # plot_individual_stimuli()
