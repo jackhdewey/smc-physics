@@ -21,12 +21,13 @@ include("Utilities/plots.jl")
 function main()
 
     # Select the target object type(s)
-    stimulus_id = "Exp2"
-    output_id = "Exp2/Cube"
+    stimulus_id = "Exp4"
+    output_id = "Exp4/Cube"
     target_id = "Cube"
 
     # Number of particles to be sampled during inference
     num_particles = 20
+    save_intermediate = false
 
     # Read ground truth trajectories
     dir = string("RealFlowData/", stimulus_id, "/")
@@ -59,7 +60,7 @@ function main()
         # Filter 20 particles through the complete trajectory
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
-        results, weights = infer(fname, output_id, generate_trajectory, args, observations, num_particles)
+        results, weights = infer(fname, output_id, generate_trajectory, args, observations)
         
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)
