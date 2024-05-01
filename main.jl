@@ -60,7 +60,7 @@ function main()
         # Filter 20 particles through the complete trajectory
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
-        results, weights = infer(fname, output_id, generate_trajectory, args, observations, num_particles, false)
+        results, weights = infer(fname, output_id, generate_trajectory, args, observations)
         
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)

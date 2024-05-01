@@ -35,7 +35,7 @@ end
 end
 
 # Particle filter
-function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles)
+function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false)
 
     # Extract trial identification    
     tokens = split(fname, "_")
