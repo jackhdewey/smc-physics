@@ -21,8 +21,8 @@ include("Utilities/plots.jl")
 function main()
 
     # Select the target object type(s)
-    stimulus_id = "Cube/Variable Frames/Exp1"
-    output_id = "Cube/Variable Frames/Exp1"
+    stimulus_id = "Exp2"
+    output_id = "Exp2/Cube"
     target_id = "Cube"
 
     # Number of particles to be sampled during inference
@@ -69,7 +69,7 @@ function main()
 
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
-        fname = string("BulletData/", output_id, "/Observations/observations_", tokens[2], "_", tokens[3])
+        fname = string("BulletData/", output_id, "/Inferences/inferences_", tokens[2], "_", tokens[3])
         write_to_csv(results, fname)
 
         # Write predicted trajectories to a .csv file
