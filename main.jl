@@ -10,8 +10,6 @@
 #       * using a sphere
 #       * adding noise to orientation
 #       * etc.
-#
-# TODO: Fix off-by-one error
 
 include("Model/bouncing_object.jl")
 include("Inference/particle_filter.jl")
@@ -22,11 +20,12 @@ function main()
 
     # Select the target object type(s)
     stimulus_id = "Exp4"
-    output_id = "Exp4/Cube"
-    target_id = "Cube"
+    model_id = "Sphere"
+    output_id = string(stimulus_id, "/", model_id)
 
-    # Number of particles to be sampled during inference
+    # Inference variables
     num_particles = 20
+    prediction_timesteps = 90
     save_intermediate = false
 
     # Read ground truth trajectories
@@ -55,17 +54,15 @@ function main()
         # Initialize target state using observed data
         fname = string(stimulus_id, "/", fnames[i])
         initial_position, initial_velocity, observations = read_observation_file(fname)
-        init_state = init_target_state(sim, target_id, initial_position, initial_velocity)
+        init_state = init_target_state(sim, model_id, initial_position, initial_velocity)
 
         # Filter 20 particles through the complete trajectory
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
-        results, weights = infer(fname, output_id, generate_trajectory, args, observations)
+        results, _ = infer(fname, output_id, generate_trajectory, args, observations)
         
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)
-
-        #gif(animate_traces(results), fps=24)
         #gif(animate_traces(ppd), fps=24)
 
         # Write inferred trajectories to a .csv file
@@ -78,6 +75,7 @@ function main()
         write_to_csv(ppd, fname)
 
         bullet.disconnect()
+
     end
 end
 
