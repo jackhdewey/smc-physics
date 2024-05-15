@@ -7,6 +7,7 @@
 # TODO: Add noise to initial position, orientation, and velocity
 # TODO: Add noise to velocity at each time step
 # TODO: Add additional noise to collisions
+# TODO: Change number of particles,  number of reuvenation moves
 #
 # CONSIDER: Changing prior for elasticity
 
@@ -117,6 +118,14 @@ end
 
     return next_state
 end
+
+#= 
+Options:
+    - Add something to generate_trajectory that perturbs kinematic state
+        - Ground truth as mean, variance derived from empirical distribution of data 
+    - Add something before line 114 that gives new state, perturbing position / velocity / orientation
+        - Current estimate as mean, variance either some constant or derived from average acceleration
+=#
 
 # Given an initial state, samples latents from their priors then runs a complete forward simulation
 @gen function generate_trajectory(sim::BulletSim, init_state::BulletState, T::Int)
