@@ -1,15 +1,14 @@
-# Experiment - Galileo 3
+# Galileo 3
 #
-# Infers the elasticity and predicts the future trajectory of a bouncing object from 1 second (30 frames) of observation
-# 'Ground truth' trajectories generated in RealFlow and read from .csv files
-#
-# QUESTION: Given how it has bounced so far, what will be the target object's future trajectory?
+# Infers the elasticity of a bouncing object from n observation frames and predicts its future trajectory 
+# Given how it has bounced so far, what will be the target object's future trajectory?
 #
 # What kind of generative model correlates best with human judgments?
 #       * using a rigid body
 #       * using a sphere
-#       * adding noise to orientation
 #       * etc.
+#
+# Ground truth trajectories are generated in RealFlow and read from .csv files
 
 include("Model/bouncing_object.jl")
 include("Inference/particle_filter.jl")
@@ -34,15 +33,16 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    #=
-    provide file names as a csv / text file
-    read them into a dictionary / set
-    if (dictionary.contains(names[i])) 
-        else 
-    =#
-
-    # Possibly add ability to run a specific trial / file
+    # Iterate through each file, initializing a corresponding particle filter to explain observed trajectory
     for i in eachindex(fnames)
+        
+        # Consider adding ability to specify a subset of trials / files
+        #=
+        provide file names as a csv / text file
+        read them into a dictionary / set
+        if (dictionary.contains(names[i])) 
+        else 
+        =#
         
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
@@ -51,12 +51,12 @@ function main()
         sim = BulletSim(step_dur=1/30; client=client)
         init_scene()
 
-        # Initialize target state using observed data
+        # Initialize target object state using observed data
         fname = string(stimulus_id, "/", fnames[i])
         initial_position, initial_velocity, observations = read_observation_file(fname)
         init_state = init_target_state(sim, model_id, initial_position, initial_velocity)
 
-        # Filter 20 particles through the complete trajectory
+        # Filter particles through the complete trajectory
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
         results, _ = infer(fname, output_id, generate_trajectory, args, observations)

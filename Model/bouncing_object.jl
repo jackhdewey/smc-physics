@@ -1,14 +1,12 @@
 # Generative Model
 #
-# Generates an elastic cube or sphere with specified position and velocity within a larger cubic enclosure
-# Simulates rigid body physics for specified number of time steps, recording a series of noisy position observations
-# Implemented as a deterministic simulation over uncertain properties
+# Generates a rigid cube or sphere with specified initial position and velocity, within a larger cubic enclosure
+# Simulates rigid body physics for specified number of time steps, recording a series of noisy position observations 
 #
 # TODO: Add noise to initial position, orientation, and velocity
 # TODO: Add noise to velocity at each time step
 # TODO: Add additional noise to collisions
 # TODO: Change number of particles,  number of reuvenation moves
-#
 # CONSIDER: Changing prior for elasticity
 
 using Gen
@@ -19,12 +17,15 @@ using Accessors
 
 bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
+
 include("../Utilities/truncatednorm.jl")
 
 
-# Sets initial scene configuration
-# In the future this will be an inverse graphics module
+# Sets initial scene configuration - in the future this could be inferred using an inverse graphics module
 function init_scene()
+
+    # Set gravity
+    bullet.setGravity(0, 0, -9.81)
 
     # Create and position ground plane
     planeID = bullet.createCollisionShape(bullet.GEOM_PLANE)
@@ -53,20 +54,20 @@ function init_scene()
     ceilingID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.5, 0.01])
     ceiling = bullet.createMultiBody(baseCollisionShapeIndex=ceilingID, basePosition=[0, 0, 1], baseOrientation=quaternion)
     bullet.changeDynamics(ceiling, -1, mass=0.0, restitution=0.5)
-
-    bullet.setGravity(0, 0, -9.81)
-
+    
 end
 
 # Samples an initial estimate of latent properties
 @gen function sample_latents(latents::RigidBodyLatents)
+
     # mass = {:mass} ~ gamma(1.2, 10.)
     res = {:restitution} ~ uniform(0, 1)
     new_latents = RigidBodyLatents(setproperties(latents.data, restitution=res))
+
     return new_latents
 end
 
-# Sets the initial state (shape, position, velocity, and optionally mass and restitution of the target object)
+# Sets the initial state (shape, position, velocity, and optionally mass and restitution) of the target object
 @gen function init_target_state(sim::PhySim, shape::String, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
  
     # Select shape representation
@@ -78,16 +79,17 @@ end
         body = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.1)
     end
 
-    # Set target object initial position and orientation
-    # TODO: Add noise and/or sample from priors
-    startPosition = init_position
+    # Sample initial kinematic state - position, orientation, and velocity
+
+    # init_velocity = {:init_velocity} ~
+    # startPosition = {:init_position} ~
+    # startOrientation = {:init_orientation} ~
+    
     startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
  
     # Create, position, and orient target object
-    target = bullet.createMultiBody(baseCollisionShapeIndex=body, basePosition=startPosition, baseOrientation=startOrientation)
- 
-    # Set initial kinematic state
-    # TODO: Add noise and/or sample from priors
+    target = bullet.createMultiBody(baseCollisionShapeIndex=body, basePosition=init_position, baseOrientation=startOrientation)    
+
     bullet.resetBaseVelocity(target, linearVelocity=init_velocity)
 
     # Set latent dynamic state
@@ -148,9 +150,5 @@ function generate_ground_truth(args::Tuple, restitution::Float64)
     gt_constraints = choicemap((:latents => 1 => :restitution, restitution))
     ground_truth = first(generate(generate_trajectory, args, gt_constraints))
         
-    # gt_choices = get_choices(ground_truth)
-    # display(gt_choices)
-    # gif(animate_trace(ground_truth), fps=24)
-
     return ground_truth
 end

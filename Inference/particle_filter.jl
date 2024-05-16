@@ -3,9 +3,10 @@
 # Defines a particle filter and proposal distribution that can be used to generate a set of concurrent simulations (particles)
 # Each simulation is procedurally updated by one time step, scored, rejuvenated, and (potentially) resampled
 
+using Gen
+
 include("../Utilities/fileio.jl")
 
-using Gen
 
 # Parses a sequence of observations from a choice map into a vector
 function get_observations(choices::Gen.ChoiceMap, T::Int)
@@ -34,7 +35,7 @@ end
     return (restitution)
 end
 
-# Particle filter
+# Generates num_particles trajectories, scoring and filtering them according to their likelihood
 function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false)
 
     # Extract trial identification    
@@ -49,15 +50,15 @@ function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.Ch
     for t=1:gm_args[3]
         @elapsed begin
 
-            # Simulate the next time step and score against new observation
+            # Simulates the next time step and scores against new observation
             Gen.particle_filter_step!(state, (gm_args[1],gm_args[2], t), argdiffs, obs[t])
 
-            # Resample elasticity, resimulate to current time step, then accept / reject
+            # Rejuvenation - resamples elasticity, resimulates to current time step, then accepts / rejects
             for i=1:num_particles
                 state.traces[i], _ = Gen.mh(state.traces[i], proposal, ())
             end
 
-            # Decide whether to cull and resample poorly performing particles
+            # Decides whether to cull and resample poorly performing particles
             Gen.maybe_resample!(state, ess_threshold=num_particles/2)
             
             # Dump current particles to a .csv file
@@ -74,13 +75,15 @@ function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.Ch
     return state.traces, weights
 end
 
-# Given a set of trace (particles) with inferred elasticity, predict the next T postion ßobservations
+# Given a set of trace (particles) with inferred elasticity, predicts the next T postion observations
 function predict(particles, T::Int) 
 
-    # For each particle
     n = length(particles)
     ppd = Vector{Gen.Trace}(undef, n)
+
+    # For each particle
     for i=1:n
+
         # Reset the number of time steps
         prev_args = get_args(particles[i])
         new_args = (prev_args[1], prev_args[2], prev_args[3] + T)
@@ -88,6 +91,7 @@ function predict(particles, T::Int)
         
         # Generate the next T time steps
         ppd[i] = first(Gen.update(particles[i], new_args, arg_diffs, choicemap()))
+        
     end
 
     return ppd
