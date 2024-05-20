@@ -67,7 +67,7 @@ end
     return new_latents
 end
 
-# Sets the initial state (shape, position, velocity, and optionally mass and restitution) of the target object
+# Sets the initial state (shape, position, orientation, velocity, and optionally mass and restitution) of the target object
 @gen function init_target_state(sim::PhySim, shape::String, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
  
     # Select shape representation
@@ -102,12 +102,19 @@ end
 end
 
 # Adds measurement noise to ground truth position
+# TODO: Increase variance
 @gen function generate_observation(k::RigidBodyState)
 
     obs = {:position} ~ broadcasted_normal(k.position, 0.1)
 
     return obs
 end
+
+#=
+Option:
+    - Before calling PhySMC.step, perturb position / velocity / orientation and store in new state
+        - Current estimate as mean, variance either some constant or derived from average acceleration
+=#
 
 # Given an input state, samples an observation and generates the next state
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
@@ -122,11 +129,9 @@ end
 end
 
 #= 
-Options:
-    - Add something to generate_trajectory that perturbs kinematic state
+Option:
+    - Perturb initial kinematic state before calling Gen.Unfold
         - Ground truth as mean, variance derived from empirical distribution of data 
-    - Add something before line 114 that gives new state, perturbing position / velocity / orientation
-        - Current estimate as mean, variance either some constant or derived from average acceleration
 =#
 
 # Given an initial state, samples latents from their priors then runs a complete forward simulation
