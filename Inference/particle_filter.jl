@@ -51,7 +51,7 @@ function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.Ch
         @elapsed begin
 
             # Simulates the next time step and scores against new observation
-            Gen.particle_filter_step!(state, (gm_args[1],gm_args[2], t), argdiffs, obs[t])
+            Gen.particle_filter_step!(state, (gm_args[1], gm_args[2], t), argdiffs, obs[t])
 
             # Rejuvenation - resamples elasticity, resimulates to current time step, then accepts / rejects
             for i=1:num_particles

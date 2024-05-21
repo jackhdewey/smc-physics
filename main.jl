@@ -34,7 +34,8 @@ function main()
     sort!(fnames, lt=trial_order)
 
     # Iterate through each file, initializing a corresponding particle filter to explain observed trajectory
-    for i in eachindex(fnames)
+    #for i in eachindex(fnames)
+    for i=1:2
         
         # Consider adding ability to specify a subset of trials / files
         #=
@@ -60,12 +61,14 @@ function main()
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
         results, _ = infer(fname, output_id, generate_trajectory, args, observations)
+        display(get_choices(results[1]))
         
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, 90)
         #gif(animate_traces(ppd), fps=24)
 
         # Write inferred trajectories to a .csv file
+        #=
         tokens = split(fname, "_")
         fname = string("BulletData/", output_id, "/Inferences/inferences_", tokens[2], "_", tokens[3])
         write_to_csv(results, fname)
@@ -73,6 +76,7 @@ function main()
         # Write predicted trajectories to a .csv file
         fname = string("BulletData/", output_id, "/Predictions/predictions_", tokens[2], "_", tokens[3])
         write_to_csv(ppd, fname)
+        =#
 
         bullet.disconnect()
 
