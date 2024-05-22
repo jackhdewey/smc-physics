@@ -11,13 +11,12 @@
 
 using Gen
 using PyCall
-using PhySMC
-using PhyBullet
 using Accessors
 
 bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 
+include("../PhySMC/PhySMC.jl")
 include("../Utilities/truncatednorm.jl")
 
 
