@@ -12,15 +12,13 @@ export pb,
     BulletElemState,
     BulletElemLatents
 
-
 const pb = PyNULL()
-
 function __init__()
     copy!(pb, pyimport("pybullet"))
 end
 
 """
-Pass along abstract types and  
+Pass along abstract types to be implemented by e.g. rigid_body.jl  
 """
 abstract type BulletElement <: Element{BulletSim} end
 abstract type BulletElemState{T<:BulletElement} <: ElemState{T} end
@@ -38,7 +36,7 @@ include("Elements/rigid_body.jl")
 
 
 """
-Parameters for using the Bullet physics engine
+Global simulation context for the Bullet physics engine
 """
 @with_kw struct BulletSim <: PhySim
     # Client id for pybullet
@@ -50,7 +48,8 @@ Parameters for using the Bullet physics engine
 end
 
 """
-Bullet Simulation State
+State of a Bullet simulation
+TODO: Remove latents and kinematics, add collisions
 """
 struct BulletState <: PhyState{BulletSim}
     elements::AbstractVector{BulletElement}

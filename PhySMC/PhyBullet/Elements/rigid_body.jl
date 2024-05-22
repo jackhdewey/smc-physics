@@ -3,7 +3,7 @@ export RigidBody,
     RigidBodyLatents
 
 """
-A rigid body in `BulletSim`
+A Rigid Body in Bullet
 """
 struct RigidBody <: BulletElement
     "The `bodyUniqueId` of the base object"
@@ -11,7 +11,7 @@ struct RigidBody <: BulletElement
 end
 
 """
-RigidBody State
+Rigid Body State
 """
 struct RigidBodyState <: BulletElemState{RigidBody}
     "XYZ position"
@@ -31,6 +31,7 @@ function RigidBodyState(e::RigidBody, sim::BulletSim)
 end
 
 function get_state(e::RigidBody, sim::BulletSim)
+
     (pos, orn) =
         @pycall pb.getBasePositionAndOrientation(;
                                                  # docstring is wrong
@@ -38,11 +39,13 @@ function get_state(e::RigidBody, sim::BulletSim)
                                                  bodyUniqueId =  e.object_id,
                                                  physicsClientId = sim.client,
                                                  )::Tuple{PyVector, PyVector}
+
     (lin_vel, ang_vel) =
         @pycall pb.getBaseVelocity(;
                                    bodyUniqueId =  e.object_id,
                                    physicsClientId = sim.client
                                    )::Tuple{PyVector, PyVector}
+
     aabb =
         @pycall pb.getAABB(;
             bodyUniqueId = e.object_id,
@@ -54,6 +57,7 @@ function get_state(e::RigidBody, sim::BulletSim)
 end
 
 function set_state!(e::RigidBody, sim::BulletSim, st::RigidBodyState)
+
     @pycall pb.resetBasePositionAndOrientation(;
                                                bodyUniqueId =  e.object_id,
                                                # linkIndex = -1,
@@ -61,6 +65,7 @@ function set_state!(e::RigidBody, sim::BulletSim, st::RigidBodyState)
                                                ornObj = st.orientation,
                                                physicsClientId = sim.client
                                                )::PyObject
+
     @pycall pb.resetBaseVelocity(;
                                  # the different name is annoying
                                  objectUniqueId =  e.object_id,
@@ -103,6 +108,7 @@ struct RigidBodyLatents <: BulletElemLatents{RigidBody}
 end
 
 function get_latents(e::RigidBody, sim::BulletSim)
+
     # REVIEW: pybullet docs says `getDynamicsInfo` is incomplete / weird
     ls =
         @pycall pb.getDynamicsInfo(;
@@ -110,6 +116,7 @@ function get_latents(e::RigidBody, sim::BulletSim)
                                    linkIndex = -1, # base (assumption for `RigidBody`)
                                    physicsClientId = sim.client
                                    )::PyObject
+
     RigidBodyLatents((mass = ls[1],
                       lateralFriction = ls[2],
                       # localInertiaDiagonal = ls[3],
@@ -121,6 +128,7 @@ function get_latents(e::RigidBody, sim::BulletSim)
                       contactDamping = ls[9],
                       contactStiffness = ls[10],
                       collisionMargin = ls[12]))
+
 end
 
 function set_latents!(e::RigidBody, sim::BulletSim, ls::RigidBodyLatents)
@@ -131,5 +139,6 @@ function set_latents!(e::RigidBody, sim::BulletSim, ls::RigidBodyLatents)
         ls.data..., # REVIEW: more direct?
         physicsClientId = sim.client
     )::PyObject
+
     return nothing
 end

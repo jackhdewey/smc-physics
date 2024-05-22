@@ -50,6 +50,4 @@ function step(sim::PhySim, st::PhyState)
     new_st = forward_step(sim, st)
 end
 
-include("PhyBullet/PhyBullet.jl")
-
 end # module PhySMC
