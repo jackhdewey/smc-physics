@@ -13,7 +13,7 @@ if !isdir(plots_path)
     mkdir(plots_path)
 end
 
-sim_object = "Sphere"
+sim_object = "Cube"
 
 if sim_object == "Cube"
     marker_shape = :square
@@ -113,7 +113,7 @@ function plot_human_vs_gt(expt)
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(human.gtElasticity, human.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_", "Exp", expt, ".png")))
+    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_human", "Exp", expt, ".png")))
 
     # gui()
 end
@@ -125,7 +125,7 @@ function plot_sim_vs_gt(expt, sim_object)
         @groupby :stimulusID
         @combine begin
             :estimate = mean(:elasticity) # :elasticity = :gtElasticity
-            :gtElasticity = first(:elasticity)
+            :gtElasticity = first(:gtElasticity)
             :std_err_mean = std(:elasticity)
         end
     end
@@ -153,7 +153,7 @@ function plot_sim_vs_gt(expt, sim_object)
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(sim.gtElasticity, sim.estimate), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_", sim_object, "Exp", expt, ".png")))
+    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_model_", sim_object, "Exp", expt, ".png")))
 end
 
 function process_individual_stimuli_sim(expt, sim_object)
@@ -164,6 +164,7 @@ function process_individual_stimuli_sim(expt, sim_object)
             :judgment = mean(:elasticity) # :elasticity = :gtElasticity
             :elasticity = first(:gtElasticity)
         end
+        # @subset :elasticity .< 0.6
     end
 
     return sim_data_pred
@@ -171,9 +172,7 @@ end
 
 function process_individual_stimuli_human(expt)
     sub_data = read_subject_data(expt)
-
     nsubs = length(unique(sub_data.filename))
-
     sub_data_pred = @chain sub_data begin
         @groupby :stimulusID
         # @groupby :elasticity# :filename
@@ -183,7 +182,8 @@ function process_individual_stimuli_human(expt)
             :std_err_mean = std(:rating) / sqrt(nsubs) # number of subjects
             :gtElasticity = mean(:elasticity)
         end
-        @orderby :stimulusID
+        # @subset :gtElasticity .< 0.6
+        # @orderby :stimulusID
     end
     return sub_data_pred
 end
@@ -216,12 +216,12 @@ function plot_individual_stimuli_judgments(expt, sim_object)
     corr_string = "r = " * string(round(cor(sim.judgment, human.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
     savefig(joinpath(plots_path, string("individual_stimuli_judgments_", sim_object, "Exp", expt, ".png")))
-    # gui()
+    gui()
 end
 
 function plot_mean_elasticity_judgments(expt, sim_object)
 
-    human = process_individual_stimuli_human(expt, sim_object)
+    human = process_individual_stimuli_human(expt)
     sim = process_individual_stimuli_sim(expt, sim_object)
     p = palette(:jet)
     # default(aspect_ratio = :equal)
@@ -262,27 +262,24 @@ function plot_mean_elasticity_judgments(expt, sim_object)
     # gui()
 end
 
-# function plot_human_vs_gt(expt, sim_object)
-
+# for sim_object in ["Cube", "Sphere"]
+    for expt = 1:2
+        plot_individual_stimuli_judgments(expt, sim_object)
+        # if expt <= 2
+#             plot_mean_elasticity_judgments(expt, sim_object)
+        # end
+    end
 # end
 
-# for sim_object in ["Cube", "Sphere"]
+
+# for sim_object in ["Cube"# , "Sphere"
+#                    ]
 #     for expt = 1:4
-#         plot_individual_stimuli_judgments(expt, sim_object)
-#         if expt <= 2
-#             plot_mean_elasticity_judgments(expt, sim_object)
-#         end
+#         plot_human_vs_gt(expt)
+#         plot_sim_vs_gt(expt, sim_object)
+#         # if expt <= 2
+#         #     plot_mean_elasticity_judgments(expt, sim_object)
+#         # end
 #     end
 # end
 
-
-for sim_object in ["Cube"# , "Sphere"
-                   ]
-    for expt = 1:4
-        plot_human_vs_gt(expt)
-        plot_sim_vs_gt(expt, sim_object)
-        # if expt <= 2
-        #     plot_mean_elasticity_judgments(expt, sim_object)
-        # end
-    end
-end
