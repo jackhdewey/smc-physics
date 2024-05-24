@@ -11,12 +11,12 @@
 
 using Gen
 using PyCall
+using PhySMC
 using Accessors
 
 bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 
-include("../PhySMC/PhySMC.jl")
 include("../Utilities/truncatednorm.jl")
 
 
@@ -56,18 +56,8 @@ function init_scene()
     
 end
 
-# Samples an initial estimate of latent properties
-@gen function sample_latents(latents::RigidBodyLatents)
-
-    # mass = {:mass} ~ gamma(1.2, 10.)
-    res = {:restitution} ~ uniform(0, 1)
-    new_latents = RigidBodyLatents(setproperties(latents.data, restitution=res))
-
-    return new_latents
-end
-
 # Sets the initial state (shape, position, orientation, velocity, and optionally mass and restitution) of the target object
-@gen function init_target_state(sim::PhySim, shape::String, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
+function init_target_state(sim::PhySim, shape::String, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
  
     # Select shape representation
     if (shape === "Cube")
@@ -78,17 +68,11 @@ end
         body = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.1)
     end
 
-    # Sample initial kinematic state - position, orientation, and velocity
-
-    # init_velocity = {:init_velocity} ~
-    # startPosition = {:init_position} ~
-    # startOrientation = {:init_orientation} ~
-    
-    startOrientation = bullet.getQuaternionFromEuler([0, 0, 1])
- 
     # Create, position, and orient target object
-    target = bullet.createMultiBody(baseCollisionShapeIndex=body, basePosition=init_position, baseOrientation=startOrientation)    
+    init_orientation = bullet.getQuaternionFromEuler([0, 0, 0])
+    target = bullet.createMultiBody(baseCollisionShapeIndex=body, basePosition=init_position, baseOrientation=init_orientation)    
 
+    # Set initial velocity
     bullet.resetBaseVelocity(target, linearVelocity=init_velocity)
 
     # Set latent dynamic state
@@ -100,64 +84,60 @@ end
     return init_state
 end
 
-# Adds measurement noise to estimated position
-# TODO: Increase variance
-@gen function generate_observation(k::RigidBodyState)
-
-    obs = {:position} ~ broadcasted_normal(k.position, 0.1)
-
-    return obs
+# Samples latent properties from their priors
+@gen function sample_latents(latents::RigidBodyLatents)
+    # mass = {:mass} ~ gamma(1.2, 10.)
+    res = {:restitution} ~ uniform(0, 1)
+    return RigidBodyLatents(setproperties(latents.data, restitution=res))
 end
 
-# Perturbs kinematic state
-@gen function state_noise(k::RigidBodyState)
+# Adds noise to kinematic state given transition uncertainty
+@gen function sample_state(sim::BulletSim, k::RigidBodyState)
 
     position = {:position} ~ broadcasted_normal(k.position, 0.1)
     orientation = {:orientation} ~ broadcasted_normal(k.orientation, 0.1)
     velocity = {:velocity} ~ broadcasted_normal(k.linear_vel, 0.1)
 
-    new_kinematics = RigidBodyState(setproperties(k.data, position=position, orientation=orientation, linear_vel=velocity))
-
-    state = Accessors.setproperties(init_state; kinematics=new_kinematics)
-
-    return state
+    return setproperties(k, position=position, orientation=orientation, linear_vel=velocity)
 
 end
 
-#=
-Option:
-    - Before calling PhySMC.step, perturb position / velocity / orientation and store in new state
-        - Current estimate as mean, variance either some constant or derived from average acceleration
-=#
+# Adds measurement noise to estimated position
+@gen function generate_observation(k::RigidBodyState)
 
+    obs = {:position} ~ broadcasted_normal(k.position, 0.2)
+
+    return obs
+end
+
+#=
+TODO: Before calling PhySMC.step, perturb position / velocity / orientation and store in new state
+    - Current estimate as mean, variance either some constant or derived from average acceleration
+=#
 # Given an input state, samples an observation and generates the next state
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
+
+    # Applies system noise to position, orientation, and velocity
+    {:state} ~ Gen.Map(sample_state)(sim, current_state.kinematics)
 
     # Applies observation noise to x, y, and z position
     {:observation} ~ Gen.Map(generate_observation)(current_state.kinematics)
 
-    # Applies system noise to position, orientation, and 
-    state = {:state} ~ Gen.Map(state_noise)(current_state.kinematics)
-
     # Synchronizes state, then use Bullet to generate next state
-    next_state::BulletState = PhySMC.step(sim, state)
+    next_state::BulletState = PhySMC.step(sim, current_state)
 
     return next_state
 end
 
 #= 
-Option:
-    - Perturb initial kinematic state before calling Gen.Unfold
-        - Ground truth as mean, variance derived from empirical distribution of data 
+TODO: Perturb initial kinematic state before calling Gen.Unfold
+    - Ground truth as mean, variance derived from empirical distribution of data 
 =#
-
 # Given an initial state, samples latents from their priors then runs a complete forward simulation
 @gen function generate_trajectory(sim::BulletSim, init_state::BulletState, T::Int)
 
     # Sample the target object's latents - i.e. restitution
     latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
-
-    # Update initial state with sampled latent values
     init_state = Accessors.setproperties(init_state; latents=latents)
 
     # Simulate T time steps

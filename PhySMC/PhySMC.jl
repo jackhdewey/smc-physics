@@ -1,7 +1,5 @@
 module PhySMC
 
-using Gen
-
 export PhySim,
     PhyState,
     Element,
@@ -27,6 +25,16 @@ abstract type ElemState{T<:Element} end
 abstract type ElemLatents{T<:Element} end
 
 """
+     step(sim::PhySim, st::PhyState)::PhyState
+
+Performs a stateless evolution of the simulation state.
+"""
+function step(sim::PhySim, st::PhyState)
+    sync!(sim, st)
+    forward_step(sim, st)
+end
+
+"""
     sync!(sim::PhySim, st::PhyState)::Nothing
 
 Synchronizes the context within `sim` using `st`.
@@ -39,15 +47,5 @@ function sync! end
 Resolves physical interactions and obtains the next state representation.
 """
 function forward_step end
-
-"""
-     step(sim::PhySim, st::PhyState)::PhyState
-
-Performs a stateless evolution of the simulation state.
-"""
-function step(sim::PhySim, st::PhyState)
-    sync!(sim, st)
-    new_st = forward_step(sim, st)
-end
 
 end # module PhySMC

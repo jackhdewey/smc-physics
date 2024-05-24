@@ -18,7 +18,19 @@ function __init__()
 end
 
 """
-Pass along abstract types to be implemented by e.g. rigid_body.jl  
+Global simulation context for the Bullet physics engine
+"""
+@with_kw struct BulletSim <: PhySim
+    # Client id for pybullet
+    client::Int64
+    # Timestep duration of bullet engine (default: 4.2ms)
+    pb_timestep::Float64 = 1 / 240
+    # Amount of time between `forward_steps` (default=16.7ms)
+    step_dur::Float64 = 1 / 60
+end
+
+"""
+Abstract types to be implemented by e.g. rigid_body.jl  
 """
 abstract type BulletElement <: Element{BulletSim} end
 abstract type BulletElemState{T<:BulletElement} <: ElemState{T} end
@@ -34,22 +46,9 @@ function set_latents! end
 
 include("Elements/rigid_body.jl")
 
-
-"""
-Global simulation context for the Bullet physics engine
-"""
-@with_kw struct BulletSim <: PhySim
-    # Client id for pybullet
-    client::Int64
-    # Timestep duration of bullet engine (default: 4.2ms)
-    pb_timestep::Float64 = 1 / 240
-    # Amount of time between `forward_steps` (default=16.7ms)
-    step_dur::Float64 = 1 / 60
-end
-
 """
 State of a Bullet simulation
-TODO: Remove latents and kinematics, add collisions
+TODO: Latents and kinematics, add collisions
 """
 struct BulletState <: PhyState{BulletSim}
     elements::AbstractVector{BulletElement}
@@ -64,12 +63,13 @@ function BulletState(sim::BulletSim, elements::AbstractVector{T}) where {T<:Bull
     BulletState(elements, latents, kinematics)
 end
 
+# Update each element in the provided state
 function PhySMC.sync!(sim::BulletSim, world_state::BulletState)
     for (elem, ls, est) in zip(world_state.elements,
                                world_state.latents,
                                world_state.kinematics)
-        set_state!(elem, sim, est)
         set_latents!(elem, sim, ls)
+        set_state!(elem, sim, est)
     end
     return nothing
 end

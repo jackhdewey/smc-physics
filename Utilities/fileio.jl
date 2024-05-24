@@ -6,32 +6,42 @@ using CSV
 # Extracts initial position, initial velocity, and trajectory from two .csv files
 function read_observation_file(fname)
 
-    # Read ground truth initial velocity
+    # Read ground truth initial state
     fname = string("RealFlowData/", fname) 
     println("Reading...", fname)
-    data = CSV.read(fname, DataFrame)
-    datum = values(data[1, 11:13])
+    init_state_data = CSV.read(fname, DataFrame)
+
+    # Initial orientation
+    datum = values(init_state_data[1, 8:10])
+    initial_orientation = [datum[1], datum[2], datum[3]]
+
+    # Initial velocity
+    datum = values(init_state_data[1, 11:13])
     initial_velocity = [datum[1], datum[2], datum[3]]
 
     # Read ground truth trajectory
     head, tail = split(fname, '.')
-    fname2 = join([head, "_observed.", tail])
-    println("Reading...", fname2)
-    data = CSV.read(fname2, DataFrame)
+    obs_fname = join([head, "_observed.", tail])
+    println("Reading...", obs_fname)
+    trajectory_data = CSV.read(fname2, DataFrame)
 
-    # Populate choice map
-    observations = Vector{Gen.ChoiceMap}(undef, size(data)[1])
-    for i = 1:size(data)[1]
-        addr = :trajectory => i => :observation => 1 => :position
+    # Populate observation vector with choice maps
+    time_steps = size(trajectory_data)[1]
+    observations = Vector{Gen.ChoiceMap}(undef, time_steps)
+    for i = 1:time_steps
+
         datum = values(data[i, :])
-        new_datum = [datum[1], datum[2], datum[3]]
-        cm = Gen.choicemap((addr, new_datum))
+        position = [datum[1], datum[2], datum[3]]
+
+        addr = :trajectory => i => :observation => 1 => :position
+        cm = Gen.choicemap((addr, position))
         observations[i] = cm
+
     end
 
     initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
 
-    return initial_position, initial_velocity, observations
+    return initial_position, initial_orientation, initial_velocity, observations
 end
 
 # Given a vector of filenames, remove any that contain certain tokens

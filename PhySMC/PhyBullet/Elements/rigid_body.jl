@@ -11,7 +11,7 @@ struct RigidBody <: BulletElement
 end
 
 """
-Rigid Body State
+Kinematic state for 'Rigid Body'
 """
 struct RigidBodyState <: BulletElemState{RigidBody}
     "XYZ position"
