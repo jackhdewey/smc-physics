@@ -40,7 +40,7 @@ function overlay_particles(renderer, traces; same_data=true, args...)
     fig = plot(title="Observed bearings (red) and \npositions of individual traces (one color per trace)", xlabel="X", ylabel="Y", zlabel="Z")
     
     renderer(traces[1], show_data=true, overlay=true, args...)
-    for i=2:length(traces)
+    for i in eachindex(traces)
         renderer(traces[i], show_data=!same_data, overlay=true, args...)
     end
 

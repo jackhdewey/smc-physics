@@ -3,10 +3,10 @@
 # Generates a rigid cube or sphere with specified initial position and velocity, within a larger cubic enclosure
 # Simulates rigid body physics for specified number of time steps, recording a series of noisy position observations 
 #
-# TODO: Add noise to initial position, orientation, and velocity
-# TODO: Add noise to velocity at each time step
-# TODO: Add additional noise to collisions
-# TODO: Change number of particles,  number of reuvenation moves
+# TODO: Add noise to position and orientation
+# CONSIDER: Add noise to velocity
+# CONSIDER: Add additional noise to collisions
+# CONSIDER: Change number of particles,  number of reuvenation moves
 # CONSIDER: Changing prior for elasticity
 
 using Gen
@@ -118,9 +118,7 @@ DONE: Before calling PhySMC.step, perturb position / velocity / orientation and 
     noisy_kinematics = {:state} ~ Gen.Map(sample_state)(current_state.kinematics)
 
     # Applies observation noise to x, y, and z position
-    print(current_state)
     current_state = setproperties(current_state, kinematics = noisy_kinematics)
-    print(current_state)
     {:observation} ~ Gen.Map(generate_observation)(current_state.kinematics)
 
     # Synchronizes state, then use Bullet to generate next state
@@ -133,6 +131,7 @@ end
 @gen function sample_latents(l::RigidBodyLatents)
 
     res = {:restitution} ~ uniform(0, 1)
+    
     # mass = {:mass} ~ gamma(1.2, 10.)
 
     return RigidBodyLatents(setproperties(l.data, restitution=res))
