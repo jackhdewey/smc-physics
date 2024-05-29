@@ -18,49 +18,52 @@ include("Utilities/plots.jl")
 function main()
 
     # Select the target object type(s)
-    stimulus_id = "Exp4"
-    model_id = "Sphere"
-    output_id = string(stimulus_id, "/", model_id)
+    model_id = "Modelv2"
+    expt_id = "Exp1"
+    target_id = "Sphere"
+    output_id = string(model_id, "/", expt_id, "/", target_id)
 
     # Inference parameters
     num_particles = 20
+    save_intermediate = true
+
+    # Prediction parameters
     prediction_timesteps = 90
-    save_intermediate = false
 
     # Read ground truth trajectories
-    dir = string("RealFlowData/", stimulus_id, "/")
+    dir = string("RealFlowData/", expt_id, "/")
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
     # Iterate through each observed trajectory, executing a corresponding particle filter to infer elasticity 
-    for i=1:1 #for i in eachindex(fnames)
+    for i in eachindex(fnames)
         
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
         bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
         bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
         sim = BulletSim(step_dur=1/30; client=client)
-        init_scene()
 
         # Initialize target object state using observed data
-        fname = string(stimulus_id, "/", fnames[i])
+        init_scene()
+        fname = string(expt_id, "/", fnames[i])
         initial_position, initial_orientation, initial_velocity, observations = read_observation_file(fname)
-        init_state = init_target_state(sim, model_id, initial_position, initial_velocity)
+        init_state = init_target_state(sim, target_id, initial_position, initial_velocity)
 
         # Filter particles through the complete trajectory
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
         
         # Filter particles to attempt to fit the complete trajectory
-        results, _ = infer(fname, output_id, generate_trajectory, args, observations)
-
-        #=
+        results, _ = infer(fname, output_id, generate_trajectory, args, observations, num_particles, save_intermediate)
+    
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
         fname = string("BulletData/", output_id, "/Inferences/inferences_", tokens[2], "_", tokens[3])
         write_to_csv(results, fname)
 
+        #=
         # For each output particle, predict the next 90 time steps
         ppd = predict(results, prediction_timesteps)
         #gif(animate_traces(ppd), fps=24)
