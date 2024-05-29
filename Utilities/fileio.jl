@@ -11,6 +11,11 @@ function read_observation_file(fname)
     println("Reading...", fname)
     init_state_data = CSV.read(fname, DataFrame)
 
+    # Initial position
+    datum = values(init_state_data[1, 5:7])
+    initial_position = [datum[1], datum[2], datum[3]]
+    println(initial_position)
+
     # Initial orientation
     datum = values(init_state_data[1, 8:10])
     initial_orientation = [datum[1], datum[2], datum[3]]
@@ -23,16 +28,15 @@ function read_observation_file(fname)
     head, tail = split(fname, '.')
     obs_fname = join([head, "_observed.", tail])
     println("Reading...", obs_fname)
-    trajectory_data = CSV.read(fname2, DataFrame)
+    trajectory_data = CSV.read(obs_fname, DataFrame)
 
     # Populate observation vector with choice maps
     time_steps = size(trajectory_data)[1]
     observations = Vector{Gen.ChoiceMap}(undef, time_steps)
-    for i = 1:time_steps
+    for i=1:time_steps
 
-        datum = values(data[i, :])
+        datum = values(trajectory_data[i, :])
         position = [datum[1], datum[2], datum[3]]
-
         addr = :trajectory => i => :observation => 1 => :position
         cm = Gen.choicemap((addr, position))
         observations[i] = cm
@@ -40,6 +44,7 @@ function read_observation_file(fname)
     end
 
     initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
+    println(initial_position)
 
     return initial_position, initial_orientation, initial_velocity, observations
 end
