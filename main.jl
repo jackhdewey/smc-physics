@@ -33,16 +33,8 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    #=
-    # Consider adding ability to specify a subset of trials / files
-    provide file names as a csv / text file
-    read them into a dictionary / set
-    if (dictionary.contains(names[i])) 
-    else 
-    =#
-
     # Iterate through each observed trajectory, executing a corresponding particle filter to infer elasticity 
-    for i=1:2 #for i in eachindex(fnames)
+    for i=1:1 #for i in eachindex(fnames)
         
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
@@ -59,21 +51,19 @@ function main()
         # Filter particles through the complete trajectory
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
-        results, _ = infer(fname, output_id, generate_trajectory, args, observations)
-
-        for i=1:20
-            display(get_choices(results[1]))
-        end
         
-        # For each output particle, predict the next 90 time steps
-        ppd = predict(results, prediction_timesteps)
-        #gif(animate_traces(ppd), fps=24)
+        # Filter particles to attempt to fit the complete trajectory
+        results, _ = infer(fname, output_id, generate_trajectory, args, observations)
 
         #=
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
         fname = string("BulletData/", output_id, "/Inferences/inferences_", tokens[2], "_", tokens[3])
         write_to_csv(results, fname)
+
+        # For each output particle, predict the next 90 time steps
+        ppd = predict(results, prediction_timesteps)
+        #gif(animate_traces(ppd), fps=24)
 
         # Write predicted trajectories to a .csv file
         fname = string("BulletData/", output_id, "/Predictions/predictions_", tokens[2], "_", tokens[3])
