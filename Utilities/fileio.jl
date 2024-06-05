@@ -64,9 +64,9 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
     println("Writing simulation data to " * fname)
     particle_data = DataFrame(particle=Int[], elasticity=[], weight=[], frame=Int[], x=[], y=[], z=[])
 
-    # Iterate over the particles 
+    # Iterate over the particles
     for (p, particle) in enumerate(particles)
-        ela = particle[:latents => 1 => :restitution]
+        ela = particle[:latents=>1=>:restitution]
         for (f, frame) in enumerate(particle[:trajectory])
             pos = convert(Vector, frame.kinematics[1].position)
             #ori = convert(Vector, frame.kinematics[1].orientation)
@@ -80,6 +80,8 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
     truncator(col, val) = trunc(val, digits=5)
     truncator(col, val::Int) = val
 
+    # make directory structure if necessary
+    mkpath(dirname(fname))
     CSV.write(fname, particle_data, transform=truncator)
 end
 
