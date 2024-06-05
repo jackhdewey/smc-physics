@@ -88,7 +88,7 @@ end
 # Adds noise to kinematic state given transition uncertainty
 @gen function sample_state(k::RigidBodyState)
 
-    position = {:position} ~ broadcasted_normal(k.position, 0.1)
+    position = {:position} ~ broadcasted_normal(k.position, 0)
 
     #=
     orientation::Vector{3, Float64} = bullet.getEulerFromQuaternion(k.orientation)

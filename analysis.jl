@@ -13,8 +13,10 @@ include("Utilities/fileio.jl")
 function main()
 
     # Select the target object type
-    stimulus_id = "Cube"
-    output_id = "SpherexCube"
+    model_id = "Modelv3"
+    expt_id = "Exp1"
+    target_id = "Sphere"
+    output_id = string(model_id, "/", expt_id, "/", target_id)
 
     # Trial parameters
     num_timesteps = 30
@@ -26,7 +28,7 @@ function main()
     plot_interval = 5
 
     # Read from corresponding directory
-    dir = string("RealFlowData/", stimulus_id, "/")
+    dir = string("RealFlowData/", expt_id, "/")
     gt_files = filter_unwanted_filenames(readdir(dir))
     sort!(gt_files, lt=trial_order)
 
@@ -62,7 +64,7 @@ function main()
             # Index into correct ground truth file
             head, tail = split(gt_files[trial_index], '.')
             fname = join([head, "_observed.", tail])
-            gt_file = string("RealFlowData/", stimulus_id, "/", fname)
+            gt_file = string("RealFlowData/", expt_id, "/", fname)
             print(string(gt_file, "\n"))
 
             # Read ground truth trajectory
