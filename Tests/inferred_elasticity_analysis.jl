@@ -13,7 +13,7 @@ if !isdir(plots_path)
     mkdir(plots_path)
 end
 
-sim_object = "Cube"
+sim_object = "Sphere"
 
 if sim_object == "Cube"
     marker_shape = :square
@@ -39,7 +39,7 @@ function read_simulation_file(fname, sim_object)
 end
 
 function read_simulation_data(expt, sim_object)
-    simulation_folder = joinpath(project_path, "BulletData", "Exp" * string(expt), sim_object, "Inferences")
+    simulation_folder = joinpath(project_path, "BulletData", "Modelv2", "Exp" * string(expt), sim_object, "Inferences")
     all_data = []
     for file in readdir(simulation_folder)
         full_file_path = joinpath(simulation_folder, file)
@@ -154,7 +154,7 @@ function plot_sim_vs_gt(expt, sim_object)
     corr_string = "r = " * string(round(cor(sim.gtElasticity, sim.estimate), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
     savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_model_", sim_object, "Exp", expt, ".png")))
-end
+    end
 
 function process_individual_stimuli_sim(expt, sim_object)
     sim_data = read_simulation_data(expt, sim_object)
@@ -164,7 +164,8 @@ function process_individual_stimuli_sim(expt, sim_object)
             :judgment = mean(:elasticity) # :elasticity = :gtElasticity
             :elasticity = first(:gtElasticity)
         end
-        # @subset :elasticity .< 0.6
+        # @subset :elasticity .> 0.6
+        @orderby :stimulusID
     end
 
     return sim_data_pred
@@ -182,8 +183,8 @@ function process_individual_stimuli_human(expt)
             :std_err_mean = std(:rating) / sqrt(nsubs) # number of subjects
             :gtElasticity = mean(:elasticity)
         end
-        # @subset :gtElasticity .< 0.6
-        # @orderby :stimulusID
+        # @subset :gtElasticity .> 0.6
+        @orderby :stimulusID
     end
     return sub_data_pred
 end
@@ -215,7 +216,7 @@ function plot_individual_stimuli_judgments(expt, sim_object)
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(sim.judgment, human.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", sim_object, "Exp", expt, ".png")))
+    savefig(joinpath(plots_path, string("individual_stimuli_judgments_high_elasticity", sim_object, "Exp", expt, ".png")))
     gui()
 end
 
