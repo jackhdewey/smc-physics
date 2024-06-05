@@ -15,7 +15,7 @@ include("Inference/particle_filter.jl")
 include("Utilities/plots.jl")
 
 
-function main()
+function main(fname)
 
     # Select the target object type(s)
     model_id = "Modelv3"
@@ -31,13 +31,10 @@ function main()
     prediction_timesteps = 90
 
     # Read ground truth trajectories
-    dir = string("RealFlowData/", expt_id, "/")
-    fnames = readdir(dir)
-    fnames = filter_unwanted_filenames(fnames)
-    sort!(fnames, lt=trial_order)
 
-    # Iterate through each observed trajectory, executing a corresponding particle filter to infer elasticity 
-    for i in eachindex(fnames)
+    # Iterate through each observed trajectory, executing a corresponding particle filter to infer elasticity
+    # for i in eachindex(fnames)
+    for i in 1:1
         
         # Initialize simulation context 
         client = bullet.connect(bullet.DIRECT)::Int64
@@ -47,20 +44,25 @@ function main()
 
         # Initialize target object state using observed data
         init_scene()
-        fname = string(expt_id, "/", fnames[i])
+        println("reading " * fname)
         initial_position, initial_orientation, initial_velocity, observations = read_observation_file(fname)
         init_state = init_target_state(sim, target_id, initial_position, initial_velocity)
 
         # Filter particles through the complete trajectory
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
-        
+
+        # create all necessary output directories
         # Filter particles to attempt to fit the complete trajectory
         results, _ = infer(fname, output_id, generate_trajectory, args, observations, num_particles, save_intermediate)
     
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
         fname = string("BulletData/", output_id, "/Inferences/inferences_", tokens[2], "_", tokens[3])
+
+        # make directory structure if necessary
+        mkpath(dirname(fname))
+
         write_to_csv(results, fname)
 
         #=
@@ -79,4 +81,4 @@ function main()
 end
 
 
-main()
+# main()
