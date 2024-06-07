@@ -3,10 +3,11 @@
 # Generates a rigid cube or sphere with specified initial position and velocity, within a larger cubic enclosure
 # Simulates rigid body physics for specified number of time steps, recording a series of noisy position observations 
 #
-# TODO: Add noise to position and orientation
-# CONSIDER: Add noise to velocity
+# DONE: Add noise to position
+# TODO: Add noise to initial velocity
+# CONSIDER: Add noise to orientation
 # CONSIDER: Add additional noise to collisions
-# CONSIDER: Change number of particles,  number of reuvenation moves
+# CONSIDER: Change number of particles, number of rejuvenation moves
 # CONSIDER: Changing prior for elasticity
 
 using Gen
@@ -99,7 +100,7 @@ end
 # Current estimate as mean, variance either some constant or derived from average acceleration
 @gen function resample_state(k::RigidBodyState)
 
-    position = {:position} ~ broadcasted_normal(k.position, 0)
+    position = {:position} ~ broadcasted_normal(k.position, .01)
 
     #=
     orientation::Vector{3, Float64} = bullet.getEulerFromQuaternion(k.orientation)
@@ -123,7 +124,7 @@ end
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
 
     # Applies system noise to position, orientation, and velocity
-    noisy_kinematics = {:state} ~ Gen.Map(sample_state)(current_state.kinematics)
+    noisy_kinematics = {:state} ~ Gen.Map(resample_state)(current_state.kinematics)
     current_state = setproperties(current_state, kinematics = noisy_kinematics)
 
     # Applies observation noise to x, y, and z position
