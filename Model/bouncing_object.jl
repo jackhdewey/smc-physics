@@ -85,8 +85,19 @@ function init_target_state(sim::PhySim, shape::String, init_position::Vector{Flo
     return init_state
 end
 
+# Samples latent properties from their priors
+@gen function sample_latents(l::RigidBodyLatents)
+
+    res = {:restitution} ~ uniform(0, 1)
+    
+    # mass = {:mass} ~ gamma(1.2, 10.)
+
+    return RigidBodyLatents(setproperties(l.data, restitution=res))
+end
+
 # Adds noise to kinematic state given transition uncertainty
-@gen function sample_state(k::RigidBodyState)
+# Current estimate as mean, variance either some constant or derived from average acceleration
+@gen function resample_state(k::RigidBodyState)
 
     position = {:position} ~ broadcasted_normal(k.position, 0)
 
@@ -107,34 +118,21 @@ end
     return obs
 end
 
-#=
-DONE: Before calling PhySMC.step, perturb position / velocity / orientation and store in new state
-    - Current estimate as mean, variance either some constant or derived from average acceleration
-=#
 # Given an input state, samples an observation and generates the next state
+# Before calling PhySMC.step, perturb position / velocity / orientation and store in new state
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
 
     # Applies system noise to position, orientation, and velocity
     noisy_kinematics = {:state} ~ Gen.Map(sample_state)(current_state.kinematics)
+    current_state = setproperties(current_state, kinematics = noisy_kinematics)
 
     # Applies observation noise to x, y, and z position
-    current_state = setproperties(current_state, kinematics = noisy_kinematics)
     {:observation} ~ Gen.Map(generate_observation)(current_state.kinematics)
 
     # Synchronizes state, then use Bullet to generate next state
     next_state::BulletState = PhySMC.step(sim, current_state)
 
     return next_state
-end
-
-# Samples latent properties from their priors
-@gen function sample_latents(l::RigidBodyLatents)
-
-    res = {:restitution} ~ uniform(0, 1)
-    
-    # mass = {:mass} ~ gamma(1.2, 10.)
-
-    return RigidBodyLatents(setproperties(l.data, restitution=res))
 end
 
 #= 
@@ -146,16 +144,16 @@ TODO: Perturb initial kinematic state before calling Gen.Unfold
 
     # Sample the target object's restitution
     latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
+    init_state = setproperties(init_state; latents=latents)
 
     # Simulate T time steps
-    init_state = setproperties(init_state; latents=latents)
     states = {:trajectory} ~ Gen.Unfold(kernel)(T, init_state, sim)
 
     return states
 end
 
 # Generates a constrained trace with the specified arguments and elasticity
-function generate_ground_truth(args::Tuple, restitution::Float64)
+function generate_constrained(args::Tuple, restitution::Float64)
   
     gt_constraints = choicemap((:latents => 1 => :restitution, restitution))
     ground_truth = first(generate(generate_trajectory, args, gt_constraints))

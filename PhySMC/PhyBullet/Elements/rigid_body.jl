@@ -34,24 +34,21 @@ function get_state(e::RigidBody, sim::BulletSim)
 
     (pos, orn) =
         @pycall pb.getBasePositionAndOrientation(;
-                                                 # docstring is wrong
-                                                 # about keyword name
+                                                 # docstring is wrong about keyword name
                                                  bodyUniqueId =  e.object_id,
                                                  physicsClientId = sim.client,
                                                  )::Tuple{PyVector, PyVector}
 
-    (lin_vel, ang_vel) =
-        @pycall pb.getBaseVelocity(;
-                                   bodyUniqueId =  e.object_id,
-                                   physicsClientId = sim.client
-                                   )::Tuple{PyVector, PyVector}
+    (lin_vel, ang_vel) = @pycall pb.getBaseVelocity(;
+                                                    bodyUniqueId =  e.object_id,
+                                                    physicsClientId = sim.client
+                                                    )::Tuple{PyVector, PyVector}
 
-    aabb =
-        @pycall pb.getAABB(;
-            bodyUniqueId = e.object_id,
-            linkIndex = -1, # base (assumption for `RigidBody`)
-            physicsClientId = sim.client
-        )::PyObject
+    aabb = @pycall pb.getAABB(;
+                                bodyUniqueId = e.object_id,
+                                linkIndex = -1,               # base (assumption for `RigidBody`)
+                                physicsClientId = sim.client
+                                )::PyObject
 
     return RigidBodyState(pos, orn, lin_vel, ang_vel, [collect(aabb[i]) for i in 1:2])
 end
@@ -67,7 +64,7 @@ function set_state!(e::RigidBody, sim::BulletSim, st::RigidBodyState)
                                                )::PyObject
 
     @pycall pb.resetBaseVelocity(;
-                                 # the different name is annoying
+                                 # note the different name
                                  objectUniqueId =  e.object_id,
                                  # linkIndex = -1,
                                  linearVelocity = st.linear_vel,
@@ -110,8 +107,7 @@ end
 function get_latents(e::RigidBody, sim::BulletSim)
 
     # REVIEW: pybullet docs says `getDynamicsInfo` is incomplete / weird
-    ls =
-        @pycall pb.getDynamicsInfo(;
+    ls = @pycall pb.getDynamicsInfo(;
                                    bodyUniqueId = e.object_id,
                                    linkIndex = -1, # base (assumption for `RigidBody`)
                                    physicsClientId = sim.client
@@ -128,7 +124,6 @@ function get_latents(e::RigidBody, sim::BulletSim)
                       contactDamping = ls[9],
                       contactStiffness = ls[10],
                       collisionMargin = ls[12]))
-
 end
 
 function set_latents!(e::RigidBody, sim::BulletSim, ls::RigidBodyLatents)
