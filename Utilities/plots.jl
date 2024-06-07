@@ -3,7 +3,6 @@
 using Plots
 using Gen
 
-# Plots
 
 # Plot a single execution trace (particle) of the generative model
 function visualize_particle_unfold(trace; show_data=true, max_T=get_args(trace)[1], overlay=false)
@@ -53,7 +52,7 @@ function plot_traj(all_particles)
     plt = plot3d(traj.x, traj.y, traj.z)
 end
 
-# Generates an animated 2D plot of height over time 
+# Generate an animated 2D plot of height over time 
 @userplot SimPlot
 @recipe function f(cp::SimPlot)
     z, t = cp.args

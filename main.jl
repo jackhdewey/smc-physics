@@ -55,7 +55,7 @@ function main()
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
         
-        # Filter particles to attempt to fit the complete trajectory
+        # Filter particles to explain the complete trajectory
         results, _ = infer(fname, output_id, generate_trajectory, args, observations, num_particles, save_intermediate)
     
         # Write inferred trajectories to a .csv file

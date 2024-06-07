@@ -3,6 +3,15 @@
 using DataFrames
 using CSV
 
+
+# Given a vector of filenames, remove any that contain certain tokens
+function filter_unwanted_filenames(fnames)
+    for i in ["predicted", "observed", "batch", "Store"]
+        fnames = filter(!contains(i), fnames)
+    end
+    return fnames
+end 
+
 # Extracts initial position, initial velocity, and trajectory from two .csv files
 function read_observation_file(fname)
 
@@ -49,15 +58,7 @@ function read_observation_file(fname)
     return initial_position, initial_orientation, initial_velocity, observations
 end
 
-# Given a vector of filenames, remove any that contain certain tokens
-function filter_unwanted_filenames(fnames)
-    for i in ["predicted", "observed", "batch", "Store"]
-        fnames = filter(!contains(i), fnames)
-    end
-    return fnames
-end
-
-# Writes data for each particle (elasticity, log weight, and trajectory) to a .csv file with the given name
+# Writes data for each particle (elasticity, log weight, and trajectory) to a .csv file
 function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
     # Initialize a data frame with appropriate 
@@ -76,7 +77,7 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
         end
     end
 
-    # Truncate the devimal values
+    # Truncate to 5 digits
     truncator(col, val) = trunc(val, digits=5)
     truncator(col, val::Int) = val
 
@@ -121,6 +122,7 @@ function trial_particle_order(x, y)
     return particle1_as_int < particle2_as_int
 end
 
+# Comparator to sort output particle filter state files into correct order
 function trial_order(x, y)
 
     x_tokens = split(x, "_")
