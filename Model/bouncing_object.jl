@@ -100,7 +100,7 @@ end
 # Current estimate as mean, variance either some constant or derived from average acceleration
 @gen function resample_state(k::RigidBodyState)
 
-    position = {:position} ~ broadcasted_normal(k.position, .01)
+    position = {:position} ~ broadcasted_normal(k.position, 0.05)
 
     #=
     orientation::Vector{3, Float64} = bullet.getEulerFromQuaternion(k.orientation)
@@ -114,7 +114,7 @@ end
 # Adds measurement noise to estimated position
 @gen function generate_observation(k::RigidBodyState)
 
-    obs = {:position} ~ broadcasted_normal(k.position, 0.2)
+    obs = {:position} ~ broadcasted_normal(k.position, 0.05)
 
     return obs
 end
