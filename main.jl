@@ -1,6 +1,6 @@
 # Galileo 3
 #
-# Infers the elasticity of a bouncing object from n observation frames and predicts its future trajectory 
+# Infers the elasticity of a bouncing object from n observation frames and predicts its future trajectory
 # Given how it has bounced so far, what will be the target object's future trajectory?
 #
 # What kind of generative model correlates best with human judgments?
@@ -18,8 +18,8 @@ include("Utilities/plots.jl")
 function main(fname)
 
     # Select the target object type(s)
-    model_id = "Modelv3"
-    expt_id = "Exp1"
+    model_id = "Modelv5"
+    expt_id = "Test"
     target_id = "Sphere"
     output_id = string(model_id, "/", expt_id, "/", target_id)
 
@@ -35,8 +35,8 @@ function main(fname)
     # Iterate through each observed trajectory, executing a corresponding particle filter to infer elasticity
     # for i in eachindex(fnames)
     for i in 1:1
-        
-        # Initialize simulation context 
+
+        # Initialize simulation context
         client = bullet.connect(bullet.DIRECT)::Int64
         bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
         bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
@@ -52,10 +52,9 @@ function main(fname)
         num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
 
-        # create all necessary output directories
-        # Filter particles to attempt to fit the complete trajectory
+        # Filter particles to explain the complete trajectory
         results, _ = infer(fname, output_id, generate_trajectory, args, observations, num_particles, save_intermediate)
-    
+
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
         fname = string("BulletData/", output_id, "/Inferences/inferences_", tokens[2], "_", tokens[3])

@@ -30,7 +30,7 @@ Global simulation context for the Bullet physics engine
 end
 
 """
-Abstract types to be implemented by e.g. rigid_body.jl  
+Abstract types to be implemented by descendent modules  
 """
 abstract type BulletElement <: Element{BulletSim} end
 abstract type BulletElemState{T<:BulletElement} <: ElemState{T} end
@@ -48,7 +48,8 @@ include("Elements/rigid_body.jl")
 
 """
 State of a Bullet simulation
-TODO: Latents and kinematics, add collisions
+TODO: Add collisions / events
+TODO: Consider grouping kinematics into 
 """
 struct BulletState <: PhyState{BulletSim}
     elements::AbstractVector{BulletElement}
