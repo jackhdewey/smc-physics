@@ -39,7 +39,7 @@ function read_simulation_file(fname, sim_object)
 end
 
 function read_simulation_data(expt, sim_object)
-    simulation_folder = joinpath(project_path, "BulletData", "Modelv2", "Exp" * string(expt), sim_object, "Inferences")
+    simulation_folder = joinpath(project_path, "BulletData", "Modelv5", "Test", sim_object, "Inferences")
     all_data = []
     for file in readdir(simulation_folder)
         full_file_path = joinpath(simulation_folder, file)
