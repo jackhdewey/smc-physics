@@ -13,7 +13,7 @@ include("../Utilities/plots.jl")
 function main()
 
     # Select the target object type
-    model_id = "Modelv5/PosVar075"
+    model_id = "Modelv5/PosVar025"
     expt_id = "Test"
     target_id = "Sphere"
     output_id = string(model_id, "/", expt_id, "/", target_id)
@@ -40,13 +40,15 @@ function main()
     total_particle_index = 0
     for i in eachindex(gt_files)
 
+        tokens = split(gt_files[i], "_")
+
         # Generate plot base
-        plt1 = plot3d( 
+        plt = plot3d( 
                     1,
                     xlim = (-.5, .5),
                     ylim = (-.5, .5),
                     zlim = (0, 1),
-                    title = gt_files[i],
+                    title = string("Stimulus: ", tokens[2], " ", tokens[3], "\n", model_id),
                     legend = false,
                     marker = 2,
                     seriestype=:scatter
@@ -67,14 +69,12 @@ function main()
             true_x = [true_x; ground_truth[t, 1]]
             true_y = [true_y; ground_truth[t, 2]]
             true_z = [true_z; ground_truth[t, 3]]
-            plot!(plt1, true_x, true_y, true_z, linewidth=3, linecolor=:red)
+            plot!(plt, true_x, true_y, true_z, linewidth=3, linecolor=:red)
 
             # Index into correct particle filter file
             particle_index = total_particle_index + t
             file = particle_files[particle_index]
             data = CSV.read(string(dir, file), DataFrame)
-            tokens = split(file, "_")
-            #time_step = parse(Int64, replace(tokens[4], ".csv" => ""))
             
             # For each particle
             for p=1:num_particles
@@ -94,14 +94,15 @@ function main()
                     y_trajectory = [y_trajectory; particle[row, 6]]
                     z_trajectory = [z_trajectory; particle[row, 7]]
                 end
-                plot!(plt1, x_trajectory, y_trajectory, z_trajectory)
+                plot!(plt, x_trajectory, y_trajectory, z_trajectory)
 
             end
 
             # Save and display the plot every fifth time step
+            tokens = split(file, "_")
             if t % plot_interval == 0
-                    savefig(string("Analysis/Plots/", output_id, "/", tokens[2], "_", tokens[3], "_", t))
-                    display(plt1)
+                savefig(string("Analysis/Plots/", output_id, "/", tokens[2], "_", tokens[3], "_", t))
+                display(plt)
             end
 
         end
