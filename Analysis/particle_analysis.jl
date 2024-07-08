@@ -56,7 +56,7 @@ function main()
         )
 
         # Read ground truth file
-        gt_file = string("RealFlowData/", expt_id, "/", gt_files[i])
+        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
         ground_truth = CSV.read(gt_file, DataFrame)
         
         # Generate the plot procedurally
