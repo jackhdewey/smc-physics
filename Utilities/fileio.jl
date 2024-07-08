@@ -16,7 +16,7 @@ end
 function read_observation_file(fname)
 
     # Read ground truth initial state
-    fname = string("RealFlowData/", fname) 
+    fname = string("Data/RealFlowData/", fname) 
     println("Reading...", fname)
     init_state_data = CSV.read(fname, DataFrame)
 
