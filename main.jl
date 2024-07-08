@@ -31,7 +31,7 @@ function main()
     prediction_timesteps = 90
 
     # Read ground truth trajectories
-    dir = string("RealFlowData/", expt_id, "/")
+    dir = string("Data/RealFlowData/", expt_id, "/")
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)

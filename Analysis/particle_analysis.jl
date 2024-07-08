@@ -26,7 +26,7 @@ function main()
     plot_interval = 5
 
     # Pull ground truth (RealFlow) trajectory files from directory
-    dir = string("RealFlowData/", expt_id, "/")
+    dir = string("Data/RealFlowData/", expt_id, "/")
     gt_files = filter(contains("observed"), readdir(dir))
     sort!(gt_files, lt=trial_order)
     print(gt_files)
