@@ -14,7 +14,7 @@ include("../Utilities/plots.jl")
 function main()
 
     # Select the target object type
-    model_id = "Modelv5/PosVar025"
+    model_id = "Modelv5/ObsVar1"
     expt_id = "Test"
     target_id = "Sphere"
     output_id = string(model_id, "/", expt_id, "/", target_id)

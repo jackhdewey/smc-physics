@@ -56,7 +56,7 @@ function main()
         args = (sim, init_state, num_timesteps)
         
         # Filter particles to explain the complete trajectory
-        results, _ = infer(fname, output_id, generate_trajectory, args, observations, num_particles, save_intermediate)
+        results, _ = infer(generate_trajectory, args, observations, num_particles, save_intermediate, fname, output_id)
     
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
