@@ -18,10 +18,11 @@ include("Utilities/plots.jl")
 function main()
 
     # Select the target object type(s)
-    model_id = "Modelv5/PosVar075"
-    expt_id = "Exp1"
+    model_id = "Modelv5"
     target_id = "Sphere"
-    output_id = string(model_id, "/", expt_id, "/", target_id)
+    noise_id = "PosVar05"
+    expt_id = "Test"
+    output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
     # Inference parameters
     num_particles = 20
@@ -60,7 +61,7 @@ function main()
     
         # Write inferred trajectories to a .csv file
         tokens = split(fname, "_")
-        fname = string("BulletData/", output_id, "/Inferences/inferences_", tokens[2], "_", tokens[3])
+        fname = string("Data/BulletData/", output_id, "/Inferences/inferences_", tokens[2], "_", tokens[3])
         write_to_csv(results, fname)
 
         #=

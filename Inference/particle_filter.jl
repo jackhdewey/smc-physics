@@ -63,7 +63,7 @@ function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::In
             
             # Dump current particles to a .csv file
             if save_particles
-                fname = string("BulletData/", id, "/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
+                fname = string("Data/BulletData/", id, "/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
                 write_to_csv(state.traces, fname)
             end
 
