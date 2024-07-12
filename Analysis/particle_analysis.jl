@@ -14,10 +14,11 @@ include("../Utilities/plots.jl")
 function main()
 
     # Select the target object type
-    model_id = "Modelv5/ObsVar1"
-    expt_id = "Test"
+    model_id = "Modelv5"
     target_id = "Sphere"
-    output_id = string(model_id, "/", expt_id, "/", target_id)
+    noise_id = "ObsVar1"
+    expt_id = "Test"
+    output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
     # Trial parameters
     num_particles = 20
@@ -33,7 +34,7 @@ function main()
     print(gt_files)
 
     # Pull intermediate particle filter state files from directory
-    dir = string("BulletData/", output_id, "/Intermediate/")
+    dir = string("Data/BulletData/", output_id, "/Intermediate/")
     particle_files = filter_unwanted_filenames(readdir(dir)) 
     sort!(particle_files, lt=trial_particle_order)
 

@@ -116,7 +116,7 @@ end
 # Adds measurement noise to estimated position
 @gen function generate_observation(k::RigidBodyState)
 
-    obs = {:position} ~ broadcasted_normal(k.position, 0.05)
+    obs = {:position} ~ broadcasted_normal(k.position, 0.1)
 
     return obs
 end
