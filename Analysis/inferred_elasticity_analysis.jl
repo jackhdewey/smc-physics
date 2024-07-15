@@ -25,7 +25,7 @@ else
     marker_shape = :circle
 end
 
-# Read the g
+# Read an individual simulation file 
 function read_simulation_file(fname, target_id)
     data = CSV.read(fname, DataFrame)
 
@@ -43,9 +43,9 @@ function read_simulation_file(fname, target_id)
     return data
 end
 
-#
+# Read the entire folder of simulation data
 function read_simulation_data(expt, target_id)
-    simulation_folder = joinpath(project_path, "BulletData", "Modelv2", "Exp" * string(expt), target_id, "Inferences")
+    simulation_folder = joinpath(project_path, "BulletData", "Modelv5", target_id, "PosVar075", "Exp" * string(expt), "Inferences")
     all_data = []
     for file in readdir(simulation_folder)
         full_file_path = joinpath(simulation_folder, file)
@@ -58,72 +58,10 @@ function read_simulation_data(expt, target_id)
 end
 
 #
-function read_subject_data(expt)
-
-    folders = Dict(
-        1 => "Exp1_allElasticities_fullMotion",
-        2 => "Exp2_allElasticities_1second",
-        3 => "Exp3_mediumElasticity_fullMotion",
-        4 => "Exp4_mediumElasticity_1second"
-    )
-
-    exp_data_folder = joinpath(project_path, "HumanData", "EstimationTask", folders[expt], "Results")
-    data = []
-    for fname in readdir(exp_data_folder)
-        sub_data = CSV.read(joinpath(exp_data_folder, fname), DataFrame)
-        sub_data = insertcols(sub_data, :filename => fname)
-
-        push!(data, sub_data) # this is a vector of dataframes
-    end
-
-    data_df = vcat(data...)     # combine all together with splat operator
-
-    # elasticity is coded as integer
-    if expt >= 3
-        data_df.elasticity = data_df.elasticity / 10
-    end
-
-    return data_df
-end
-
-#
 function read_gt_data(expt)
     sub_data = read_subject_data(expt)
     gt_data = @select(sub_data, :trialID, :elasticity, :trialType, :stimulusID)
     return gt_data
-end
-
-#
-function plot_human_vs_gt(expt)
-    human = process_individual_stimuli_human(expt)
-    # scatter(human.gtElasticity, human.judgment)
-    # @autoinfiltrate
-    p = palette(:jet)
-    # default(aspect_ratio = :equal)
-    scatter(human.gtElasticity,
-        human.judgment,
-        yerror=human.std_err_mean ./ 2,
-        aspect_ratio=:equal,
-        markersize=5,
-        markeralpha=0.5,
-        zcolor=human.gtElasticity,# zcolor = :gtElasticity,
-        clims=(0, 1),
-        xlims=(0, 1.05),
-        ylims=(0, 1),
-        xlabel="Ground Truth Elasticity",
-        ylabel="Human Estimate",
-        title="Exp $expt stimulus-specific human ratings",
-        colorbar=true,
-        legend=false,
-        palette=p,
-        markershape=marker_shape)
-
-    plot!(0:1, 0:1, line=:dash)
-    corr_string = "r = " * string(round(cor(human.gtElasticity, human.judgment), digits=3))
-    annotate!(0.2, 0.8, corr_string, 10)
-    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_human", "Exp", expt, ".png")))
-
-    # gui()
 end
 
 #
@@ -163,22 +101,67 @@ function plot_sim_vs_gt(expt, target_id)
     corr_string = "r = " * string(round(cor(sim.gtElasticity, sim.estimate), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
     savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_model_", target_id, "Exp", expt, ".png")))
+end
+
+
+# Read the human predictions
+function read_subject_data(expt)
+
+    folders = Dict(
+        1 => "Exp1_allElasticities_fullMotion",
+        2 => "Exp2_allElasticities_1second",
+        3 => "Exp3_mediumElasticity_fullMotion",
+        4 => "Exp4_mediumElasticity_1second"
+    )
+    exp_data_folder = joinpath(project_path, "HumanData", "EstimationTask", folders[expt], "Results")
+
+    data = []
+    for fname in readdir(exp_data_folder)
+        sub_data = CSV.read(joinpath(exp_data_folder, fname), DataFrame)
+        sub_data = insertcols(sub_data, :filename => fname)
+        push!(data, sub_data) # this is a vector of dataframes
     end
+    data_df = vcat(data...)     # combine all together with splat operator
+
+    # elasticity is coded as integer
+    if expt >= 3
+        data_df.elasticity = data_df.elasticity / 10
+    end
+
+    return data_df
+end
 
 #
-function process_individual_stimuli_sim(expt, target_id)
-    sim_data = read_simulation_data(expt, target_id)
-    sim_data_pred = @chain sim_data begin
-        @groupby :stimulusID
-        @combine begin
-            :judgment = mean(:elasticity) # :elasticity = :gtElasticity
-            :elasticity = first(:gtElasticity)
-        end
-        # @subset :elasticity .> 0.6
-        @orderby :stimulusID
-    end
+function plot_human_vs_gt(expt)
+    human = process_individual_stimuli_human(expt)
+    # scatter(human.gtElasticity, human.judgment)
+    # @autoinfiltrate
+    p = palette(:jet)
+    # default(aspect_ratio = :equal)
+    scatter(human.gtElasticity,
+        human.judgment,
+        yerror=human.std_err_mean ./ 2,
+        aspect_ratio=:equal,
+        markersize=5,
+        markeralpha=0.5,
+        zcolor=human.gtElasticity,# zcolor = :gtElasticity,
+        clims=(0, 1),
+        xlims=(0, 1.05),
+        ylims=(0, 1),
+        xlabel="Ground Truth Elasticity",
+        ylabel="Human Estimate",
+        title="Exp $expt stimulus-specific human ratings",
+        colorbar=true,
+        legend=false,
+        palette=p,
+        markershape=marker_shape)
 
-    return sim_data_pred
+    plot!(0:1, 0:1, line=:dash)
+    corr_string = "r = " * string(round(cor(human.gtElasticity, human.judgment), digits=3))
+    annotate!(0.2, 0.8, corr_string, 10)
+    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_human", "Exp", expt, ".png")))
+
+    # gui()
 end
 
 #
@@ -198,6 +181,22 @@ function process_individual_stimuli_human(expt)
         @orderby :stimulusID
     end
     return sub_data_pred
+end
+
+#
+function process_individual_stimuli_sim(expt, target_id)
+    sim_data = read_simulation_data(expt, target_id)
+    sim_data_pred = @chain sim_data begin
+        @groupby :stimulusID
+        @combine begin
+            :judgment = mean(:elasticity) # :elasticity = :gtElasticity
+            :elasticity = first(:gtElasticity)
+        end
+        # @subset :elasticity .> 0.6
+        @orderby :stimulusID
+    end
+
+    return sim_data_pred
 end
 
 #
