@@ -20,7 +20,7 @@ function main()
     # Select the target object type
     model_id = "Modelv5"
     target_id = "Sphere"
-    noise_id = "ObsVar1"
+    noise_id = "PosVar075"
     expt_id = "Test"
     output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
@@ -47,6 +47,7 @@ function main()
 
     for i in eachindex(gt_files[1:2])
 
+    for i in eachindex(gt_files)[1:1]
         tokens = split(gt_files[i], "_")
 
         # Generate plot base
@@ -97,7 +98,7 @@ function main()
             data = CSV.read(string(dir, file), DataFrame)
 
             # For each particle
-            for p = 1:2
+            for p = 1:num_particles
 
                 particle = data[data.particle.==p, :]
 
