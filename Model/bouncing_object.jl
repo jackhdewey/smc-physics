@@ -34,24 +34,24 @@ function init_scene()
     quaternion = bullet.getQuaternionFromEuler([0, 0, 0])
 
     wall1ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
-    wall1 = bullet.createMultiBody(baseCollisionShapeIndex=wall1ID, basePosition=[-0.5, 0, 0.5], baseOrientation=quaternion)
+    wall1 = bullet.createMultiBody(baseCollisionShapeIndex=wall1ID, basePosition=[-0.51, 0, 0.51], baseOrientation=quaternion)
     bullet.changeDynamics(wall1, -1, mass=0.0, restitution=0.5)
 
     wall2ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
-    wall2 = bullet.createMultiBody(baseCollisionShapeIndex=wall2ID, basePosition=[0, 0.5, 0.5], baseOrientation=quaternion)
+    wall2 = bullet.createMultiBody(baseCollisionShapeIndex=wall2ID, basePosition=[0, 0.51, 0.51], baseOrientation=quaternion)
     bullet.changeDynamics(wall2, -1, mass=0.0, restitution=0.5)
 
     wall3ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.01, 0.5, 0.5])
-    wall3 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[0.5, 0, 0.5], baseOrientation=quaternion)
+    wall3 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[0.51, 0, 0.51], baseOrientation=quaternion)
     bullet.changeDynamics(wall3, -1, mass=0.0, restitution=0.5)
 
     wall4ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
-    wall4 = bullet.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -0.5, 0.5], baseOrientation=quaternion)
+    wall4 = bullet.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -0.51, 0.51], baseOrientation=quaternion)
     bullet.changeDynamics(wall4, -1, mass=0.0, restitution=0.5)
     
     # Create and position ceiling
     ceilingID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.5, 0.01])
-    ceiling = bullet.createMultiBody(baseCollisionShapeIndex=ceilingID, basePosition=[0, 0, 1], baseOrientation=quaternion)
+    ceiling = bullet.createMultiBody(baseCollisionShapeIndex=ceilingID, basePosition=[0, 0, 1.01], baseOrientation=quaternion)
     bullet.changeDynamics(ceiling, -1, mass=0.0, restitution=0.5)
 
     # Set gravity
@@ -68,7 +68,7 @@ function init_target_state(sim::PhySim, shape::String, init_position::Vector{Flo
         body = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
     else
         print("Initializing Sphere\n")
-        body = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.1)
+        body = bullet.createCollisionShape(bullet.GEOM_SPHERE, radius=.05)
     end
 
     # Create, position, and orient target object
