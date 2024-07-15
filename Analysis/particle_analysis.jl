@@ -12,7 +12,6 @@ include("../Utilities/plots.jl")
 
 using Plots
 
-# plotlyjs()
 pyplot()
 
 
