@@ -21,7 +21,7 @@ function main()
     model_id = "Modelv5"
     target_id = "Sphere"
     noise_id = "PosVar075"
-    expt_id = "Exp2"
+    expt_id = "Exp3"
     output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
     # Inference parameters
