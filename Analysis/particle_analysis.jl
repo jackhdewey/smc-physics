@@ -10,7 +10,6 @@
 include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
-using PlotlyJS
 using Plots
 
 # plotlyjs()
