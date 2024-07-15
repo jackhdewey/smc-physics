@@ -4,8 +4,8 @@
 # DONE: Save plots in a folder
 # DONE: Allow more flexible selection of elasticity / trial interval
 #
-# TODO: Compute mean squared error
-# TODO: Set the alpha / intensity to reflect the log weight
+# TODO: Compute error
+# TODO: Set the alpha / intensity to reflect the log weight of each particle
 
 include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
