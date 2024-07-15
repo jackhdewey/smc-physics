@@ -10,6 +10,10 @@
 include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
+using Plots
+
+pyplot()
+
 
 function main()
 
@@ -31,7 +35,7 @@ function main()
     dir = string("Data/RealFlowData/", expt_id, "/")
     gt_files = filter(contains("observed"), readdir(dir))
     sort!(gt_files, lt=trial_order)
-    print(gt_files)
+    # print(gt_files)
 
     # Pull intermediate particle filter state files from directory
     dir = string("Data/BulletData/", output_id, "/Intermediate/")
@@ -40,32 +44,46 @@ function main()
 
     # For each trajectory
     total_particle_index = 0
-    for i in eachindex(gt_files)
+
+    for i in eachindex(gt_files[1:2])
 
         tokens = split(gt_files[i], "_")
 
         # Generate plot base
-        plt = plot3d( 
-                    1,
-                    xlim = (-.5, .5),
-                    ylim = (-.5, .5),
-                    zlim = (0, 1),
-                    title = string("Stimulus: ", tokens[2], " ", tokens[3], "\n", model_id),
-                    legend = false,
-                    marker = 2,
-                    seriestype=:scatter
+        plt = plot3d(
+            1,
+            xlim=(-0.5, 0.5),
+            ylim=(-0.5, 0.5),
+            zlim=(0, 1),
+            title=string("Stimulus: ", tokens[2], " ", tokens[3], "\n", model_id),
+            legend=false,
+            marker=2,
+            seriestype=:scatter,
+            size=(1200, 800),
+            gridlinewidth=8
+            # aspect_ratio = 1
+            # layout=layout
         )
+        # p = PlotlyJSBackend().o
 
-        # Read ground truth file
+        # # Adjust the aspect ratio using PlotlyJS layout
+        # layout = Layout(
+        #     scene=attr(
+        #         aspectmode="cube"  # Ensures equal aspect ratio
+        #     )
+        # )
+
+        # relayout!(p, layout)
         gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
         ground_truth = CSV.read(gt_file, DataFrame)
-        
+
         # Generate the plot procedurally
-        num_timesteps=size(ground_truth)[1]
+        num_timesteps = size(ground_truth)[1]
         true_x = []
         true_y = []
         true_z = []
-        for t=1:num_timesteps
+        for t = 1:num_timesteps
+            # for t = 10:11
 
             # Extend ground truth trajectory by one time step and add to plot
             true_x = [true_x; ground_truth[t, 1]]
@@ -77,11 +95,11 @@ function main()
             particle_index = total_particle_index + t
             file = particle_files[particle_index]
             data = CSV.read(string(dir, file), DataFrame)
-            
-            # For each particle
-            for p=1:num_particles
 
-                particle = data[data.particle .== p, :]
+            # For each particle
+            for p = 1:2
+
+                particle = data[data.particle.==p, :]
 
                 # elasticity = data[data.particle .== i, 2]
                 # weight = data[data.particle .== i, 3]
@@ -91,7 +109,7 @@ function main()
                 x_trajectory = []
                 y_trajectory = []
                 z_trajectory = []
-                for row=1:t
+                for row = 1:t
                     x_trajectory = [x_trajectory; particle[row, 5]]
                     y_trajectory = [y_trajectory; particle[row, 6]]
                     z_trajectory = [z_trajectory; particle[row, 7]]
@@ -103,7 +121,7 @@ function main()
             # Save and display the plot every fifth time step
             tokens = split(file, "_")
             if t % plot_interval == 0
-                savefig(string("Analysis/Plots/", output_id, "/", tokens[2], "_", tokens[3], "_", t))
+                # savefig(string("Analysis/Plots/", output_id, "/", tokens[2], "_", tokens[3], "_", t))
                 display(plt)
             end
 
