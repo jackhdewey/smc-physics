@@ -1,13 +1,16 @@
+# Data analysis
+# Concatenates trajectory plot images into a grid for side-by-side comparison
+
 using Plots
 using FileIO
 using Images
 
 include("../Utilities/fileio.jl")
 
-dir1 = string("Analysis/Plots/Modelv5/PosVar1/Test/Sphere/")
-dir2 = string("Analysis/Plots/Modelv5/PosVar075/Test/Sphere/")
-dir3 = string("Analysis/Plots/Modelv5/PosVar05/Test/Sphere/")
-dir4 = string("Analysis/Plots/Modelv5/PosVar025/Test/Sphere/")
+dir1 = string("Analysis/Plots/Modelv5/Sphere/ObsVar1/Test/")
+dir2 = string("Analysis/Plots/Modelv5/Sphere/ObsVar075/Test/")
+dir3 = string("Analysis/Plots/Modelv5/Sphere/PosVar05/Test/")
+dir4 = string("Analysis/Plots/Modelv5/Sphere/ObsVar025/Test/")
 
 files1 = readdir(dir1)
 sort!(files1, lt=png_particle_order)

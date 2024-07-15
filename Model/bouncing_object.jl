@@ -6,9 +6,9 @@
 # DONE: Add noise to position
 # TODO: Add noise to initial velocity
 # CONSIDER: Add noise to orientation
-# CONSIDER: Add additional noise to collisions
+# CONSIDER: Add additional noise at collisions
 # CONSIDER: Change number of particles, number of rejuvenation moves
-# CONSIDER: Changing prior for elasticity
+# CONSIDER: Change prior for elasticity
 
 using Gen
 using PyCall
@@ -22,11 +22,8 @@ pybullet_data = pyimport("pybullet_data")
 include("../Utilities/truncatednorm.jl")
 
 
-# Sets initial scene configuration - in the future this could be inferred using an inverse graphics module
+# Sets initial scene configuration (in the future this could be inferred using an inverse graphics module)
 function init_scene()
-
-    # Set gravity
-    bullet.setGravity(0, 0, -9.81)
 
     # Create and position ground plane
     planeID = bullet.createCollisionShape(bullet.GEOM_PLANE)
@@ -52,13 +49,17 @@ function init_scene()
     wall4 = bullet.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -0.5, 0.5], baseOrientation=quaternion)
     bullet.changeDynamics(wall4, -1, mass=0.0, restitution=0.5)
     
+    # Create and position ceiling
     ceilingID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.5, 0.01])
     ceiling = bullet.createMultiBody(baseCollisionShapeIndex=ceilingID, basePosition=[0, 0, 1], baseOrientation=quaternion)
     bullet.changeDynamics(ceiling, -1, mass=0.0, restitution=0.5)
+
+    # Set gravity
+    bullet.setGravity(0, 0, -9.81)
     
 end
 
-# Sets the initial state (shape, position, orientation, velocity, and optionally mass and restitution) of the target object
+# Sets target object's initial state (shape, position, orientation, velocity, and optionally mass and restitution)
 function init_target_state(sim::PhySim, shape::String, init_position::Vector{Float64}, init_velocity::Vector{Float64}, mass::Float64=1.0, restitution::Float64=0.9)
  
     # Select shape representation
@@ -96,8 +97,9 @@ end
     return RigidBodyLatents(setproperties(l.data, restitution=res))
 end
 
-# Adds noise to kinematic state given transition uncertainty
+# Adds noise to kinematic state at each transition
 # Current estimate as mean, variance either some constant or derived from average acceleration
+# Ground truth as mean, variance derived from empirical distribution of data 
 @gen function resample_state(k::RigidBodyState)
 
     position = {:position} ~ broadcasted_normal(k.position, 0.075)
@@ -136,11 +138,7 @@ end
     return next_state
 end
 
-#= 
-TODO: Perturb initial kinematic state before calling Gen.Unfold
-    - Ground truth as mean, variance derived from empirical distribution of data 
-=#
-# Given an initial state, samples latents from their priors then runs a complete forward simulation
+# Given an initial state, samples latents from their priors then runs a stochastic forward simulation
 @gen function generate_trajectory(sim::BulletSim, init_state::BulletState, T::Int)
 
     # Sample the target object's restitution
@@ -153,7 +151,7 @@ TODO: Perturb initial kinematic state before calling Gen.Unfold
     return states
 end
 
-# Generates a constrained trace with the specified arguments and elasticity
+# Generates a constrained trace with the specified elasticity
 function generate_constrained(args::Tuple, restitution::Float64)
   
     gt_constraints = choicemap((:latents => 1 => :restitution, restitution))

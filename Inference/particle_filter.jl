@@ -8,7 +8,7 @@ using Gen
 include("../Utilities/fileio.jl")
 
 
-# Parses a sequence of observations from a choice map into a vector
+# Converts a sequence of observations in a single choice map into a vector of submaps
 function get_observations(choices::Gen.ChoiceMap, T::Int)
     observations = Vector{Gen.ChoiceMap}(undef, T)
     for i=1:T
@@ -36,7 +36,7 @@ end
 end
 
 # Generates num_particles trajectories, scoring and filtering them according to their likelihood
-function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false)
+function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false, fname::String=missing, id::String=missing)
 
     # Extract trial identification    
     tokens = split(fname, "_")
@@ -63,7 +63,7 @@ function infer(fname::String, id::String, gm, gm_args::Tuple, obs::Vector{Gen.Ch
             
             # Dump current particles to a .csv file
             if save_particles
-                fname = string("BulletData/", id, "/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
+                fname = string("Data/BulletData/", id, "/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
                 write_to_csv(state.traces, fname)
             end
 
