@@ -21,9 +21,12 @@ for variable in ["PosVar075"]
         marker_shape = :circle
     end
 
-    plots_path = joinpath(project_path, "Analysis", "Plots", "Modelv5", variable, "Exp1", sim_object)
-    if !isdir(plots_path)
-        mkdir(plots_path)
+    function get_plots_path(expt)
+        plots_path = joinpath(project_path, "Analysis", "Plots", "Modelv5", variable, "Exp$expt", sim_object)
+        if !isdir(plots_path)
+            mkpath(plots_path)
+        end
+        return plots_path
     end
 
     function read_simulation_file(fname, sim_object)
@@ -45,7 +48,7 @@ for variable in ["PosVar075"]
 
     function read_simulation_data(expt, sim_object)
         # simulation_folder = joinpath(project_path, "BulletData", "Modelv5", "Exp" * string(expt), sim_object, "Inferences")
-        simulation_folder = joinpath(project_path, "Data", "BulletData", "Modelv5", "Sphere", variable, "Exp1", "Inferences")
+        simulation_folder = joinpath(project_path, "Data", "BulletData", "Modelv5", "Sphere", variable, "Exp$expt", "Inferences")
         all_data = []
         for file in readdir(simulation_folder)
             full_file_path = joinpath(simulation_folder, file)
@@ -119,7 +122,8 @@ for variable in ["PosVar075"]
         plot!(0:1, 0:1, line=:dash)
         corr_string = "r = " * string(round(cor(human.gtElasticity, human.judgment), digits=3))
         annotate!(0.2, 0.8, corr_string, 10)
-        savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_human", "Exp", expt, "_", variable, ".png")))
+
+        savefig(joinpath(get_plots_path(expt), string("individual_stimuli_judgments_", "against_gt_human", "Exp", expt, "_", variable, ".png")))
 
         # gui()
     end
@@ -159,7 +163,7 @@ for variable in ["PosVar075"]
         plot!(0:1, 0:1, line=:dash)
         corr_string = "r = " * string(round(cor(sim.gtElasticity, sim.estimate), digits=3))
         annotate!(0.2, 0.8, corr_string, 10)
-        savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_model_", sim_object, "Exp", expt, ".png")))
+        savefig(joinpath(get_plots_path(expt), string("individual_stimuli_judgments_", "against_gt_model_", sim_object, "Exp", expt, ".png")))
     end
 
     function process_individual_stimuli_sim(expt, sim_object)
@@ -174,13 +178,13 @@ for variable in ["PosVar075"]
             @orderby :stimulusID
         end
 
-        print(size(sim_data_pred))
         return sim_data_pred
     end
 
     function process_individual_stimuli_human(expt)
         sub_data = read_subject_data(expt)
         nsubs = length(unique(sub_data.filename))
+        println(nsubs)
         sub_data_pred = @chain sub_data begin
             @groupby :stimulusID
             # @groupby :elasticity# :filename
@@ -221,9 +225,13 @@ for variable in ["PosVar075"]
             markershape=marker_shape)
 
         plot!(0:1, 0:1, line=:dash)
+        # if expt == 2
+        #     @autoinfiltrate
+        # end
+        println(length(sim.judgment), " ", length(human.judgment))
         corr_string = "r = " * string(round(cor(sim.judgment, human.judgment), digits=3))
         annotate!(0.2, 0.8, corr_string, 10)
-        savefig(joinpath(plots_path, string("individual_stimuli_judgments_high_elasticity", sim_object, "Exp", expt, variable, ".png")))
+        savefig(joinpath(get_plots_path(expt), string("individual_stimuli_judgments_high_elasticity", sim_object, "Exp$expt", variable, ".png")))
         gui()
     end
 
@@ -266,14 +274,13 @@ for variable in ["PosVar075"]
         plot!(0:1, 0:1, line=:dash)
         corr_string = "r = " * string(round(cor(model_mean_elasticity.judgment, human_mean_elasticity.judgment), digits=3))
         annotate!(0.2, 0.8, corr_string, 10)
-        savefig(joinpath(plots_path, string("average_judgment_per_elasticity_", sim_object, "Exp", expt, "_", variable, ".png")))
+        savefig(joinpath(get_plots_path(expt), string("average_judgment_per_elasticity_", sim_object, "Exp", expt, "_", variable, ".png")))
         # gui()
     end
 
     # for sim_object in ["Cube", "Sphere"]
-    for expt = 1:1
+    for expt = 1:4
         plot_individual_stimuli_judgments(expt, sim_object)
-        # if expt <= 2
         plot_mean_elasticity_judgments(expt, sim_object)
         # end
     end
