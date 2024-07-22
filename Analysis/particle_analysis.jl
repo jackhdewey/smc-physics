@@ -16,9 +16,9 @@ pyplot()
 function main()
 
     # Select the target object type
-    model_id = "Modelv5"
+    model_id = "Modelv6"
     target_id = "Sphere"
-    noise_id = "PosVar075"
+    noise_id = "VelVar05"
     expt_id = "Test"
     output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
@@ -42,9 +42,7 @@ function main()
     # For each trajectory
     total_particle_index = 0
 
-    #for i in eachindex(gt_files[1:2])
-
-    for i in eachindex(gt_files)[1:1]
+    for i in eachindex(gt_files)
         tokens = split(gt_files[i], "_")
 
         # Generate plot base
