@@ -18,9 +18,9 @@ include("Utilities/plots.jl")
 function main()
 
     # Select the target object type(s)
-    model_id = "Modelv5"
+    model_id = "Modelv6"
     target_id = "Sphere"
-    noise_id = "PosVar075"
+    noise_id = "VelVar05"
     expt_id = "Test"
     output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
@@ -49,12 +49,14 @@ function main()
         # Initialize target object state using observed data
         init_scene()
         fname = string(expt_id, "/", fnames[i])
-        initial_position, initial_orientation, initial_velocity, observations = read_observation_file(fname)
+        initial_position, initial_orientation, initial_velocity, observations, num_timesteps = read_obs_file(fname)
         init_state = init_target_state(sim, target_id, initial_position, initial_velocity)
-
-        # Filter particles through the complete trajectory
-        num_timesteps = length(observations)
         args = (sim, init_state, num_timesteps)
+
+        #=
+        (trace, _) = Gen.generate(generate_trajectory, args, observations)
+        display(Gen.get_choices(trace))
+        =#
         
         # Filter particles to explain the complete trajectory
         results, _ = infer(generate_trajectory, args, observations, num_particles, save_intermediate, fname, output_id)

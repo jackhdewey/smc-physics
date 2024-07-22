@@ -97,6 +97,14 @@ end
     return RigidBodyLatents(setproperties(l.data, restitution=res))
 end
 
+# Samples the initial kinematic state of the target object
+@gen function sample_init_state(k::RigidBodyState)
+
+    velocity = {:init_velocity} ~ broadcasted_normal(k.linear_vel, 0.05)
+
+    return setproperties(k, linear_vel=velocity)
+end
+
 # Adds noise to kinematic state at each transition
 # Current estimate as mean, variance either some constant or derived from average acceleration
 # Ground truth as mean, variance derived from empirical distribution of data 
@@ -144,6 +152,10 @@ end
     # Sample the target object's restitution
     latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
     init_state = setproperties(init_state; latents=latents)
+
+    # Sample the target object's initial velocity
+    kinematics = { :init_state } ~ Gen.Map(sample_init_state)(init_state.kinematics)
+    init_state = setproperties(init_state; kinematics=kinematics)
 
     # Simulate T time steps
     states = {:trajectory} ~ Gen.Unfold(kernel)(T, init_state, sim)

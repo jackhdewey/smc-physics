@@ -11,9 +11,7 @@ include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
 using Plots
-
 pyplot()
-
 
 function main()
 
@@ -35,7 +33,6 @@ function main()
     dir = string("Data/RealFlowData/", expt_id, "/")
     gt_files = filter(contains("observed"), readdir(dir))
     sort!(gt_files, lt=trial_order)
-    # print(gt_files)
 
     # Pull intermediate particle filter state files from directory
     dir = string("Data/BulletData/", output_id, "/Intermediate/")
@@ -45,7 +42,7 @@ function main()
     # For each trajectory
     total_particle_index = 0
 
-    for i in eachindex(gt_files[1:2])
+    #for i in eachindex(gt_files[1:2])
 
     for i in eachindex(gt_files)[1:1]
         tokens = split(gt_files[i], "_")
@@ -65,16 +62,7 @@ function main()
             # aspect_ratio = 1
             # layout=layout
         )
-        # p = PlotlyJSBackend().o
 
-        # # Adjust the aspect ratio using PlotlyJS layout
-        # layout = Layout(
-        #     scene=attr(
-        #         aspectmode="cube"  # Ensures equal aspect ratio
-        #     )
-        # )
-
-        # relayout!(p, layout)
         gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
         ground_truth = CSV.read(gt_file, DataFrame)
 

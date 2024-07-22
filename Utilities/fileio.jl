@@ -13,7 +13,7 @@ function filter_unwanted_filenames(fnames)
 end 
 
 # Extracts initial position, initial velocity, and trajectory from two .csv files
-function read_observation_file(fname)
+function read_obs_file(fname, test::Bool=false)
 
     # Read ground truth initial state
     fname = string("Data/RealFlowData/", fname) 
@@ -22,16 +22,15 @@ function read_observation_file(fname)
 
     # Initial position
     datum = values(init_state_data[1, 5:7])
-    initial_position = [datum[1], datum[2], datum[3]]
-    println(initial_position)
+    initial_position = [datum...]
 
     # Initial orientation
     datum = values(init_state_data[1, 8:10])
-    initial_orientation = [datum[1], datum[2], datum[3]]
+    initial_orientation = [datum...]
 
     # Initial velocity
     datum = values(init_state_data[1, 11:13])
-    initial_velocity = [datum[1], datum[2], datum[3]]
+    initial_velocity = [datum...]
 
     # Read ground truth trajectory
     head, tail = split(fname, '.')
@@ -41,21 +40,26 @@ function read_observation_file(fname)
 
     # Populate observation vector with choice maps
     time_steps = size(trajectory_data)[1]
-    observations = Vector{Gen.ChoiceMap}(undef, time_steps)
+    if test
+        observations = Gen.choicemap()
+    else 
+        observations = Vector{Gen.ChoiceMap}(undef, time_steps)
+    end
     for i=1:time_steps
 
         datum = values(trajectory_data[i, :])
         position = [datum[1], datum[2], datum[3]]
         addr = :trajectory => i => :observation => 1 => :position
-        cm = Gen.choicemap((addr, position))
-        observations[i] = cm
 
+        if test
+            observations[addr] = position
+        else
+            cm = Gen.choicemap((addr, position))
+            observations[i] = cm
+        end
     end
 
-    initial_position = get_value(observations[1], :trajectory => 1 => :observation => 1 => :position)
-    println(initial_position)
-
-    return initial_position, initial_orientation, initial_velocity, observations
+    return initial_position, initial_orientation, initial_velocity, observations, time_steps
 end
 
 # Writes data for each particle (elasticity, log weight, and trajectory) to a .csv file
@@ -84,7 +88,7 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
     CSV.write(fname, particle_data, transform=truncator)
 end
 
-# Comparator to sort intermediate particle filter state files into correct order
+# Comparator to sort intermediate particle filter state plots into correct order
 function png_particle_order(x, y)
 
     x_tokens = split(x, "_")
