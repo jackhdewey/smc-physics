@@ -20,7 +20,7 @@ function main()
     # Select the target object type(s)
     model_id = "Modelv5"
     target_id = "Cube"
-    noise_id = "PosVar075"
+    noise_id = "PosVar05"
     expt_id = "Test"
     output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 

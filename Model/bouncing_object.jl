@@ -22,7 +22,7 @@ pybullet_data = pyimport("pybullet_data")
 include("../Utilities/truncatednorm.jl")
 
 INIT_VELOCITY_NOISE = .025
-TRANSITION_NOISE = .075
+TRANSITION_NOISE = .05
 OBSERVATION_NOISE = .05
 
 # Sets initial scene configuration (in the future this could be inferred using an inverse graphics module)
