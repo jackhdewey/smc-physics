@@ -4,11 +4,8 @@ using DataFramesMeta
 using Statistics
 using Gen
 using CSV
-using Plots
 
 project_path = dirname(@__DIR__)
-
-
 
 # for variable in ["ObsVar025", "ObsVar075", "PosVar025", "PosVar05", "PosVar075"]
 for variable in ["PosVar075"]
@@ -29,7 +26,7 @@ for variable in ["PosVar075"]
         return plots_path
     end
 
-    function read_simulation_file(fname, sim_object)
+    function read_simulation_file(fname)
         data = CSV.read(fname, DataFrame)
 
         # unpack filename
@@ -46,7 +43,7 @@ for variable in ["PosVar075"]
         return data
     end
 
-    function read_simulation_data(expt, sim_object)
+    function read_simulation_data(expt)
         # simulation_folder = joinpath(project_path, "BulletData", "Modelv5", "Exp" * string(expt), sim_object, "Inferences")
         simulation_folder = joinpath(project_path, "Data", "BulletData", "Modelv5", "Sphere", variable, "Exp$expt", "Inferences")
         all_data = []
@@ -128,8 +125,8 @@ for variable in ["PosVar075"]
         # gui()
     end
 
-    function plot_sim_vs_gt(expt, sim_object)
-        sim_raw = read_simulation_data(expt, sim_object)
+    function plot_sim_vs_gt(expt)
+        sim_raw = read_simulation_data(expt)
 
         sim = @chain sim_raw begin
             @groupby :stimulusID
@@ -166,8 +163,8 @@ for variable in ["PosVar075"]
         savefig(joinpath(get_plots_path(expt), string("individual_stimuli_judgments_", "against_gt_model_", sim_object, "Exp", expt, ".png")))
     end
 
-    function process_individual_stimuli_sim(expt, sim_object)
-        sim_data = read_simulation_data(expt, sim_object)
+    function process_individual_stimuli_sim(expt)
+        sim_data = read_simulation_data(expt)
         sim_data_pred = @chain sim_data begin
             @groupby :stimulusID
             @combine begin
@@ -188,7 +185,6 @@ for variable in ["PosVar075"]
         sub_data_pred = @chain sub_data begin
             @groupby :stimulusID
             # @groupby :elasticity# :filename
-            # @DataFramesMeta.transform :prediction = mean(:rating) # Gen also has a transform macro
             @combine begin
                 :judgment = mean(:rating)
                 :std_err_mean = std(:rating) / sqrt(nsubs) # number of subjects
@@ -200,9 +196,9 @@ for variable in ["PosVar075"]
         return sub_data_pred
     end
 
-    function plot_individual_stimuli_judgments(expt, sim_object)
+    function plot_individual_stimuli_judgments(expt)
         human = process_individual_stimuli_human(expt)
-        sim = process_individual_stimuli_sim(expt, sim_object)
+        sim = process_individual_stimuli_sim(expt)
 
         p = palette(:jet)
         # default(aspect_ratio = :equal)
@@ -225,9 +221,6 @@ for variable in ["PosVar075"]
             markershape=marker_shape)
 
         plot!(0:1, 0:1, line=:dash)
-        # if expt == 2
-        #     @autoinfiltrate
-        # end
         println(length(sim.judgment), " ", length(human.judgment))
         corr_string = "r = " * string(round(cor(sim.judgment, human.judgment), digits=3))
         annotate!(0.2, 0.8, corr_string, 10)
@@ -235,7 +228,7 @@ for variable in ["PosVar075"]
         gui()
     end
 
-    function plot_mean_elasticity_judgments(expt, sim_object)
+    function plot_mean_elasticity_judgments(expt)
 
         human = process_individual_stimuli_human(expt)
         sim = process_individual_stimuli_sim(expt, sim_object)
@@ -278,13 +271,10 @@ for variable in ["PosVar075"]
         # gui()
     end
 
-    # for sim_object in ["Cube", "Sphere"]
     for expt = 1:4
-        plot_individual_stimuli_judgments(expt, sim_object)
-        plot_mean_elasticity_judgments(expt, sim_object)
-        # end
+        plot_individual_stimuli_judgments(expt)
+        plot_mean_elasticity_judgments(expt)
     end
-    # end
 end
 
 # for sim_object in ["Cube"# , "Sphere"
