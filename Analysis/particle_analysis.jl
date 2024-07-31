@@ -4,7 +4,6 @@
 # DONE: Save plots in a folder
 # DONE: Allow more flexible selection of elasticity / trial interval
 #
-# TODO: Compute error
 # TODO: Set the alpha / intensity to reflect the log weight of each particle
 
 include("../Utilities/fileio.jl")
@@ -16,24 +15,21 @@ pyplot()
 
 function main()
 
-    # Select the target model and experiment
+    # Select the model variation and experiment
     model_id = "Modelv5"
     target_id = "Sphere"
     noise_id = "PosVar075"
     expt_id = "Test"
     output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
-    # Trial parameters
-    num_particles = 20
-
     # Plot parameters
-    plot_interval = 5
-    interactive = false
+    interactive = true
     if interactive
         pyplot()
     end
+    plot_interval = 5
 
-    # Pull ground truth (RealFlow) trajectory files from directory
+    # Pull ground truth trajectory files from directory
     dir = string("Data/RealFlowData/", expt_id, "/")
     gt_files = filter(contains("observed"), readdir(dir))
     sort!(gt_files, lt=trial_order)
@@ -46,23 +42,22 @@ function main()
     data = CSV.read(string(dir, particle_files[1]), DataFrame)
     num_particles = size(data)[1]
 
-    # For each trajectory
+    # For each trial
     total_particle_index = 0
-<<<<<<< variant A
->>>>>>> variant B
-
-    #for i in eachindex(gt_files[1:2])
-======= end
     for i in eachindex(gt_files)
+
         plotp = false
 
 
         if occursin("Ela9_Var1_", gt_files[i])
             plotp = true
         end
-        tokens = split(gt_files[i], "_")
+        # Read ground truth file to dataframe
+        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
+        ground_truth = CSV.read(gt_file, DataFrame)
 
         # Generate plot base
+        tokens = split(gt_files[i], "_")
         if plotp
         plt = plot3d(
             1,
@@ -78,10 +73,7 @@ function main()
         )
         end
 
-        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
-        ground_truth = CSV.read(gt_file, DataFrame)
-
-        # Generate the plot procedurally
+        # Procedurally generate plots for each timestep
         num_timesteps = size(ground_truth)[1]
         # true_x = zeros(num_timesteps)
         # true_y = zeros(num_timesteps)
@@ -89,9 +81,7 @@ function main()
         true_x = []
         true_y = []
         true_z = []
-        # for t = 1:num_timesteps
-        for t = 1:15
-            # for t = 10:11
+        for t = 1:num_timesteps
 
             # Extend ground truth trajectory by one time step and add to plot
             true_x = [true_x; ground_truth[t, 1]]
@@ -108,8 +98,6 @@ function main()
             particle_index = total_particle_index + t
             file = particle_files[particle_index]
             data = CSV.read(string(dir, file), DataFrame)
-            num_particles = size(data)[1] / t
-            println(num_particles)
 
             # For each particle
             for p = 1:num_particles
@@ -120,7 +108,7 @@ function main()
                 # weight = data[data.particle .== i, 3]
                 # @df plot!(plt1, particle[:, 5:7])
 
-                # Generate complete particle trajectory up to current time step and add to plot
+                # Generate particle trajectory up to current time step and add to plot
                 x_trajectory = []
                 y_trajectory = []
                 z_trajectory = []
@@ -141,7 +129,7 @@ function main()
 
             end
 
-            # Save and display the plot every fifth time step
+            # Display the plot every fifth time step and save if static
             tokens = split(file, "_")
             if plotp
             if t % plot_interval == 0

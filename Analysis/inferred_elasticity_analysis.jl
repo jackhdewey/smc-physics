@@ -2,6 +2,8 @@
 #
 #
 
+# TODO: Compute error
+
 using Plots
 using DataFrames
 using DataFramesMeta
@@ -22,56 +24,54 @@ for expt = 1:2
     plot_individual_stimuli_judgments(expt, target_id)
 end
 
-# for target_id in ["Cube", "Sphere"]
-#     for expt = 1:4
-#         plot_human_vs_gt(expt)
-#         plot_sim_vs_gt(expt, target_id)
-#         # if expt <= 2
-#         #     plot_mean_elasticity_judgments(expt, target_id)
-#         # end
-#     end
-# end
+#=
+for target_id in ["Cube", "Sphere"]
+    for expt = 1:4
+        plot_human_vs_gt(expt)
+        plot_sim_vs_gt(expt, target_id)
+        if expt <= 2
+            plot_mean_elasticity_judgments(expt, target_id)
+        end
+    end
+end
+=#
 
 
 # Read the entire folder of simulation data
 function read_simulation_data(expt, target_id)
+    
     simulation_folder = joinpath(project_path, "Data", "BulletData", model_id, target_id, var_id, "Exp" * string(expt), "Inferences")
-    all_data = []
     for file in readdir(simulation_folder)
         full_file_path = joinpath(simulation_folder, file)
-        data = read_simulation_file(full_file_path, target_id)
+        data = CSV.read(full_file_path, DataFrame)
+
+        # unpack filename
+        _, elasticity_string, variation = split(fname, ['_', '.'])
+        elasticity = parse(Int, elasticity_string[end]) * 0.1 # fix order of magnitude
+    
+        data = insertcols(
+            data,
+            "filename" => fname,
+            "stimulusID" => target_id * "_" * elasticity_string * "_" * variation,
+            "gtElasticity" => elasticity,
+            "variation" => parse(Int64, variation[4:end])
+        )
         push!(all_data, data)
     end
+
     all_data = vcat(all_data...)    # join all dfs
-    # return filter(:variation => x -> x <= 15, all_data)
+    # filter(:variation => x -> x <= 15, all_data)
+    
     return all_data
 end
 
-# Read an individual simulation file 
-function read_simulation_file(fname, target_id)
-    data = CSV.read(fname, DataFrame)
-
-    # unpack filename
-    _, elasticity_string, variation = split(fname, ['_', '.'])
-    elasticity = parse(Int, elasticity_string[end]) * 0.1 # fix order of magnitude
-
-    data = insertcols(
-        data,
-        "filename" => fname,
-        "stimulusID" => target_id * "_" * elasticity_string * "_" * variation,
-        "gtElasticity" => elasticity,
-        "variation" => parse(Int64, variation[4:end])
-    )
-    return data
-end
-
-# 
+# For each stimulus, 
 function process_individual_stimuli_sim(expt, target_id)
     sim_data = read_simulation_data(expt, target_id)
     sim_data_pred = @chain sim_data begin
         @groupby :stimulusID
         @combine begin
-            :judgment = mean(:elasticity) # :elasticity = :gtElasticity
+            :judgment = mean(:elasticity)       # :elasticity = :gtElasticity
             :elasticity = first(:gtElasticity)
         end
         # @subset :elasticity .> 0.6
