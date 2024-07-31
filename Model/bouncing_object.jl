@@ -21,6 +21,9 @@ pybullet_data = pyimport("pybullet_data")
 
 include("../Utilities/truncatednorm.jl")
 
+INIT_VELOCITY_NOISE = .025
+TRANSITION_NOISE = .075
+OBSERVATION_NOISE = .05
 
 # Sets initial scene configuration (in the future this could be inferred using an inverse graphics module)
 function init_scene()
@@ -100,7 +103,7 @@ end
 # Samples the initial kinematic state of the target object
 @gen function sample_init_state(k::RigidBodyState)
 
-    velocity = {:init_velocity} ~ broadcasted_normal(k.linear_vel, 0.05)
+    velocity = {:init_velocity} ~ broadcasted_normal(k.linear_vel, INIT_VELOCITY_NOISE)
 
     return setproperties(k, linear_vel=velocity)
 end
@@ -110,7 +113,7 @@ end
 # Ground truth as mean, variance derived from empirical distribution of data 
 @gen function resample_state(k::RigidBodyState)
 
-    position = {:position} ~ broadcasted_normal(k.position, 0.075)
+    position = {:position} ~ broadcasted_normal(k.position, TRANSITION_NOISE)
 
     #=
     orientation::Vector{3, Float64} = bullet.getEulerFromQuaternion(k.orientation)
@@ -124,7 +127,7 @@ end
 # Adds measurement noise to estimated position
 @gen function generate_observation(k::RigidBodyState)
 
-    obs = {:position} ~ broadcasted_normal(k.position, 0.05)
+    obs = {:position} ~ broadcasted_normal(k.position, OBSERVATION_NOISE)
 
     return obs
 end
@@ -154,8 +157,8 @@ end
     init_state = setproperties(init_state; latents=latents)
 
     # Sample the target object's initial velocity
-    kinematics = { :init_state } ~ Gen.Map(sample_init_state)(init_state.kinematics)
-    init_state = setproperties(init_state; kinematics=kinematics)
+    #kinematics = { :init_state } ~ Gen.Map(sample_init_state)(init_state.kinematics)
+    #init_state = setproperties(init_state; kinematics=kinematics)
 
     # Simulate T time steps
     states = {:trajectory} ~ Gen.Unfold(kernel)(T, init_state, sim)
