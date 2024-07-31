@@ -18,9 +18,9 @@ include("Utilities/plots.jl")
 function main()
 
     # Select the target object type(s)
-    model_id = "Modelv6"
-    target_id = "Sphere"
-    noise_id = "VelVar05"
+    model_id = "Modelv5"
+    target_id = "Cube"
+    noise_id = "PosVar075"
     expt_id = "Test"
     output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
@@ -29,6 +29,7 @@ function main()
     save_intermediate = true
 
     # Prediction parameters
+    predict = false
     prediction_timesteps = 90
 
     # Read ground truth trajectories
@@ -66,15 +67,15 @@ function main()
         fname = string("Data/BulletData/", output_id, "/Inferences/inferences_", tokens[2], "_", tokens[3])
         write_to_csv(results, fname)
 
-        #=
-        # For each output particle, predict the next 90 time steps
-        ppd = predict(results, prediction_timesteps)
-        #gif(animate_traces(ppd), fps=24)
+        if predict
+            # For each output particle, predict the next 90 time steps
+            ppd = predict(results, prediction_timesteps)
+            #gif(animate_traces(ppd), fps=24)
 
-        # Write predicted trajectories to a .csv file
-        fname = string("BulletData/", output_id, "/Predictions/predictions_", tokens[2], "_", tokens[3])
-        write_to_csv(ppd, fname)
-        =#
+            # Write predicted trajectories to a .csv file
+            fname = string("BulletData/", output_id, "/Predictions/predictions_", tokens[2], "_", tokens[3])
+            write_to_csv(ppd, fname)
+        end
 
         bullet.disconnect()
 
