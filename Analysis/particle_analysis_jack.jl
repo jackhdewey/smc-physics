@@ -10,8 +10,6 @@ include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
 using Plots
-# using PyPlot
-pyplot()
 
 function main()
 
@@ -23,7 +21,7 @@ function main()
     output_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
     # Plot parameters
-    interactive = true
+    interactive = false
     if interactive
         pyplot()
     end
@@ -39,8 +37,8 @@ function main()
     particle_files = filter_unwanted_filenames(readdir(dir))
     sort!(particle_files, lt=trial_particle_order)
 
-    data = CSV.read(string(dir, particle_files[1]), DataFrame)
-    num_particles = size(data)[1]
+    #data = CSV.read(string(dir, particle_files[1]), DataFrame)
+    num_particles = 20
 
     # For each trial
     total_particle_index = 0

@@ -1,8 +1,7 @@
 # Data analysis
 #
 #
-
-# TODO: Compute error
+# TODO: Compute error to identify trials with poor model / human correlation
 
 using Plots
 using DataFrames
