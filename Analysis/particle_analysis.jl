@@ -11,11 +11,10 @@ include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
 using Plots
-pyplot()
 
 function main()
 
-    # Select the target object type
+    # Select the target model and experiment
     model_id = "Modelv5"
     target_id = "Sphere"
     noise_id = "PosVar075"
@@ -25,9 +24,12 @@ function main()
     # Trial parameters
     num_particles = 20
 
-    # Other parameters
-    num_trials = 4
+    # Plot parameters
     plot_interval = 5
+    interactive = false
+    if interactive
+        pyplot()
+    end
 
     # Pull ground truth (RealFlow) trajectory files from directory
     dir = string("Data/RealFlowData/", expt_id, "/")
@@ -39,9 +41,11 @@ function main()
     particle_files = filter_unwanted_filenames(readdir(dir)) 
     sort!(particle_files, lt=trial_particle_order)
 
+    data = CSV.read(string(dir, particle_files[1]), DataFrame)
+    num_particles = size(data)[1]
+
     # For each trajectory
     total_particle_index = 0
-
     for i in eachindex(gt_files)
         tokens = split(gt_files[i], "_")
 
@@ -57,8 +61,6 @@ function main()
             seriestype=:scatter,
             size=(1200, 800),
             gridlinewidth=8
-            # aspect_ratio = 1
-            # layout=layout
         )
 
         gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
@@ -82,6 +84,8 @@ function main()
             particle_index = total_particle_index + t
             file = particle_files[particle_index]
             data = CSV.read(string(dir, file), DataFrame)
+            num_particles = size(data)[1] / t
+            println(num_particles)
 
             # For each particle
             for p = 1:num_particles
@@ -108,8 +112,10 @@ function main()
             # Save and display the plot every fifth time step
             tokens = split(file, "_")
             if t % plot_interval == 0
-                # savefig(string("Analysis/Plots/", output_id, "/", tokens[2], "_", tokens[3], "_", t))
                 display(plt)
+                if !interactive
+                    savefig(string("Analysis/Plots/", output_id, "/", tokens[2], "_", tokens[3], "_", t))
+                end
             end
 
         end
