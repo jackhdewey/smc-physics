@@ -4,6 +4,36 @@ using DataFrames
 using CSV
 
 
+function make_directory(file_path::String)
+
+end
+
+# Writes data for each particle (elasticity, log weight, and trajectory) to a .csv file
+function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
+
+    # Initialize a data frame with appropriate 
+    #println("Writing simulation data to " * fname)
+    particle_data = DataFrame(particle=Int[], elasticity=[], weight=[], frame=Int[], x=[], y=[], z=[])
+
+    # Iterate over the particles 
+    for (p, particle) in enumerate(particles)
+        ela = particle[:latents => 1 => :restitution]
+        for (f, frame) in enumerate(particle[:trajectory])
+            pos = convert(Vector, frame.kinematics[1].position)
+            #ori = convert(Vector, frame.kinematics[1].orientation)
+            weight = get_score(particle)
+            data = [p; ela; weight; f; pos]
+            push!(particle_data, data)
+        end
+    end
+
+    # Truncate to 5 digits
+    truncator(col, val) = trunc(val, digits=5)
+    truncator(col, val::Int) = val
+
+    CSV.write(fname, particle_data, transform=truncator)
+end
+
 # Given a vector of filenames, remove any that contain certain tokens
 function filter_unwanted_filenames(fnames)
     for i in ["predicted", "observed", "batch", "Store"]
@@ -60,32 +90,6 @@ function read_obs_file(fname, test::Bool=false)
     end
 
     return initial_position, initial_orientation, initial_velocity, observations, time_steps
-end
-
-# Writes data for each particle (elasticity, log weight, and trajectory) to a .csv file
-function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
-
-    # Initialize a data frame with appropriate 
-    #println("Writing simulation data to " * fname)
-    particle_data = DataFrame(particle=Int[], elasticity=[], weight=[], frame=Int[], x=[], y=[], z=[])
-
-    # Iterate over the particles 
-    for (p, particle) in enumerate(particles)
-        ela = particle[:latents => 1 => :restitution]
-        for (f, frame) in enumerate(particle[:trajectory])
-            pos = convert(Vector, frame.kinematics[1].position)
-            #ori = convert(Vector, frame.kinematics[1].orientation)
-            weight = get_score(particle)
-            data = [p; ela; weight; f; pos]
-            push!(particle_data, data)
-        end
-    end
-
-    # Truncate to 5 digits
-    truncator(col, val) = trunc(val, digits=5)
-    truncator(col, val::Int) = val
-
-    CSV.write(fname, particle_data, transform=truncator)
 end
 
 # Comparator to sort intermediate particle filter state plots into correct order
