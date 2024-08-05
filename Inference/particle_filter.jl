@@ -4,6 +4,7 @@
 # Each simulation is procedurally updated by one time step, scored, rejuvenated, and (potentially) resampled
 
 using Gen
+using ZipFile
 
 include("../Utilities/fileio.jl")
 
@@ -36,7 +37,7 @@ end
 end
 
 # Generates num_particles trajectories, scoring and filtering them according to their likelihood
-function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false, fname::String=missing, id::String=missing)
+function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, w2, num_particles::Int=20, save_particles=false, fname::String=missing)
 
     # Extract trial identification    
     tokens = split(fname, "_")
@@ -63,8 +64,9 @@ function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::In
             
             # Dump current particles to a .csv file
             if save_particles
-                fname = string("Data/BulletData/", id, "/Intermediate/particles_", tokens[2], "_", csv[1], "_", t, ".", csv[2])
-                write_to_csv(state.traces, fname)
+                fname = string(tokens[2], "_", csv[1], "_", t, ".", csv[2])
+                f = ZipFile.addfile(w2, fname)
+                write_to_csv(state.traces, f)
             end
 
         end

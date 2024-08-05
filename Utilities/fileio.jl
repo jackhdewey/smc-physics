@@ -37,9 +37,9 @@ function read_obs_file(fname, test::Bool=false)
     obs_fname = join([head, "_observed.", tail])
     println("Reading...", obs_fname)
     trajectory_data = CSV.read(obs_fname, DataFrame)
+    time_steps = size(trajectory_data)[1]
 
     # Populate observation vector with choice maps
-    time_steps = size(trajectory_data)[1]
     if test
         observations = Gen.choicemap()
     else 
@@ -66,7 +66,7 @@ end
 function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
     # Initialize a data frame with appropriate 
-    println("Writing simulation data to " * fname)
+    #println("Writing simulation data to " * fname)
     particle_data = DataFrame(particle=Int[], elasticity=[], weight=[], frame=Int[], x=[], y=[], z=[])
 
     # Iterate over the particles 

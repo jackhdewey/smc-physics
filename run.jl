@@ -17,5 +17,4 @@ sort!(fnames, lt=trial_order)
 
 fnames = [joinpath(expt_id, f) for f in fnames]
 
-# main(fnames[1])
 pmap(main, fnames)
