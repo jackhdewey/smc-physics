@@ -49,6 +49,7 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
+    # Locate / create directories and file writers for output data
     output_id = string(args.output_id, "1")
     dir_base = string("Data/BulletData/", output_id)
     if !isdir(dir_base)
