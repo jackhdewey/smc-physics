@@ -1,5 +1,5 @@
 # Data analysis
-#
+# Plots model-inferred elasticities against human judgments
 #
 # TODO: Compute error to identify trials with poor model / human correlation
 

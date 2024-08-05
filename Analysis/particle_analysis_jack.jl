@@ -1,9 +1,9 @@
 # Data analysis
 # Generates 3D plots showing particle trajectories vs ground truth, with ground truth plotted in red
 #
-# DONE: Save plots in a folder
 # DONE: Allow more flexible selection of elasticity / trial interval
 #
+# TODO: 
 # TODO: Set the alpha / intensity to reflect the log weight of each particle
 
 include("../Utilities/fileio.jl")
