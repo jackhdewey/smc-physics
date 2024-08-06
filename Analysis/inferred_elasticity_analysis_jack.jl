@@ -18,39 +18,28 @@ model_id = "Modelv5"
 target_id = "Sphere"
 var_id = "PosVar075"
 
-# for target_id in ["Cube", "Sphere"]
-for expt = 1:2
-    plot_individual_stimuli_judgments(expt, target_id)
+if target_id == "Cube"
+    marker_shape = :square
+else
+    marker_shape = :circle
 end
-
-#=
-for target_id in ["Cube", "Sphere"]
-    for expt = 1:4
-        plot_human_vs_gt(expt)
-        plot_sim_vs_gt(expt, target_id)
-        if expt <= 2
-            plot_mean_elasticity_judgments(expt, target_id)
-        end
-    end
-end
-=#
-
 
 # Read the entire folder of simulation data
 function read_simulation_data(expt, target_id)
     
-    simulation_folder = joinpath(project_path, "Data", "BulletData", model_id, target_id, var_id, "Exp" * string(expt), "Inferences")
+    simulation_folder = joinpath(project_path, "Data", "BulletData", model_id, target_id, var_id, string("Exp", expt), "Inferences")
+
+    all_data = []
     for file in readdir(simulation_folder)
         full_file_path = joinpath(simulation_folder, file)
         data = CSV.read(full_file_path, DataFrame)
 
-        # unpack filename
-        _, elasticity_string, variation = split(fname, ['_', '.'])
+        _, elasticity_string, variation = split(file, ['_', '.'])
         elasticity = parse(Int, elasticity_string[end]) * 0.1 # fix order of magnitude
     
         data = insertcols(
             data,
-            "filename" => fname,
+            "filename" => file,
             "stimulusID" => target_id * "_" * elasticity_string * "_" * variation,
             "gtElasticity" => elasticity,
             "variation" => parse(Int64, variation[4:end])
@@ -64,27 +53,28 @@ function read_simulation_data(expt, target_id)
     return all_data
 end
 
-# For each stimulus, 
+# Aggregate the model inferences by stimulus
 function process_individual_stimuli_sim(expt, target_id)
+
     sim_data = read_simulation_data(expt, target_id)
+
     sim_data_pred = @chain sim_data begin
         @groupby :stimulusID
         @combine begin
             :judgment = mean(:elasticity)       # :elasticity = :gtElasticity
             :elasticity = first(:gtElasticity)
+            :error = mean(:elasticity) - first(:gtElasticity)
         end
         # @subset :elasticity .> 0.6
         @orderby :stimulusID
     end
 
-    return sim_data_pred
-end
+    high_error = sim_data_pred[sim_data_pred.error.>.2, :]
+    high_error_trials = high_error[:, 1]
+    println(high_error_trials)
+    println(sim_data_pred)
 
-#
-function read_gt_data(expt)
-    sub_data = read_subject_data(expt)
-    gt_data = @select(sub_data, :trialID, :elasticity, :trialType, :stimulusID)
-    return gt_data
+    return sim_data_pred
 end
 
 # Read the human predictions
@@ -104,20 +94,22 @@ function read_subject_data(expt)
         sub_data = insertcols(sub_data, :filename => fname)
         push!(data, sub_data) # this is a vector of dataframes
     end
-    data_df = vcat(data...)     # combine all together with splat operator
+    df = vcat(data...)     # combine all together with splat operator
 
     # elasticity is coded as integer
     if expt >= 3
-        data_df.elasticity = data_df.elasticity / 10
+        df.elasticity = df.elasticity / 10
     end
 
-    return data_df
+    return df
 end
 
-#
+# Aggregate the 
 function process_individual_stimuli_human(expt)
+
     sub_data = read_subject_data(expt)
     nsubs = length(unique(sub_data.filename))
+
     sub_data_pred = @chain sub_data begin
         @groupby :stimulusID
         # @groupby :elasticity# :filename
@@ -130,6 +122,8 @@ function process_individual_stimuli_human(expt)
         # @subset :gtElasticity .> 0.6
         @orderby :stimulusID
     end
+    println(sub_data_pred)
+
     return sub_data_pred
 end
 
@@ -146,7 +140,7 @@ function generate_plot_path(expt)
     return plots_path
 end
 
-#
+# Plot the simulation against the ground truth
 function plot_sim_vs_gt(expt, target_id)
     sim_raw = read_simulation_data(expt, target_id)
 
@@ -296,4 +290,9 @@ function plot_mean_elasticity_judgments(expt, target_id)
     plots_path = generate_plot_path(expt)
     savefig(joinpath(plots_path, string("average_judgment_per_elasticity_", target_id, "Exp", expt, ".png")))
     # gui()
+end
+
+for expt = 1:2
+    plot_individual_stimuli_judgments(expt, target_id)
+    plot_mean_elasticity_judgments(expt, target_id)
 end
