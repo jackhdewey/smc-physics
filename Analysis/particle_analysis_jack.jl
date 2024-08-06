@@ -42,7 +42,6 @@ function main()
     #particle_files = map(file -> file.name, r.files)
     #sort!(particle_files, lt=trial_particle_order)
 
-    println(pwd())
     model_dir = string("Analysis/Plots/", model_id, "/")
     if !isdir(model_dir)
         mkdir(model_dir)
@@ -60,36 +59,42 @@ function main()
         mkdir(expt_dir)
     end
 
+    # Filter which trials we want to plot
+    trial_index = findall(file -> occursin("Ela9_Var1_", file), gt_files)
+    println(trial_index[1])
+    println(gt_files[trial_index])
+
+    particle_index = 1
+    for i = 1:trial_index[1]-1
+        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
+        particle_index += size(CSV.read(gt_file, DataFrame))[1]
+    end
+    println(particle_index)
+
     # For each trial
-    total_particle_index = 0
+    gt_files = filter((file) -> occursin("Ela9_Var1_", file), gt_files)
     for i in eachindex(gt_files)
 
-        # Specifies which plots to generate
-        plotp = true
-        if occursin("Ela9_Var1_", gt_files[i])
-            plotp = true
-        end
-
-        # Read ground truth file to dataframe
-        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
-        ground_truth = CSV.read(gt_file, DataFrame)
+        tokens = split(gt_files[i], "_")
+        title = string("Stimulus: ", tokens[2], " ", tokens[3], "\n", data_id)
 
         # Generate plot base
-        tokens = split(gt_files[i], "_")
-        if plotp
-            plt = plot3d(
+        plt = plot3d(
                 1,
                 xlim=(-0.5, 0.5),
                 ylim=(-0.5, 0.5),
                 zlim=(0, 1),
-                title=string("Stimulus: ", tokens[2], " ", tokens[3], "\n", noise_dir),
+                title=title,
                 legend=false,
                 marker=2,
                 seriestype=:scatter,
                 size=(1200, 800),
                 gridlinewidth=8
-            )
-        end
+        )
+
+        # Read ground truth file to dataframe
+        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
+        ground_truth = CSV.read(gt_file, DataFrame)
 
         # Procedurally generate plots for each timestep
         num_timesteps = size(ground_truth)[1]
@@ -97,24 +102,22 @@ function main()
         true_y = []
         true_z = []
         for t = 1:num_timesteps
+            println(string("Timestep: ", t))
 
             # Extend ground truth trajectory by one time step and add to plot
             true_x = [true_x; ground_truth[t, 1]]
             true_y = [true_y; ground_truth[t, 2]]
             true_z = [true_z; ground_truth[t, 3]]
             
-            if plotp
-                plot!(plt, true_x, true_y, true_z, linewidth=3, linecolor=:red)
-            end
+            plot!(plt, true_x, true_y, true_z, linewidth=3, linecolor=:red)
 
             # Index into correct particle filter file
-            particle_index = total_particle_index + t
-            file = r.files[particle_index]
+            file = r.files[particle_index + t - 1]
+            println(file.name)
             data = CSV.File(read(file)) |> DataFrame
 
             # For each particle
             for p = 1:num_particles
-
                 particle = data[data.particle.==p, :]
 
                 # elasticity = data[data.particle .== i, 2]
@@ -130,24 +133,21 @@ function main()
                     y_trajectory = [y_trajectory; particle[row, 6]]
                     z_trajectory = [z_trajectory; particle[row, 7]]
                 end
-                if plotp
-                    plot!(plt, x_trajectory, y_trajectory, z_trajectory)
-                end
+                title!(string(title, "\nTimestep: ", t, " / ", num_timesteps))
+                plot!(plt, x_trajectory, y_trajectory, z_trajectory)
 
             end
 
             # Display the plot every fifth time step and save if static
             tokens = split(file.name, "_")
-            if plotp
-                if t % plot_interval == 0
-                    display(plt)
-                    if !interactive
-                        savefig(string(expt_dir, "/", tokens[2], "_", tokens[3], "_", t))
-                    end
+            if t % plot_interval == 0
+                display(plt)
+                if !interactive
+                    savefig(string(expt_dir, "/", tokens[2], "_", tokens[3], "_", t))
                 end
             end
         end
-        total_particle_index += num_timesteps
+        particle_index += num_timesteps
     end
     
 end
