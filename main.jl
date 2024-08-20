@@ -21,6 +21,7 @@ include("Utilities/plots.jl")
 
 @with_kw struct Args
 
+    # Model parameters
     model_id::String = "Modelv5"
     target_id::String = "Cube"
     noise_id::String = "PosVar05"
@@ -49,13 +50,14 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    # Locate / create directories and file writers for output data
+    # Locate / create base directory for output data
     output_id = string(args.output_id, "1")
     dir_base = string("Data/BulletData/", output_id)
     if !isdir(dir_base)
         mkdir(dir_base)
     end
 
+    # Locate / create directories and zip file writers for intermediate particles and output data
     particle_dir = string(dir_base, "/Intermediate/")
     if !isdir(particle_dir)
         mkdir(particle_dir)
@@ -67,13 +69,13 @@ function main()
         mkdir(output_dir)
     end
     w1 = ZipFile.Writer(string(output_dir, "/inferences.zip"))
-    
-    for fname in fnames
-        run(fname, args, w1, w2)
-    end
 
     # Map each observed trajectory to a process executing a particle filter
     #pmap(fname -> run(fname, args), fnames)
+
+    for fname in fnames
+        run(fname, args, w1, w2)
+    end
 
     close(w1)
     close(w2)
@@ -97,10 +99,10 @@ function run(fname, args, w1, w2)
     model_args = (sim, init_state, t_s)
 
     if args.debug
+        # Generate and display a single trace 
         (trace, _) = Gen.generate(generate_trajectory, model_args, observations)
         display(Gen.get_choices(trace))
     else
-
         # Filter particles to explain the complete trajectory
         results, _ = infer(generate_trajectory, model_args, observations, w2, args.num_particles, args.save_intermediate, fname)
 
