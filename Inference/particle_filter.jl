@@ -2,6 +2,9 @@
 #
 # Defines a particle filter and proposal distribution that can be used to generate a set of concurrent simulations (particles)
 # Each simulation is procedurally updated by one time step, scored, rejuvenated, and (potentially) resampled
+#
+# CONSIDER: Change number of particles, number of rejuvenation moves
+# CONSIDER: Change prior for elasticity
 
 using Gen
 using ZipFile

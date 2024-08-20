@@ -4,11 +4,10 @@
 # Simulates rigid body physics for specified number of time steps, recording a series of noisy position observations 
 #
 # DONE: Add noise to position
-# TODO: Add noise to initial velocity
+# DONE: Add noise to initial velocity
+#
 # CONSIDER: Add noise to orientation
 # CONSIDER: Add additional noise at collisions
-# CONSIDER: Change number of particles, number of rejuvenation moves
-# CONSIDER: Change prior for elasticity
 
 using Gen
 using PyCall

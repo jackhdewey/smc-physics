@@ -1,7 +1,8 @@
 # Data analysis
 # Plots model-inferred elasticities against human judgments
 #
-# DONE: Compute error to identify trials with poor model / human correlation
+# DONE: Compute error, identify trials with poor model / human correlation
+# TODO: 
 
 using Plots
 using DataFrames

@@ -2,6 +2,7 @@
 # Generates 3D plots showing particle trajectories vs ground truth
 #
 # DONE: Allow more flexible selection of elasticity / trial interval
+# TODO: Streamline display of dataframes (particle filter states) at each timestep to assess behavior
 # TODO: Set the alpha / intensity to reflect the log weight of each particle
 
 using Plots
