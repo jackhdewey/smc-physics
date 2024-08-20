@@ -1,7 +1,7 @@
 # Data analysis
 # Plots model-inferred elasticities against human judgments
 #
-# TODO: Compute error to identify trials with poor model / human correlation
+# DONE: Compute error to identify trials with poor model / human correlation
 
 using Plots
 using DataFrames
@@ -28,18 +28,19 @@ end
 function read_simulation_data(expt, target_id)
     
     simulation_folder = joinpath(project_path, "Data", "BulletData", model_id, target_id, var_id, string("Exp", expt), "Inferences")
+    r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip"))
 
     all_data = []
-    for file in readdir(simulation_folder)
-        full_file_path = joinpath(simulation_folder, file)
-        data = CSV.read(full_file_path, DataFrame)
+    for file in r.files
+        println(file.name)
+        data = CSV.File(read(file)) |> DataFrame
 
-        _, elasticity_string, variation = split(file, ['_', '.'])
+        _, elasticity_string, variation = split(file.name, ['_', '.'])
         elasticity = parse(Int, elasticity_string[end]) * 0.1 # fix order of magnitude
     
         data = insertcols(
             data,
-            "filename" => file,
+            "filename" => file.name,
             "stimulusID" => target_id * "_" * elasticity_string * "_" * variation,
             "gtElasticity" => elasticity,
             "variation" => parse(Int64, variation[4:end])
@@ -72,9 +73,9 @@ function process_individual_stimuli_sim(expt, target_id)
     high_error = sim_data_pred[sim_data_pred.error.>.2, :]
     high_error_trials = high_error[:, 1]
     println(high_error_trials)
-    println(sim_data_pred)
+    println("EXECUTION COMPLETE")
 
-    return sim_data_pred
+    return sim_data_pred, high_error_trials
 end
 
 # Read the human predictions
@@ -292,7 +293,11 @@ function plot_mean_elasticity_judgments(expt, target_id)
     # gui()
 end
 
+process_individual_stimuli_sim(1, target_id)
+
+#=
 for expt = 1:2
     plot_individual_stimuli_judgments(expt, target_id)
     plot_mean_elasticity_judgments(expt, target_id)
 end
+=#
