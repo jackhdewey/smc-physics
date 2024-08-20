@@ -2,7 +2,6 @@
 # Generates 3D plots showing particle trajectories vs ground truth
 #
 # DONE: Allow more flexible selection of elasticity / trial interval
-#
 # TODO: Set the alpha / intensity to reflect the log weight of each particle
 
 using Plots
@@ -19,7 +18,6 @@ expt_id = "Exp1"
 data_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
 num_particles = 20
-
 
 # Display data frames for the specified interval of particle filter states
 function display_data_frames(r, particle_indices, interval)
@@ -185,7 +183,7 @@ function main()
     "Sphere_Ela1_Var2", "Sphere_Ela1_Var4", "Sphere_Ela1_Var6", "Sphere_Ela2_Var12", "Sphere_Ela2_Var13", "Sphere_Ela2_Var6", 
     "Sphere_Ela2_Var7", "Sphere_Ela3_Var1", "Sphere_Ela3_Var13", "Sphere_Ela3_Var14", "Sphere_Ela3_Var5", "Sphere_Ela3_Var8", 
     "Sphere_Ela4_Var1", "Sphere_Ela4_Var14", "Sphere_Ela4_Var15", "Sphere_Ela4_Var2", "Sphere_Ela4_Var5", "Sphere_Ela5_Var10", "Sphere_Ela5_Var11", "Sphere_Ela5_Var2", "Sphere_Ela5_Var5", "Sphere_Ela6_Var10", "Sphere_Ela6_Var11", "Sphere_Ela6_Var12", "Sphere_Ela6_Var13", "Sphere_Ela6_Var14", "Sphere_Ela6_Var2", "Sphere_Ela6_Var4", "Sphere_Ela6_Var9", "Sphere_Ela7_Var10", "Sphere_Ela7_Var2", "Sphere_Ela7_Var6"]
-    
+
     sort!(error_trials, lt=trial_order)
     trial_indices = []
     for file in error_trials

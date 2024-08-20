@@ -1,4 +1,4 @@
-# Utilities files to assist with analysis scripts
+# Utility functions to assist with fileio for analysis scripts
 
 # Read the entire folder of simulation data
 function read_simulation_data(expt, target_id)

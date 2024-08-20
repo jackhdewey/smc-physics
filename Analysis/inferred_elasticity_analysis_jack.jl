@@ -24,22 +24,20 @@ else
     marker_shape = :circle
 end
 
-# Read the entire folder of simulation data
+# Read simulation data from folder and store in vector 
 function read_simulation_data(expt, target_id)
     
+    all_data = []
+
     simulation_folder = joinpath(project_path, "Data", "BulletData", model_id, target_id, var_id, string("Exp", expt), "Inferences")
     r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip"))
-
-    all_data = []
     for file in r.files
         println(file.name)
-        data = CSV.File(read(file)) |> DataFrame
-
         _, elasticity_string, variation = split(file.name, ['_', '.'])
         elasticity = parse(Int, elasticity_string[end]) * 0.1 # fix order of magnitude
     
-        data = insertcols(
-            data,
+        data = CSV.File(read(file)) |> DataFrame
+        data = insertcols(data,
             "filename" => file.name,
             "stimulusID" => target_id * "_" * elasticity_string * "_" * variation,
             "gtElasticity" => elasticity,
@@ -54,11 +52,10 @@ function read_simulation_data(expt, target_id)
     return all_data
 end
 
-# Aggregate the model inferences by stimulus
+# Aggregate model inferences by stimulus
 function process_individual_stimuli_sim(expt, target_id)
 
     sim_data = read_simulation_data(expt, target_id)
-
     sim_data_pred = @chain sim_data begin
         @groupby :stimulusID
         @combine begin
@@ -70,7 +67,8 @@ function process_individual_stimuli_sim(expt, target_id)
         @orderby :stimulusID
     end
 
-    high_error = sim_data_pred[sim_data_pred.error.>.2, :]
+    # Compute error, filter by threshold, and save high error trials
+    high_error = sim_data_pred[sim_data_pred.error .> .2, :]
     high_error_trials = high_error[:, 1]
     println(high_error_trials)
     println("EXECUTION COMPLETE")
@@ -105,7 +103,7 @@ function read_subject_data(expt)
     return df
 end
 
-# Aggregate the 
+# Aggregate the mean ratings across subjects by stimulus
 function process_individual_stimuli_human(expt)
 
     sub_data = read_subject_data(expt)
@@ -133,6 +131,7 @@ end
 # PLOTS #
 #########
 
+# Generate the filepath where we will save the plots
 function generate_plot_path(expt)
     plots_path = joinpath(project_path, "Analysis", "Plots", model_id, target_id, var_id, "Exp" * string(expt), "Judgments")
     if !isdir(plots_path)
@@ -181,7 +180,7 @@ function plot_sim_vs_gt(expt, target_id)
     savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_model_", target_id, "Exp", expt, ".png")))
 end
 
-#
+# Plot human judgments against the ground truth
 function plot_human_vs_gt(expt)
     human = process_individual_stimuli_human(expt)
     # scatter(human.gtElasticity, human.judgment)
@@ -216,7 +215,7 @@ function plot_human_vs_gt(expt)
 end
 
 #
-function plot_individual_stimuli_judgments(expt, target_id)
+function plot_sim_vs_human_individual_stimuli(expt, target_id)
     human = process_individual_stimuli_human(expt)
     sim = process_individual_stimuli_sim(expt, target_id)
 
@@ -249,7 +248,7 @@ function plot_individual_stimuli_judgments(expt, target_id)
 end
 
 #
-function plot_mean_elasticity_judgments(expt, target_id)
+function plot_sim_vs_human_mean(expt, target_id)
 
     human = process_individual_stimuli_human(expt)
     sim = process_individual_stimuli_sim(expt, target_id)
@@ -297,7 +296,7 @@ process_individual_stimuli_sim(1, target_id)
 
 #=
 for expt = 1:2
-    plot_individual_stimuli_judgments(expt, target_id)
-    plot_mean_elasticity_judgments(expt, target_id)
+    plot_sim_vs_human_individual_stimuli(expt, target_id)
+    plot_sim_vs_human_mean(expt, target_id)
 end
 =#
