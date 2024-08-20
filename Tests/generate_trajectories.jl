@@ -1,0 +1,1 @@
+# Data generation pipeline for 'ground truth' simulations in PyBullet
