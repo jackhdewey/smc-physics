@@ -2,7 +2,6 @@ using CSV
 using Plots
 using DataFramesMeta
 using DataFrames
-using Glob
 
 include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
@@ -10,7 +9,6 @@ dir = "Data/BulletData/Modelv5/Sphere/PosVar075/Test/Intermediate/"
 dir = "Data/BulletData/Modelv5/Cube/PosVar075/Test/Intermediate/"
 
 # particle_files = filter_unwanted_filenames(readdir(dir))
-particle_files = glob("*Ela0_Var3*", dir)
 output_id = "Modelv5/Cube/PosVar075/Test"
 dir = string("/Users/maxs/smc-physics/Data/BulletData/", output_id, "/Intermediate/")
 
