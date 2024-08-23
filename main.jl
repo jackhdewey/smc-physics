@@ -1,13 +1,10 @@
 # Galileo 3
 #
-# Infers the elasticity of a bouncing object from n observation frames and predicts its future trajectory 
-# Given how it has bounced so far, what will be the target object's future trajectory?
-#
-# What kind of generative model correlates best with human judgments?
-#       * using a rigid body
-#       * using a sphere
-#       * etc.
-#
+# Infers the elasticity of a bouncing soft body from a sequence of observation frames and predicts its future trajectory 
+# What representation in the generative model produces inferences that correlate best with human judgments?
+#      * using a rigid body
+#      * using a sphere
+#      * etc.
 # Ground truth trajectories are generated in RealFlow and read from .csv files
 
 using Distributed
@@ -40,46 +37,30 @@ include("Utilities/plots.jl")
 
 end
 
-function main()
-
-    args = Args()
-
-    # Read ground truth trajectories
-    dir = string("Data/RealFlowData/", args.expt_id, "/")
-    fnames = readdir(dir)
-    fnames = filter_unwanted_filenames(fnames)
-    sort!(fnames, lt=trial_order)
-
+function make_directories_and_writers(args::Args)
+        
     # Locate / create base directory for output data
-    output_id = string(args.output_id, "1")
-    dir_base = string("Data/BulletData/", output_id)
+    #output_id = string(args.output_id, "1")
+    dir_base = string("Data/BulletData/", args.output_id)
     if !isdir(dir_base)
         mkdir(dir_base)
     end
 
-    # Locate / create directories and zip file writers for intermediate particles and output data
+    # Locate / create directories for intermediate particles and output data
     particle_dir = string(dir_base, "/Intermediate/")
     if !isdir(particle_dir)
         mkdir(particle_dir)
     end
-    w2 = ZipFile.Writer(string(particle_dir, "/particles.zip"))
 
     output_dir = string(dir_base, "/Inferences/")
     if !isdir(output_dir)
         mkdir(output_dir)
     end
+
     w1 = ZipFile.Writer(string(output_dir, "/inferences.zip"))
+    w2 = ZipFile.Writer(string(particle_dir, "/particles.zip"))
 
-    # Map each observed trajectory to a process executing a particle filter
-    #pmap(fname -> run(fname, args), fnames)
-
-    for fname in fnames
-        run(fname, args, w1, w2)
-    end
-
-    close(w1)
-    close(w2)
-        
+    return w1, w2
 end
 
 @everywhere begin
@@ -91,7 +72,7 @@ function run(fname, args, w1, w2)
     bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
-    # Initialize target object state using observed data
+    # Initialize scene and target object state using observed data
     init_scene()
     fname = string(args.expt_id, "/", fname)
     init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.debug)
@@ -124,7 +105,6 @@ function run(fname, args, w1, w2)
     end
 
     bullet.disconnect()
-
     #=
     catch e
         println(e) 
@@ -132,8 +112,30 @@ function run(fname, args, w1, w2)
         bullet.disconnect()
     end
     =#
-
 end
+end
+
+function main()
+
+    args = Args()
+
+    # Read ground truth trajectories
+    dir = string("Data/RealFlowData/", args.expt_id, "/")
+    fnames = readdir(dir)
+    fnames = filter_unwanted_filenames(fnames)
+    sort!(fnames, lt=trial_order)
+
+    w1, w2 = make_directories_and_writers(args)
+
+    # Map each observed trajectory to a process executing a particle filter
+    #pmap(fname -> run(fname, args), fnames)
+
+    for fname in fnames
+        run(fname, args, w1, w2)
+    end
+
+    close(w1)
+    close(w2)  
 end
 
 main()

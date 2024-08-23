@@ -1,8 +1,10 @@
 # Data analysis
+# Synthesizes and displays particle filter state at each time step
 # Generates 3D plots showing particle trajectories vs ground truth
 #
 # DONE: Allow more flexible selection of elasticity / trial interval
-# TODO: Streamline display of dataframes (particle filter states) at each timestep to assess behavior
+# TODO: Streamline display of dataframes (particle filter states) at each timestep
+# QUESTION: Are the 'identities' of particles consistent across time, i.e. do they survive resampling?
 # TODO: Set the alpha / intensity to reflect the log weight of each particle
 
 using Plots
@@ -11,29 +13,37 @@ using ZipFile
 include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
-# Select the model variation and experiment
+
+# Model variation and experiment
 model_id = "Modelv5"
 target_id = "Sphere"
 noise_id = "PosVar075"
 expt_id = "Exp1"
 data_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
+# Inference variables
 num_particles = 20
 
-# Display data frames for the specified interval of particle filter states
+# Plotting variables
+interactive = false
+plot_interval = 5
+
+# Displays (prints) the given particle filter states for the specified time steps
 function display_data_frames(r, particle_indices, interval)
 
+    # For the files starting at the selected indices
     for particle_index in particle_indices
+
         # For an interval of particle filter time steps
         for t=interval[1]:interval[2]
             file = r.files[particle_index + t - 1]
             data = CSV.File(read(file)) |> DataFrame
 
-            # For the first time step
+            # Select only one frame for each particle
             time_step = data[data.frame.==1, :]
-            unique = Dict()
 
-            # For each particle
+            # For each particle, check if its elasticity is unique
+            unique = Dict()
             for i=1:num_particles
                 if !haskey(unique, time_step[i, 2])
                     unique[time_step[i, 2]] = 1
@@ -51,18 +61,19 @@ end
 function plot_trajectories(gt_files, particle_indices, r, expt_dir)
 
     # Plot parameters
-    interactive = false
     if interactive
         pyplot()
     end
-    plot_interval = 5
 
     for i in eachindex(gt_files)
 
-        tokens = split(gt_files[i], "_")
-        title = string("Stimulus: ", tokens[2], " ", tokens[3], "\n", data_id)
+        # Read ground truth file to dataframe
+        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
+        ground_truth = CSV.read(gt_file, DataFrame)
 
         # Generate plot base
+        tokens = split(gt_files[i], "_")
+        title = string("Stimulus: ", tokens[2], " ", tokens[3], "\n", data_id)
         plt = plot3d(
                 1,
                 xlim=(-0.5, 0.5),
@@ -76,15 +87,11 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
                 gridlinewidth=8
         )
 
-        # Read ground truth file to dataframe
-        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
-        ground_truth = CSV.read(gt_file, DataFrame)
-
-        # Procedurally generate plots by adding trajectories at each time step
-        num_timesteps = size(ground_truth)[1]
+        # Procedurally generate plot
         true_x = []
         true_y = []
         true_z = []
+        num_timesteps = size(ground_truth)[1]
         for t = 1:num_timesteps
             println(string("Timestep: ", t))
 
@@ -94,14 +101,14 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
             true_z = [true_z; ground_truth[t, 3]]
             plot!(plt, true_x, true_y, true_z, linewidth=3, linecolor=:red)
 
-            # Index into correct particle filter file
+            # Extract and sort particle files
             files = map((file) -> file.name, r.files)
             files = filter(contains(".csv"), files)
             sort!(files, lt=trial_particle_order)
+
+            # Index into correct file and read into dataframe
             d_file = files[particle_indices[i] + t - 1]
-            println(d_file)
             t_file = filter((file) -> file.name == d_file, r.files)[1]
-            println(t_file.name)
             data = CSV.File(read(t_file)) |> DataFrame
 
             # For each particle
@@ -113,7 +120,7 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
                 # weight = data[data.particle .== i, 3]
                 # @df plot!(plt1, particle[:, 5:7])
 
-                # Generate particle trajectory up to current time step and add to plot
+                # Read particle trajectory up to current time step
                 x_trajectory = []
                 y_trajectory = []
                 z_trajectory = []
@@ -122,15 +129,21 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
                     y_trajectory = [y_trajectory; particle[row, 6]]
                     z_trajectory = [z_trajectory; particle[row, 7]]
                 end
-                title!(string(title, "\nTimestep: ", t, " / ", num_timesteps))
+
+                # Add particle trajectory to plot
                 plot!(plt, x_trajectory, y_trajectory, z_trajectory)
 
             end
 
             # Every fifth time step, display the plot and (if static) save as .png
-            tokens = split(t_file.name, "_")
             if t % plot_interval == 0
+
+                # Update title
+                title!(string(title, "\nTimestep: ", t, " / ", num_timesteps))
+
                 display(plt)
+
+                tokens = split(t_file.name, "_")
                 if !interactive
                     savefig(string(expt_dir, "/Trajectories/", tokens[2], "_", tokens[3], "_", t))
                 end
@@ -142,12 +155,12 @@ end
 
 function main()
 
-    # Pull ground truth trajectory files from directory
+    # Load and sort ground truth trajectory files
     dir = string("Data/RealFlowData/", expt_id, "/")
     gt_files = filter(contains("observed"), readdir(dir))
     sort!(gt_files, lt=trial_order)
 
-    # Pull intermediate particle filter state files from directory
+    # Load and sort intermediate particle filter state files
     dir = string("Data/BulletData/", data_id, "/Intermediate/")
     r = ZipFile.Reader(string(dir, "particles.zip"))
     files = map((file) -> file.name, r.files)
@@ -174,18 +187,29 @@ function main()
         mkdir(expt_dir)
     end
 
-    # Filter down to trials we want to plot
-
-    # For each trial
-    #gt_files = filter((file) -> occursin("Ela9_Var1_", file), gt_files)
-
+    # Filter to trials we want to plot
     #_, error_trials = process_individual_stimuli_sim(1, target_id)
-    error_trials = ["Sphere_Ela0_Var14", "Sphere_Ela0_Var4", "Sphere_Ela0_Var6", "Sphere_Ela1_Var10", "Sphere_Ela1_Var12", 
-    "Sphere_Ela1_Var2", "Sphere_Ela1_Var4", "Sphere_Ela1_Var6", "Sphere_Ela2_Var12", "Sphere_Ela2_Var13", "Sphere_Ela2_Var6", 
-    "Sphere_Ela2_Var7", "Sphere_Ela3_Var1", "Sphere_Ela3_Var13", "Sphere_Ela3_Var14", "Sphere_Ela3_Var5", "Sphere_Ela3_Var8", 
-    "Sphere_Ela4_Var1", "Sphere_Ela4_Var14", "Sphere_Ela4_Var15", "Sphere_Ela4_Var2", "Sphere_Ela4_Var5", "Sphere_Ela5_Var10", "Sphere_Ela5_Var11", "Sphere_Ela5_Var2", "Sphere_Ela5_Var5", "Sphere_Ela6_Var10", "Sphere_Ela6_Var11", "Sphere_Ela6_Var12", "Sphere_Ela6_Var13", "Sphere_Ela6_Var14", "Sphere_Ela6_Var2", "Sphere_Ela6_Var4", "Sphere_Ela6_Var9", "Sphere_Ela7_Var10", "Sphere_Ela7_Var2", "Sphere_Ela7_Var6"]
+    error_trials = [
+        "Sphere_Ela0_Var4", "Sphere_Ela0_Var6", "Sphere_Ela0_Var14", 
 
+        "Sphere_Ela1_Var10", "Sphere_Ela1_Var12", "Sphere_Ela1_Var2", "Sphere_Ela1_Var4", "Sphere_Ela1_Var6", 
+
+        "Sphere_Ela2_Var12", "Sphere_Ela2_Var13", "Sphere_Ela2_Var6", 
+        "Sphere_Ela2_Var7", 
+
+        "Sphere_Ela3_Var1", "Sphere_Ela3_Var13", "Sphere_Ela3_Var14", "Sphere_Ela3_Var5", "Sphere_Ela3_Var8", 
+
+        "Sphere_Ela4_Var1", "Sphere_Ela4_Var14", "Sphere_Ela4_Var15", "Sphere_Ela4_Var2", "Sphere_Ela4_Var5", 
+
+        "Sphere_Ela5_Var10", "Sphere_Ela5_Var11", "Sphere_Ela5_Var2", "Sphere_Ela5_Var5", 
+
+        "Sphere_Ela6_Var10", "Sphere_Ela6_Var11", "Sphere_Ela6_Var12", "Sphere_Ela6_Var13", "Sphere_Ela6_Var14", "Sphere_Ela6_Var2", "Sphere_Ela6_Var4", "Sphere_Ela6_Var9", 
+
+        "Sphere_Ela7_Var10", "Sphere_Ela7_Var2", "Sphere_Ela7_Var6"
+    ]
     sort!(error_trials, lt=trial_order)
+
+    # Locate the indices of the corresponding RealFlow files
     trial_indices = []
     for file in error_trials
         tokens = split(file, "_")
@@ -194,17 +218,10 @@ function main()
         push!(trial_indices, trial_index)
     end
 
-    #println("Error Trials: ", trial_indices)
-    #=
-    for i in trial_indices
-        println(gt_files[i])
-    end
-    =#
-
+    # Find the indices of the corresponding particle filter files
     particle_indices = []
     particle_index = 1
-    max_index = maximum(trial_indices)
-    for i = 1:max_index
+    for i = 1:maximum(trial_indices)
         if i in trial_indices
             push!(particle_indices, particle_index)
         end
@@ -212,18 +229,17 @@ function main()
         particle_index += size(CSV.read(gt_file, DataFrame))[1]
     end
  
+    # Check to confirm corresponding file names
     for i in eachindex(trial_indices)
         println(error_trials[i])
         println(files[particle_indices[i]])
     end
     
-    plot_trajectories(gt_files, particle_indices, r, expt_dir)
+    #gt_files = filter((file) -> occursin("Ela9_Var1_", file), gt_files)
 
-    #gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[1])
-    #ground_truth = CSV.read(gt_file, DataFrame)
-
-    #interval=[1, 10]
-    #display_data_frames(r, particle_indices, interval)
+    interval=[1, 10]
+    display_data_frames(r, particle_indices, interval)
+    #plot_trajectories(gt_files, particle_indices, r, expt_dir)
     
 end
 

@@ -1,10 +1,11 @@
-# Inference and Prediction
+# Particle filter 
 #
-# Defines a particle filter and proposal distribution that can be used to generate a set of concurrent simulations (particles)
-# Each simulation is procedurally updated by one time step, scored, rejuvenated, and (potentially) resampled
+# Generates and does inference using a set of concurrent simulations (particles)
+# Each simulation is procedurally 1) updated by one time step, 2) scored, 3) (potentially) resampled, and 4) rejuvenated
 #
-# CONSIDER: Change number of particles, number of rejuvenation moves
-# CONSIDER: Change prior for elasticity
+# CONSIDER: Changing number of rejuvenation moves
+# CONSIDER: Changing number of particles
+# CONSIDER: Changing prior for elasticity
 
 using Gen
 using ZipFile
@@ -24,7 +25,7 @@ function get_observations(choices::Gen.ChoiceMap, T::Int)
     return observations
 end
 
-# Resamples latent(s) from a Gaussian proposal distribution
+# For use in MCMC rejuvenation - resamples latent(s) from a Gaussian proposal distribution
 @gen function proposal(trace::Gen.Trace)
 
     choices = get_choices(trace)
@@ -57,13 +58,13 @@ function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, w2, num_particles
             # Simulates the next time step and scores against new observation
             Gen.particle_filter_step!(state, (gm_args[1], gm_args[2], t), argdiffs, obs[t])
 
+            # Decides whether to cull and resample poorly performing particles
+            Gen.maybe_resample!(state, ess_threshold=num_particles/2)
+
             # Rejuvenation - resamples elasticity, resimulates to current time step, then accepts / rejects
             for i=1:num_particles
                 state.traces[i], _ = Gen.mh(state.traces[i], proposal, ())
             end
-
-            # Decides whether to cull and resample poorly performing particles
-            Gen.maybe_resample!(state, ess_threshold=num_particles/2)
             
             # Dump current particles to a .csv file
             if save_particles

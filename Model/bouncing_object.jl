@@ -1,12 +1,12 @@
 # Generative Model
 #
-# Generates a rigid cube or sphere with specified initial position and velocity, within a larger cubic enclosure
-# Simulates rigid body physics for specified number of time steps, recording a series of noisy position observations 
+# Generates a rigid cube or sphere with specified initial position and velocity within a larger cubic enclosure
+# Simulates rigid body physics for specified number of time steps, returning a series of (noisy) position observations 
 #
-# DONE: Add noise to position
-# DONE: Add noise to initial velocity
+# DONE: Added noise to position
+# DONE: Added noise to initial velocity
 #
-# CONSIDER: Add noise to orientation
+# CONSIDER: Add noise to initial orientation
 # CONSIDER: Add additional noise at collisions
 
 using Gen
@@ -89,16 +89,6 @@ function init_target_state(sim::PhySim, shape::String, init_position::Vector{Flo
     return init_state
 end
 
-# Samples latent properties from their priors
-@gen function sample_latents(l::RigidBodyLatents)
-
-    res = {:restitution} ~ uniform(0, 1)
-    
-    # mass = {:mass} ~ gamma(1.2, 10.)
-
-    return RigidBodyLatents(setproperties(l.data, restitution=res))
-end
-
 # Samples the initial kinematic state of the target object
 @gen function sample_init_state(k::RigidBodyState)
 
@@ -107,12 +97,21 @@ end
     return setproperties(k, linear_vel=velocity)
 end
 
-# Adds noise to kinematic state at each transition
+# Samples latent properties from their priors
+@gen function sample_latents(l::RigidBodyLatents)
+
+    res = {:restitution} ~ uniform(0, 1)
+    # mass = {:mass} ~ gamma(1.2, 10.)
+
+    return RigidBodyLatents(setproperties(l.data, restitution=res))
+end
+
+# Adds noise to kinematic state
 # Current estimate as mean, variance either some constant or derived from average acceleration
 # Ground truth as mean, variance derived from empirical distribution of data 
 @gen function resample_state(k::RigidBodyState)
 
-    position = {:position} ~ broadcasted_normal(k.position, TRANSITION_NOISE)
+    {:position} ~ broadcasted_normal(k.position, TRANSITION_NOISE)
 
     #=
     orientation::Vector{3, Float64} = bullet.getEulerFromQuaternion(k.orientation)
@@ -124,7 +123,7 @@ end
 end
 
 # Adds measurement noise to estimated position
-@gen function generate_observation(k::RigidBodyState)
+@gen function sample_observation(k::RigidBodyState)
 
     obs = {:position} ~ broadcasted_normal(k.position, OBSERVATION_NOISE)
 
@@ -140,7 +139,7 @@ end
     current_state = setproperties(current_state, kinematics = noisy_kinematics)
 
     # Applies observation noise to x, y, and z position
-    {:observation} ~ Gen.Map(generate_observation)(current_state.kinematics)
+    {:observation} ~ Gen.Map(sample_observation)(current_state.kinematics)
 
     # Synchronizes state, then use Bullet to generate next state
     next_state::BulletState = PhySMC.step(sim, current_state)
@@ -151,13 +150,13 @@ end
 # Given an initial state, samples latents from their priors then runs a stochastic forward simulation
 @gen function generate_trajectory(sim::BulletSim, init_state::BulletState, T::Int)
 
-    # Sample the target object's restitution
-    latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
-    init_state = setproperties(init_state; latents=latents)
-
-    # Sample the target object's initial velocity
+    # Sample an estimate of the target object's initial velocity
     #kinematics = { :init_state } ~ Gen.Map(sample_init_state)(init_state.kinematics)
     #init_state = setproperties(init_state; kinematics=kinematics)
+
+    # Sample an estimate of the target object's restitution
+    {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
+    init_state = setproperties(init_state; latents=latents)
 
     # Simulate T time steps
     states = {:trajectory} ~ Gen.Unfold(kernel)(T, init_state, sim)

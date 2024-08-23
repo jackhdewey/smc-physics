@@ -1,5 +1,5 @@
 # Data analysis
-# Plots model-inferred elasticities against human judgments
+# Generates 2D plots showing model-inferred elasticities vs human judgments
 #
 # DONE: Compute error, identify trials with poor model / human correlation
 # TODO: 
@@ -25,7 +25,11 @@ else
     marker_shape = :circle
 end
 
-# Read simulation data from folder and store in vector 
+##################
+# Files and Data #
+##################
+
+# Read simulation data and store in vector 
 function read_simulation_data(expt, target_id)
     
     all_data = []
@@ -141,7 +145,7 @@ function generate_plot_path(expt)
     return plots_path
 end
 
-# Plot the simulation against the ground truth
+# Plot the model against the ground truth
 function plot_sim_vs_gt(expt, target_id)
     sim_raw = read_simulation_data(expt, target_id)
 
@@ -215,7 +219,7 @@ function plot_human_vs_gt(expt)
     # gui()
 end
 
-#
+# Plot model estimates against human judgments
 function plot_sim_vs_human_individual_stimuli(expt, target_id)
     human = process_individual_stimuli_human(expt)
     sim = process_individual_stimuli_sim(expt, target_id)
@@ -248,7 +252,7 @@ function plot_sim_vs_human_individual_stimuli(expt, target_id)
     gui()
 end
 
-#
+# Plot mean model estimates against mean human judgments
 function plot_sim_vs_human_mean(expt, target_id)
 
     human = process_individual_stimuli_human(expt)
