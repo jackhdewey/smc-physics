@@ -111,7 +111,7 @@ end
 # Ground truth as mean, variance derived from empirical distribution of data 
 @gen function resample_state(k::RigidBodyState)
 
-    {:position} ~ broadcasted_normal(k.position, TRANSITION_NOISE)
+    position = {:position} ~ broadcasted_normal(k.position, TRANSITION_NOISE)
 
     #=
     orientation::Vector{3, Float64} = bullet.getEulerFromQuaternion(k.orientation)
@@ -155,7 +155,7 @@ end
     #init_state = setproperties(init_state; kinematics=kinematics)
 
     # Sample an estimate of the target object's restitution
-    {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
+    latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
     init_state = setproperties(init_state; latents=latents)
 
     # Simulate T time steps
