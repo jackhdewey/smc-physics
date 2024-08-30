@@ -16,9 +16,9 @@ include("../Utilities/plots.jl")
 
 # Model variation and experiment
 model_id = "Modelv5"
-target_id = "Sphere"
-noise_id = "PosVar075"
-expt_id = "Exp1"
+target_id = "Cube"
+noise_id = "PosVar05"
+expt_id = "BulletxBullet"
 data_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
 # Inference variables
@@ -68,7 +68,8 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
     for i in eachindex(gt_files)
 
         # Read ground truth file to dataframe
-        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
+        #gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
+        gt_file = string("Tests/Data/", gt_files[i])
         ground_truth = CSV.read(gt_file, DataFrame)
 
         # Generate plot base
@@ -156,7 +157,8 @@ end
 function main()
 
     # Load and sort ground truth trajectory files
-    dir = string("Data/RealFlowData/", expt_id, "/")
+    #dir = string("Data/RealFlowData/", expt_id, "/")
+    dir = string("Tests/Data/")
     gt_files = filter(contains("observed"), readdir(dir))
     sort!(gt_files, lt=trial_order)
 
@@ -239,7 +241,7 @@ function main()
 
     interval=[1, 10]
     display_data_frames(r, particle_indices, interval)
-    #plot_trajectories(gt_files, particle_indices, r, expt_dir)
+    plot_trajectories(gt_files, particle_indices, r, expt_dir)
     
 end
 

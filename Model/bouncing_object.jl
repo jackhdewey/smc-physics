@@ -47,9 +47,11 @@ function init_scene()
     wall3 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[0.51, 0, 0.51], baseOrientation=quaternion)
     bullet.changeDynamics(wall3, -1, mass=0.0, restitution=0.5)
 
+    #=
     wall4ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
     wall4 = bullet.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -0.51, 0.51], baseOrientation=quaternion)
     bullet.changeDynamics(wall4, -1, mass=0.0, restitution=0.5)
+    =#
     
     # Create and position ceiling
     ceilingID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.5, 0.01])
@@ -89,14 +91,6 @@ function init_target_state(sim::PhySim, shape::String, init_position::Vector{Flo
     return init_state
 end
 
-# Samples the initial kinematic state of the target object
-@gen function sample_init_state(k::RigidBodyState)
-
-    velocity = {:init_velocity} ~ broadcasted_normal(k.linear_vel, INIT_VELOCITY_NOISE)
-
-    return setproperties(k, linear_vel=velocity)
-end
-
 # Samples latent properties from their priors
 @gen function sample_latents(l::RigidBodyLatents)
 
@@ -106,9 +100,17 @@ end
     return RigidBodyLatents(setproperties(l.data, restitution=res))
 end
 
-# Adds noise to kinematic state
+# Samples the initial kinematic state of the target object
+@gen function sample_init_state(k::RigidBodyState)
+
+    velocity = {:init_velocity} ~ broadcasted_normal(k.linear_vel, INIT_VELOCITY_NOISE)
+
+    return setproperties(k, linear_vel=velocity)
+end
+
+# Adds noise to kinematic state to capture uncertainty in transition dynamics
 # Current estimate as mean, variance either some constant or derived from average acceleration
-# Ground truth as mean, variance derived from empirical distribution of data 
+# Alternative: ground truth as mean, variance derived from empirical distribution of data 
 @gen function resample_state(k::RigidBodyState)
 
     position = {:position} ~ broadcasted_normal(k.position, TRANSITION_NOISE)
@@ -122,7 +124,7 @@ end
     return setproperties(k, position=position)
 end
 
-# Adds measurement noise to estimated position
+# Adds measurement noise to capture uncertainty in position observation
 @gen function sample_observation(k::RigidBodyState)
 
     obs = {:position} ~ broadcasted_normal(k.position, OBSERVATION_NOISE)
@@ -136,7 +138,7 @@ end
 
     # Applies system noise to position, orientation, and velocity
     noisy_kinematics = {:state} ~ Gen.Map(resample_state)(current_state.kinematics)
-    current_state = setproperties(current_state, kinematics = noisy_kinematics)
+    current_state = setproperties(current_state, kinematics=noisy_kinematics)
 
     # Applies observation noise to x, y, and z position
     {:observation} ~ Gen.Map(sample_observation)(current_state.kinematics)

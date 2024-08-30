@@ -10,7 +10,7 @@ dir = "Data/BulletData/Modelv5/Cube/PosVar075/Test/Intermediate/"
 
 # particle_files = filter_unwanted_filenames(readdir(dir))
 output_id = "Modelv5/Cube/PosVar075/Test"
-dir = string("/Users/maxs/smc-physics/Data/BulletData/", output_id, "/Intermediate/")
+dir = string("Data/BulletData/", output_id, "/Intermediate/")
 
 num_timesteps = 20
 num_particles = 20
@@ -19,7 +19,7 @@ num_particles = 20
 for ela = 0:9
     plt = plot()
 
-    gt_file = "/Users/maxs/smc-physics/Data/RealFlowData/Test/Cube_Ela" * "$ela" * "_Var1_observed.csv"
+    gt_file = "Data/RealFlowData/Test/Cube_Ela" * "$ela" * "_Var1_observed.csv"
     ground_truth = CSV.read(gt_file, DataFrame)
 
     num_timesteps = size(ground_truth)[1]
@@ -28,7 +28,7 @@ for ela = 0:9
     all_data = zeros(20, num_timesteps)
     for t = 1:num_timesteps
 
-        file = string("/Users/maxs/smc-physics/Data/BulletData/Modelv5/Cube/PosVar075/Test/Intermediate/particles_Ela", "$ela", "_Var1_$t.csv")
+        file = string("Data/BulletData/Modelv5/Cube/PosVar075/Test/Intermediate/particles_Ela", "$ela", "_Var1_$t.csv")
         println(file)
         data = CSV.read(string(file), DataFrame)
 
@@ -47,6 +47,7 @@ for ela = 0:9
     # display(plt)
     savefig(string("Analysis/Plots/", "Elasticity_0.$ela", ".png"))
 end
+
 # for p = 1:20
 #     pdata = data[data.particle.==p, :]
 #     x = 1:maximum(data.frame)

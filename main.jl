@@ -1,6 +1,6 @@
 # Galileo 3
 #
-# Infers the elasticity of a bouncing soft body from a sequence of observation frames and predicts its future trajectory 
+# Infers the elasticity of a bouncing soft body from a sequence of postition observations and predicts its future trajectory 
 # What representation in the generative model produces inferences that correlate best with human judgments?
 #      * using a rigid body
 #      * using a sphere
@@ -18,14 +18,14 @@ include("Utilities/plots.jl")
 
 @with_kw struct Args
 
+    debug::Bool = false
+
     # Model parameters
     model_id::String = "Modelv5"
     target_id::String = "Cube"
     noise_id::String = "PosVar05"
-    expt_id::String = "Test"
+    expt_id::String = "BulletxBullet"
     output_id::String = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
-
-    debug::Bool = false
 
     # Inference parameters
     num_particles::Int = 20
@@ -72,15 +72,19 @@ function run(fname, args, w1, w2)
     bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
     sim = BulletSim(step_dur=1/30; client=client)
 
-    # Initialize scene and target object state using observed data
+    # Initialize scene 
     init_scene()
-    fname = string(args.expt_id, "/", fname)
+
+    # Initialize target object state using observed data
+    #fname = string(args.expt_id, "/", fname)
+    fname = string("Tests/Data/", fname)
     init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.debug)
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
-    model_args = (sim, init_state, t_s)
 
+    model_args = (sim, init_state, t_s)
     if args.debug
         # Generate and display a single trace 
+        println("DEBUGGING")
         (trace, _) = Gen.generate(generate_trajectory, model_args, observations)
         display(Gen.get_choices(trace))
     else
@@ -90,11 +94,12 @@ function run(fname, args, w1, w2)
         # Write output particles to a .csv file
         tokens = split(fname, "_")
         fname = string(tokens[2], "_", tokens[3])
+        console.log(fname)
         f = ZipFile.addfile(w1, fname)
         write_to_csv(results, f)
 
         if args.predict
-            # For each output particle, predict the next 90 time steps
+            # For each particle, simulate the next 90 time steps
             ppd = predict(results, args.prediction_timesteps)
             #gif(animate_traces(ppd), fps=24)
         
@@ -120,7 +125,8 @@ function main()
     args = Args()
 
     # Read ground truth trajectories
-    dir = string("Data/RealFlowData/", args.expt_id, "/")
+    #dir = string("Data/RealFlowData/", args.expt_id, "/")
+    dir = string("Tests/Data/")
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
@@ -128,7 +134,7 @@ function main()
     w1, w2 = make_directories_and_writers(args)
 
     # Map each observed trajectory to a process executing a particle filter
-    #pmap(fname -> run(fname, args), fnames)
+    #pmap(fname -> run(fname, args, w1, w2), fnames)
 
     for fname in fnames
         run(fname, args, w1, w2)

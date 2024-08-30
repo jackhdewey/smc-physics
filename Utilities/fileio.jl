@@ -16,7 +16,7 @@ end
 function read_obs_file(fname, test::Bool=false)
 
     # Read ground truth initial state
-    fname = string("Data/RealFlowData/", fname) 
+    #fname = string("Data/RealFlowData/", fname) 
     println("Reading...", fname)
     init_state = CSV.read(fname, DataFrame)
 
