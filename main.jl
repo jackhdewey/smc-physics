@@ -6,6 +6,10 @@
 #      * using a sphere
 #      * etc.
 # Ground truth trajectories are generated in RealFlow and read from .csv files
+#
+# TODO: Do inference using MCMC
+# TODO: Infer elasticity for trajectories simulated in PyBullet
+# TODO: Display particle trajectories more perspicuously 
 
 using Distributed
 using Parameters
@@ -19,6 +23,7 @@ include("Utilities/plots.jl")
 @with_kw struct Args
 
     debug::Bool = false
+    inference::String = "MCMC"
 
     # Model parameters
     model_id::String = "Modelv5"
@@ -40,7 +45,6 @@ end
 function make_directories_and_writers(args::Args)
         
     # Locate / create base directory for output data
-    #output_id = string(args.output_id, "1")
     dir_base = string("Data/BulletData/", args.output_id)
     if !isdir(dir_base)
         mkdir(dir_base)
@@ -75,7 +79,7 @@ function run(fname, args, w1, w2)
     # Initialize scene 
     init_scene()
 
-    # Initialize target object state using observed data
+    # Initialize target object state using observation data
     #fname = string(args.expt_id, "/", fname)
     fname = string("Tests/Data/", fname)
     init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.debug)
@@ -83,22 +87,29 @@ function run(fname, args, w1, w2)
 
     model_args = (sim, init_state, t_s)
     if args.debug
+
         # Generate and display a single trace 
         println("DEBUGGING")
         (trace, _) = Gen.generate(generate_trajectory, model_args, observations)
         display(Gen.get_choices(trace))
+
+    elseif args.inference == "MCMC"
+        
+        
     else
-        # Filter particles to explain the complete trajectory
+
+        # Filter n particles to explain the complete trajectory
         results, _ = infer(generate_trajectory, model_args, observations, w2, args.num_particles, args.save_intermediate, fname)
 
         # Write output particles to a .csv file
         tokens = split(fname, "_")
         fname = string(tokens[2], "_", tokens[3])
-        console.log(fname)
+        println(fname)
         f = ZipFile.addfile(w1, fname)
         write_to_csv(results, f)
 
         if args.predict
+
             # For each particle, simulate the next 90 time steps
             ppd = predict(results, args.prediction_timesteps)
             #gif(animate_traces(ppd), fps=24)
@@ -106,6 +117,7 @@ function run(fname, args, w1, w2)
             # Write predicted trajectories to a .csv file
             fname = string(dir_base, "/Predictions/predictions_", tokens[2], "_", tokens[3])
             write_to_csv(ppd, fname)
+
         end
     end
 

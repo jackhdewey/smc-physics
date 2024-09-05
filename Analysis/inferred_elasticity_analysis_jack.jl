@@ -1,23 +1,22 @@
 # Data analysis
-# Generates 2D plots showing model-inferred elasticities vs human judgments
-#
-# DONE: Compute error, identify trials with poor model / human correlation
-# TODO: 
+# Assess model performance at inferring elasticity, relative to ground truth and/or human judgments
+# Identify trials with poor model / human correlation by absolute error
+# Generate 2D plots showing model-inferred elasticities vs human judgments
 
-using Plots
 using DataFrames
 using DataFramesMeta
 using Statistics
-using Gen
-using CSV
 using Plots
+
+include("utils.jl")
 
 project_path = dirname(@__DIR__)
 println(project_path)
 
 model_id = "Modelv5"
-target_id = "Sphere"
-var_id = "PosVar075"
+target_id = "Cube"
+noise_id = "PosVar05"
+expt_id = "BulletxBullet"
 
 if target_id == "Cube"
     marker_shape = :square
@@ -25,42 +24,15 @@ else
     marker_shape = :circle
 end
 
-##################
-# Files and Data #
-##################
+#################
+# Data Analysis #
+#################
 
-# Read simulation data and store in vector 
-function read_simulation_data(expt, target_id)
-    
-    all_data = []
+# Compute particle filter error on each stimulus, filter to extract high error trials
+function process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
 
-    simulation_folder = joinpath(project_path, "Data", "BulletData", model_id, target_id, var_id, string("Exp", expt), "Inferences")
-    r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip"))
-    for file in r.files
-        println(file.name)
-        _, elasticity_string, variation = split(file.name, ['_', '.'])
-        elasticity = parse(Int, elasticity_string[end]) * 0.1 # fix order of magnitude
-    
-        data = CSV.File(read(file)) |> DataFrame
-        data = insertcols(data,
-            "filename" => file.name,
-            "stimulusID" => target_id * "_" * elasticity_string * "_" * variation,
-            "gtElasticity" => elasticity,
-            "variation" => parse(Int64, variation[4:end])
-        )
-        push!(all_data, data)
-    end
-
-    all_data = vcat(all_data...)    # join all dfs
-    # filter(:variation => x -> x <= 15, all_data)
-    
-    return all_data
-end
-
-# Aggregate model inferences by stimulus
-function process_individual_stimuli_sim(expt, target_id)
-
-    sim_data = read_simulation_data(expt, target_id)
+    # Define model's elasticity judgment as average of output particles, compute error w.r.t. ground truth
+    sim_data = read_simulation_data(model_id, target_id, noise_id, expt_id)
     sim_data_pred = @chain sim_data begin
         @groupby :stimulusID
         @combine begin
@@ -72,43 +44,15 @@ function process_individual_stimuli_sim(expt, target_id)
         @orderby :stimulusID
     end
 
-    # Compute error, filter by threshold, and save high error trials
+    # Filter by error threshold, save high error trials
     high_error = sim_data_pred[sim_data_pred.error .> .2, :]
     high_error_trials = high_error[:, 1]
     println(high_error_trials)
-    println("EXECUTION COMPLETE")
 
     return sim_data_pred, high_error_trials
 end
 
-# Read the human predictions
-function read_subject_data(expt)
-
-    folders = Dict(
-        1 => "Exp1_allElasticities_fullMotion",
-        2 => "Exp2_allElasticities_1second",
-        3 => "Exp3_mediumElasticity_fullMotion",
-        4 => "Exp4_mediumElasticity_1second"
-    )
-    exp_data_folder = joinpath(project_path, "Data", "HumanData", "EstimationTask", folders[expt], "Results")
-
-    data = []
-    for fname in readdir(exp_data_folder)
-        sub_data = CSV.read(joinpath(exp_data_folder, fname), DataFrame)
-        sub_data = insertcols(sub_data, :filename => fname)
-        push!(data, sub_data) # this is a vector of dataframes
-    end
-    df = vcat(data...)     # combine all together with splat operator
-
-    # elasticity is coded as integer
-    if expt >= 3
-        df.elasticity = df.elasticity / 10
-    end
-
-    return df
-end
-
-# Aggregate the mean ratings across subjects by stimulus
+# Group subject elasticity judgments by stimulus and compute mean rating for each stimulus
 function process_individual_stimuli_human(expt)
 
     sub_data = read_subject_data(expt)
@@ -117,7 +61,7 @@ function process_individual_stimuli_human(expt)
     sub_data_pred = @chain sub_data begin
         @groupby :stimulusID
         # @groupby :elasticity# :filename
-        # @DataFramesMeta.transform :prediction = mean(:rating) # Gen also has a transform macro
+        # @DataFramesMeta.transform :prediction = mean(:rating)     # Gen also has a transform macro
         @combine begin
             :judgment = mean(:rating)
             :std_err_mean = std(:rating) / sqrt(nsubs) # number of subjects
@@ -126,6 +70,7 @@ function process_individual_stimuli_human(expt)
         # @subset :gtElasticity .> 0.6
         @orderby :stimulusID
     end
+
     println(sub_data_pred)
 
     return sub_data_pred
@@ -136,62 +81,46 @@ end
 # PLOTS #
 #########
 
-# Generate the filepath where we will save the plots
-function generate_plot_path(expt)
-    plots_path = joinpath(project_path, "Analysis", "Plots", model_id, target_id, var_id, "Exp" * string(expt), "Judgments")
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-    return plots_path
-end
-
-# Plot the model against the ground truth
+# Plot model against ground truth
 function plot_sim_vs_gt(expt, target_id)
-    sim_raw = read_simulation_data(expt, target_id)
 
-    sim = @chain sim_raw begin
-        @groupby :stimulusID
-        @combine begin
-            :estimate = mean(:elasticity) # :elasticity = :gtElasticity
-            :gtElasticity = first(:gtElasticity)
-            :std_err_mean = std(:elasticity)
-        end
-    end
+    sim, _ = process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
 
-    p = palette(:jet)
     # default(aspect_ratio = :equal)
-    scatter(sim.gtElasticity,
-            sim.estimate,
-            yerror=sim.std_err_mean ./ 2,
+    p = palette(:jet)
+    scatter(sim.elasticity,
+            sim.judgment,
+            #yerror=sim.std_err_mean ./ 2,
             aspect_ratio=:equal,
             markersize=5,
             markeralpha=0.5,
-            zcolor=sim.gtElasticity,# zcolor = :gtElasticity,
+            zcolor=sim.elasticity,          # zcolor = :gtElasticity,
             clims=(0, 1),
             xlims=(0, 1.05),
             ylims=(0, 1),
             xlabel="Ground Truth Elasticity",
             ylabel="Model Estimate",
-            title="Exp $expt stimulus-specific elasticity ratings - $sim_object",
+            title="Exp $expt stimulus-specific elasticity ratings - $target_id",
             colorbar=true,
             legend=false,
             palette=p,
             markershape=marker_shape)
 
     plot!(0:1, 0:1, line=:dash)
-    corr_string = "r = " * string(round(cor(sim.gtElasticity, sim.estimate), digits=3))
+    corr_string = "r = " * string(round(cor(sim.elasticity, sim.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    plots_path = generate_plot_path(expt)
+    plots_path = generate_plot_path(model_id, target_id, noise_id, expt_id)
     savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_model_", target_id, "Exp", expt, ".png")))
+
 end
 
 # Plot human judgments against the ground truth
 function plot_human_vs_gt(expt)
+    
     human = process_individual_stimuli_human(expt)
-    # scatter(human.gtElasticity, human.judgment)
-    # @autoinfiltrate
-    p = palette(:jet)
+
     # default(aspect_ratio = :equal)
+    p = palette(:jet)
     scatter(human.gtElasticity,
         human.judgment,
         yerror=human.std_err_mean ./ 2,
@@ -213,19 +142,20 @@ function plot_human_vs_gt(expt)
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(human.gtElasticity, human.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    plots_path = generate_plot_path(expt)
+    plots_path = generate_plot_path(model_id, target_id, noise_id, expt_id)
     savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_human", "Exp", expt, ".png")))
-
     # gui()
+
 end
 
 # Plot model estimates against human judgments
 function plot_sim_vs_human_individual_stimuli(expt, target_id)
-    human = process_individual_stimuli_human(expt)
-    sim = process_individual_stimuli_sim(expt, target_id)
 
-    p = palette(:jet)
+    human = process_individual_stimuli_human(expt)
+    sim = process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
+
     # default(aspect_ratio = :equal)
+    p = palette(:jet)
     scatter(sim.judgment,
             human.judgment,
             yerror=human.std_err_mean ./ 2,
@@ -247,17 +177,18 @@ function plot_sim_vs_human_individual_stimuli(expt, target_id)
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(sim.judgment, human.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    plots_path = generate_plot_path(expt)
+    plots_path = generate_plot_path(model_id, target_id, noise_id, expt_id)
     savefig(joinpath(plots_path, string("individual_stimuli_judgments_high_elasticity", target_id, "Exp", expt, ".png")))
     gui()
+
 end
 
 # Plot mean model estimates against mean human judgments
 function plot_sim_vs_human_mean(expt, target_id)
 
     human = process_individual_stimuli_human(expt)
-    sim = process_individual_stimuli_sim(expt, target_id)
-    p = palette(:jet)
+    sim = process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
+
     # default(aspect_ratio = :equal)
     model_mean_elasticity = @chain sim begin
         @groupby :elasticity
@@ -268,7 +199,9 @@ function plot_sim_vs_human_mean(expt, target_id)
         @groupby :gtElasticity
         @combine :judgment = mean(:judgment)
     end
+
     # @infiltrate
+    p = palette(:jet)
     scatter(model_mean_elasticity.judgment,
             human_mean_elasticity.judgment,
             yerror=human.std_err_mean ./ 2,
@@ -288,16 +221,18 @@ function plot_sim_vs_human_mean(expt, target_id)
             palette=p,
             markershape=marker_shape)
 
-
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(model_mean_elasticity.judgment, human_mean_elasticity.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    plots_path = generate_plot_path(expt)
+    plots_path = generate_plot_path(model_id, target_id, noise_id, expt_id)
     savefig(joinpath(plots_path, string("average_judgment_per_elasticity_", target_id, "Exp", expt, ".png")))
     # gui()
+
 end
 
-process_individual_stimuli_sim(1, target_id)
+#process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
+#plot_sim_vs_human_individual_stimuli(model_id, target_id, noise_id, expt_id)
+plot_sim_vs_gt(1, target_id)
 
 #=
 for expt = 1:2

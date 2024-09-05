@@ -2,9 +2,9 @@
 # Synthesizes and displays particle filter state at each time step
 # Generates 3D plots showing particle trajectories vs ground truth
 #
+# QUESTION: Are the 'identities' of particles consistent across time, i.e. do they survive resampling?
 # DONE: Allow more flexible selection of elasticity / trial interval
 # TODO: Streamline display of dataframes (particle filter states) at each timestep
-# QUESTION: Are the 'identities' of particles consistent across time, i.e. do they survive resampling?
 # TODO: Set the alpha / intensity to reflect the log weight of each particle
 
 using Plots
@@ -167,6 +167,7 @@ function main()
     r = ZipFile.Reader(string(dir, "particles.zip"))
     files = map((file) -> file.name, r.files)
     files = filter(contains(".csv"), files)
+    println(files)
     sort!(files, lt=trial_particle_order)
 
     #particle_files = map(file -> file.name, r.files)
