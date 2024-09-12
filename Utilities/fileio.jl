@@ -12,6 +12,10 @@ function filter_unwanted_filenames(fnames)
     return fnames
 end 
 
+#######################
+# READING AND WRITING #
+#######################
+
 # Extracts initial position, initial velocity, and trajectory from two .csv files
 function read_obs_file(fname, pf::Bool=false)
 
@@ -60,6 +64,32 @@ function read_obs_file(fname, pf::Bool=false)
     end
 
     return initial_position, initial_orientation, initial_velocity, observations, time_steps
+end
+
+# Prepare directory for output files, and generate .zip file writers
+function make_directories_and_writers(args::Args)
+        
+    # Locate / create base directory for output data
+    dir_base = string("Data/BulletData/", args.output_id)
+    if !isdir(dir_base)
+        mkdir(dir_base)
+    end
+
+    # Locate / create directories for intermediate particles and output data
+    particle_dir = string(dir_base, "/Intermediate/")
+    if !isdir(particle_dir)
+        mkdir(particle_dir)
+    end
+
+    output_dir = string(dir_base, "/Inferences/")
+    if !isdir(output_dir)
+        mkdir(output_dir)
+    end
+
+    w1 = ZipFile.Writer(string(output_dir, "/inferences.zip"))
+    w2 = ZipFile.Writer(string(particle_dir, "/particles.zip"))
+
+    return w1, w2
 end
 
 # Writes data for each particle (elasticity, log weight, and trajectory) to a .csv file

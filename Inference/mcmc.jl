@@ -31,7 +31,7 @@ function block_resimulation_inference(args, observations)
     return trace
 end
 
-# Resamples latent(s) from a Gaussian proposal distribution - for use in MCMC rejuvenation
+# Resamples latent(s) from a Gaussian proposal distribution
 @gen function proposal(trace::Gen.Trace)
 
     choices = get_choices(trace)
@@ -46,13 +46,13 @@ end
     return (restitution)
 end
 
-# Generate an initial trace then perform 500 block resimulation updates
+# Generate an initial trace then perform 1000 MH updates using Gaussian proposal
 function gaussian_drift_inference(args, observations)
 
     # Generate an initial conditioned trace
     (trace, _) = generate(generate_trajectory, (args), observations)
 
-    # Perform 500 block resimulation updates
+    # Perform 1000 gaussian drift updates
     for _=1:1000
         (trace, did_accept) = mh(trace, proposal, ())
     end
