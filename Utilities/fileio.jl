@@ -13,7 +13,7 @@ function filter_unwanted_filenames(fnames)
 end 
 
 # Extracts initial position, initial velocity, and trajectory from two .csv files
-function read_obs_file(fname, test::Bool=false)
+function read_obs_file(fname, pf::Bool=false)
 
     # Read ground truth initial state
     #fname = string("Data/RealFlowData/", fname) 
@@ -37,23 +37,25 @@ function read_obs_file(fname, test::Bool=false)
     obs_fname = join([head, "_observed.", tail])
     println("Reading...", obs_fname)
     trajectory_data = CSV.read(obs_fname, DataFrame)
-
-    # Either store the entire trajectory in a single choice map, or split into a vector of choice maps
     time_steps = size(trajectory_data)[1]
-    if test
-        observations = Gen.choicemap()
-    else 
+
+    # Split into a vector of choice maps 
+    if pf
         observations = Vector{Gen.ChoiceMap}(undef, time_steps)
+
+    # Or store the trajectory in a single choice map
+    else 
+        observations = Gen.choicemap()
     end
 
     for i=1:time_steps
         datum = values(trajectory_data[i, :])
         position = [datum[1], datum[2], datum[3]]
         addr = :trajectory => i => :observation => 1 => :position
-        if test
-            observations[addr] = position
-        else
+        if pf
             observations[i] = Gen.choicemap((addr, position))
+        else
+            observations[addr] = position
         end
     end
 

@@ -25,7 +25,7 @@ function get_observations(choices::Gen.ChoiceMap, T::Int)
     return observations
 end
 
-# For use in MCMC rejuvenation - resamples latent(s) from a Gaussian proposal distribution
+# Resamples latent(s) from a Gaussian proposal distribution - for use in MCMC rejuvenation
 @gen function proposal(trace::Gen.Trace)
 
     choices = get_choices(trace)
@@ -40,7 +40,7 @@ end
     return (restitution)
 end
 
-# Generates num_particles trajectories, scoring and filtering them according to their likelihood
+# Generates num_particles trajectories, iteratively scoring and resampling (filtering) them according to their likelihood
 function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, w2, num_particles::Int=20, save_particles=false, fname::String=missing)
 
     # Extract trial identification    
