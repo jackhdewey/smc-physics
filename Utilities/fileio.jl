@@ -3,6 +3,7 @@
 using DataFrames
 using CSV
 
+include("args.jl")
 
 # Remove any filenames that contain certain tokens
 function filter_unwanted_filenames(fnames)

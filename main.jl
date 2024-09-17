@@ -19,30 +19,7 @@ include("Model/bouncing_object.jl")
 include("Inference/mcmc.jl")
 include("Inference/particle_filter.jl")
 include("Utilities/plots.jl")
-
-
-@with_kw struct Args
-
-    # Data source
-    gt_source::String = "Bullet"
-
-    # Model parameters
-    model_id::String = "Modelv5"
-    target_id::String = "Cube"
-    noise_id::String = "PosVar05"
-    expt_id::String = "BulletxBullet"
-    output_id::String = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
-
-    # Inference parameters
-    algorithm::String = "MCMC"    # MCMC, PARTICLE_FILTER, or DEBUG
-    num_particles::Int = 20
-    save_intermediate::Bool = true
-
-    # Prediction parameters
-    predict::Bool = false
-    prediction_timesteps::Int = 90
-
-end
+include("Utilities/args.jl")
 
 @everywhere begin
 function run(fname, args, w1, w2)
@@ -57,7 +34,7 @@ function run(fname, args, w1, w2)
     init_scene()
 
     # Initialize target object state using observation data
-    gt_source == "RealFlow" ? fname = string("Data/RealFlowData/", args.expt_id, "/", fname) : fname = string("Tests/Data/", fname)
+    args.gt_source == "RealFlow" ? fname = string("Data/RealFlowData/", args.expt_id, "/", fname) : fname = string("Tests/Data/", fname)
     init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm == "PARTICLE_FILTER")
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
     model_args = (sim, init_state, t_s)
@@ -130,7 +107,7 @@ function main()
     args = Args()
 
     # Read ground truth trajectories
-    gt_source == "RealFlow" ? dir = string("Data/RealFlowData/", args.expt_id, "/") : dir = string("Tests/Data/")
+    args.gt_source == "RealFlow" ? dir = string("Data/RealFlowData/", args.expt_id, "/") : dir = string("Tests/Data/")
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
