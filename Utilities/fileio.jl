@@ -7,6 +7,7 @@ include("args.jl")
 
 # Remove any filenames that contain certain tokens
 function filter_unwanted_filenames(fnames)
+    # for i in ["predicted", "observed", "batch", "Store", "4", "5", "6", "7", "8", "9"]
     for i in ["predicted", "observed", "batch", "Store"]
         fnames = filter(!contains(i), fnames)
     end
@@ -18,10 +19,11 @@ end
 #######################
 
 # Extracts initial position, initial velocity, and trajectory from two .csv files
-function read_obs_file(fname, pf::Bool=false)
+function read_obs_file(fname, args, pf::Bool=false)
 
     # Read ground truth initial state
-    #fname = string("Data/RealFlowData/", fname) 
+    #fname = string("Data/RealFlowData/", fname)
+    fname = joinpath("Data", args.gt_source * "Data", fname)
     println("Reading...", fname)
     init_state = CSV.read(fname, DataFrame)
 

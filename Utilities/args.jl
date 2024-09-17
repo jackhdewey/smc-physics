@@ -1,3 +1,5 @@
+using Parameters
+
 @with_kw struct Args
 
     # Data source
@@ -18,5 +20,7 @@
     # Prediction parameters
     predict::Bool = false
     prediction_timesteps::Int = 90
+
+    debug::Bool = false
 
 end

@@ -1,6 +1,6 @@
 # Galileo 3
 #
-# Infers the elasticity of a bouncing soft body from a sequence of postition observations and predicts its future trajectory 
+# Infers the elasticity of a bouncing soft body from a sequence of position observations and predicts its future trajectory
 # What representation in the generative model produces inferences that correlate best with human judgments?
 #      * using a rigid body
 #      * using a sphere
@@ -9,57 +9,53 @@
 #
 # TODO: Try inference using MCMC
 # TODO: Infer elasticity for trajectories simulated in PyBullet
-# TODO: Display particle trajectory data 
+# TODO: Display particle trajectory data
 
 using Distributed
-using Parameters
 using ZipFile
+using Random
 
+# Seed the random number generator
+Random.seed!(1234)
 include("Model/bouncing_object.jl")
 include("Inference/mcmc.jl")
 include("Inference/particle_filter.jl")
 include("Utilities/plots.jl")
 include("Utilities/args.jl")
 
-@everywhere begin
 function run(fname, args, w1, w2)
-    
-    # Initialize simulation context 
+
+    # Initialize simulation context
     client = bullet.connect(bullet.DIRECT)::Int64
     bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
     bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
-    sim = BulletSim(step_dur=1/30; client=client)
+    sim = BulletSim(step_dur=1 / 30; client=client)
 
-    # Initialize scene 
+    # Initialize scene and target object state using observed data
     init_scene()
+    fname = string(args.expt_id, "/", fname)
+    println(fname)
 
-    # Initialize target object state using observation data
-    args.gt_source == "RealFlow" ? fname = string("Data/RealFlowData/", args.expt_id, "/", fname) : fname = string("Tests/Data/", fname)
-    init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm == "PARTICLE_FILTER")
+    init_position = nothing
+    init_velocity = nothing
+    observations = nothing
+    t_s = nothing
+    try
+        init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args, true)
+    catch e
+        println("--------------------------------------------------------------------------------\n\n")
+        println(e)
+        println("--------------------------------------------------------------------------------\n\n")
+        return
+
+    end
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
     model_args = (sim, init_state, t_s)
 
-    if args.algorithm == "DEBUG"
-
-        # Generate and display a single trace 
-        println("DEBUGGING")
+    if args.debug
+        # Generate and display a single trace
         (trace, _) = Gen.generate(generate_trajectory, model_args, observations)
         display(Gen.get_choices(trace))
-
-    elseif args.algorithm == "MCMC"
-        
-        println("Initializing MCMC")
-        trace = gaussian_drift_inference(model_args, observations)
-        println(trace[:latents => 1 => :restitution])
-
-        # Write output trajectory to a .csv file
-        tokens = split(fname, "_")
-        tokens = split(fname, "_")
-        fname = string(tokens[2], "_", tokens[3])
-        println(fname)
-        #f = ZipFile.addfile(w1, fname)
-        #write_to_csv(results, f)
-        
     else
 
         # Filter n particles to explain the complete trajectory
@@ -67,48 +63,50 @@ function run(fname, args, w1, w2)
         results, _ = infer(generate_trajectory, model_args, observations, w2, args.num_particles, args.save_intermediate, fname)
 
         # Write output particles to a .csv file
+        # println(fname)
         tokens = split(fname, "_")
         fname = string(tokens[2], "_", tokens[3])
-        println(fname)
-        f = ZipFile.addfile(w1, fname)
+        # f = ZipFile.addfile(w1, fname)
+
+        tokens = split(fname, "_")
+        f = string("Data/BulletData/", args.output_id, "/Inferences/", tokens[1], "_", tokens[2])
         write_to_csv(results, f)
 
         if args.predict
-
-            # For each particle, simulate the next 90 time steps
+            # For each output particle, predict the next 90 time steps
             ppd = predict(results, args.prediction_timesteps)
             #gif(animate_traces(ppd), fps=24)
-        
+
             # Write predicted trajectories to a .csv file
             fname = string(dir_base, "/Predictions/predictions_", tokens[2], "_", tokens[3])
             write_to_csv(ppd, fname)
-
         end
     end
 
     bullet.disconnect()
     #=
     catch e
-        println(e) 
+        println(e)
         println("Disconnecting Bullet")
         bullet.disconnect()
     end
     =#
-end
 end
 
 ########
 # MAIN #
 ########
 
-function main()
+@everywhere function main(args)
 
-    args = Args()
+    # args = Args(expt_id="Exp")
 
     # Read ground truth trajectories
     args.gt_source == "RealFlow" ? dir = string("Data/RealFlowData/", args.expt_id, "/") : dir = string("Tests/BulletStimulus/Data/")
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
+    println(dir)
+    println(fnames)
     sort!(fnames, lt=trial_order)
 
     w1, w2 = make_directories_and_writers(args)
@@ -121,7 +119,7 @@ function main()
     #pmap(fname -> run(fname, args, w1, w2), fnames)
 
     close(w1)
-    close(w2)  
+    close(w2)
 end
 
-main()
+# main()
