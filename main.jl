@@ -9,7 +9,7 @@
 #
 # TODO: Try inference using MCMC
 # TODO: Infer elasticity for trajectories simulated in PyBullet
-# TODO: Display particle trajectories perspicuously 
+# TODO: Display particle trajectory data 
 
 using Distributed
 using Parameters
@@ -62,9 +62,8 @@ function run(fname, args, w1, w2)
         
     else
 
-        println("Initializing Particle Filter")
-
         # Filter n particles to explain the complete trajectory
+        println("Initializing Particle Filter")
         results, _ = infer(generate_trajectory, model_args, observations, w2, args.num_particles, args.save_intermediate, fname)
 
         # Write output particles to a .csv file
