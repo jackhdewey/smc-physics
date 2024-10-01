@@ -1,8 +1,8 @@
-# Parallel implemention
+# Parallel implementation
 
 using Distributed
 if nworkers() == 1
-    addprocs(3)
+    addprocs(15)
 end
 
 include("Utilities/fileio.jl")
@@ -11,16 +11,26 @@ include("Utilities/fileio.jl")
 # include("main.jl")
 
 all_args = []
+all_fnames = []
+
 for i = 2:4
     expt_id = "Exp$i"
-    args = Args(expt_id=expt_id, gt_source="RealFlow", target_id="Sphere")
+    gt_source = "RealFlow"
+    args = Args(expt_id=expt_id, gt_source=gt_source, target_id="Sphere", save_intermediate=true)
 
-    # append!(all_fnames, [(joinpath(expt_id, f), args) for f in fnames])
-    push!(all_args, args)
+    if gt_source == "RealFlow"
+        dir = string("Data/RealFlowData/", args.expt_id, "/")
+    else
+        dir = string("Tests/BulletStimulus/Data/")
+    end
+
+    expt_fnames = readdir(dir)
+    expt_fnames = filter_unwanted_filenames(expt_fnames)
+
+    append!(all_fnames, expt_fnames)
+    append!(all_args, fill(args, length(expt_fnames)))
 
 end
 
-
-# println(all_args)
-pmap(main, all_args)
-# map(main, all_args)
+# sort!(all_fnames, lt=trial_order)
+pmap(run, zip(all_fnames, all_args))

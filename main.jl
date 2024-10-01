@@ -23,7 +23,7 @@ include("Inference/particle_filter.jl")
 include("Utilities/plots.jl")
 include("Utilities/args.jl")
 
-function run(fname, args, w1, w2)
+function run(fname, args)
 
     # Initialize simulation context
     client = bullet.connect(bullet.DIRECT)::Int64
@@ -34,7 +34,6 @@ function run(fname, args, w1, w2)
     # Initialize scene and target object state using observed data
     init_scene()
     fname = string(args.expt_id, "/", fname)
-    println(fname)
 
     init_position = nothing
     init_velocity = nothing
@@ -60,7 +59,7 @@ function run(fname, args, w1, w2)
 
         # Filter n particles to explain the complete trajectory
         println("Initializing Particle Filter")
-        results, _ = infer(generate_trajectory, model_args, observations, w2, args.num_particles, args.save_intermediate, fname)
+        results, _ = infer(generate_trajectory, model_args, observations, args, args.num_particles, args.save_intermediate, fname)
 
         # Write output particles to a .csv file
         # println(fname)
@@ -84,42 +83,4 @@ function run(fname, args, w1, w2)
     end
 
     bullet.disconnect()
-    #=
-    catch e
-        println(e)
-        println("Disconnecting Bullet")
-        bullet.disconnect()
-    end
-    =#
 end
-
-########
-# MAIN #
-########
-
-@everywhere function main(args)
-
-    # args = Args(expt_id="Exp")
-
-    # Read ground truth trajectories
-    args.gt_source == "RealFlow" ? dir = string("Data/RealFlowData/", args.expt_id, "/") : dir = string("Tests/BulletStimulus/Data/")
-    fnames = readdir(dir)
-    fnames = filter_unwanted_filenames(fnames)
-    println(dir)
-    println(fnames)
-    sort!(fnames, lt=trial_order)
-
-    w1, w2 = make_directories_and_writers(args)
-
-    for fname in fnames
-        run(fname, args, w1, w2)
-    end
-
-    # Map each observed trajectory to a process executing a particle filter
-    #pmap(fname -> run(fname, args, w1, w2), fnames)
-
-    close(w1)
-    close(w2)
-end
-
-# main()

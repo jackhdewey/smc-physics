@@ -89,10 +89,10 @@ function make_directories_and_writers(args::Args)
         mkdir(output_dir)
     end
 
-    w1 = ZipFile.Writer(string(output_dir, "/inferences.zip"))
-    w2 = ZipFile.Writer(string(particle_dir, "/particles.zip"))
+    # w1 = ZipFile.Writer(string(output_dir, "/inferences.zip"))
+    # w2 = ZipFile.Writer(string(particle_dir, "/particles.zip"))
 
-    return w1, w2
+    # return w1, w2
 end
 
 # Writes data for each particle (elasticity, log weight, and trajectory) to a .csv file
@@ -128,6 +128,7 @@ end
 # Comparator to sort output files into correct order
 function trial_order(x, y)
 
+    println(x, " ", y)
     x_tokens = split(x, "_")
     y_tokens = split(y, "_")
 
