@@ -14,11 +14,20 @@ include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
 
-# Model variation and experiment
+# Model variation
 model_id = "Modelv5"
 target_id = "Cube"
 noise_id = "PosVar05"
-expt_id = "BulletxBullet"
+
+# Data source
+gt_source = "Bullet"
+obj_type = "Cube"
+
+# Experiment
+expt_id = "BulletTest"
+
+# Filepaths
+gt_source == "Bullet" ? gt_dir = string("Tests/BulletStimulus/Data/", obj_type, "/") : gt_dir = string("Data/RealFlowData/", expt_id, "/")
 data_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
 # Inference variables
@@ -68,8 +77,7 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
     for i in eachindex(gt_files)
 
         # Read ground truth file to dataframe
-        #gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
-        gt_file = string("Tests/Data/", gt_files[i])
+        gt_file = string(gt_dir, gt_files[i])
         ground_truth = CSV.read(gt_file, DataFrame)
 
         # Generate plot base
@@ -146,7 +154,7 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
 
                 tokens = split(t_file.name, "_")
                 if !interactive
-                    savefig(string(expt_dir, "/Trajectories/", tokens[2], "_", tokens[3], "_", t))
+                    savefig(string(expt_dir, "/Trajectories/", tokens[1], "_", tokens[2], "_", t))
                 end
             end
         end
@@ -157,27 +165,21 @@ end
 function main()
 
     # Load and sort ground truth trajectory files
-    #dir = string("Data/RealFlowData/", expt_id, "/")
-    dir = string("Tests/Data/")
-    gt_files = filter(contains("observed"), readdir(dir))
+    gt_files = filter(contains("observed"), readdir(gt_dir))
     sort!(gt_files, lt=trial_order)
 
     # Load and sort intermediate particle filter state files
     dir = string("Data/BulletData/", data_id, "/Intermediate/")
     r = ZipFile.Reader(string(dir, "particles.zip"))
     files = map((file) -> file.name, r.files)
-    files = filter(contains(".csv"), files)
-    println(files)
-    sort!(files, lt=trial_particle_order)
+    particle_files = filter(contains(".csv"), files)
+    sort!(particle_files, lt=trial_particle_order)
 
-    #particle_files = map(file -> file.name, r.files)
-    #sort!(particle_files, lt=trial_particle_order)
-
-    model_dir = string("Analysis/Plots/", model_id, "/")
-    if !isdir(model_dir)
-        mkdir(model_dir)
+    plot_dir = string("Analysis/Plots/", model_id, "/")
+    if !isdir(plot_dir)
+        mkdir(plot_dir)
     end
-    target_dir = string(model_dir, target_id, "/")
+    target_dir = string(plot_dir, target_id, "/")
     if !isdir(target_dir)
         mkdir(target_dir)
     end
@@ -189,9 +191,18 @@ function main()
     if !isdir(expt_dir)
         mkdir(expt_dir)
     end
+    data_dir = string(expt_dir, "Trajectories/")
+    if !isdir(data_dir)
+        mkdir(data_dir)
+    end
 
     # Filter to trials we want to plot
+    #=
+
+    #gt_files = filter((file) -> occursin("Ela9_Var1_", file), gt_files)
+
     #_, error_trials = process_individual_stimuli_sim(1, target_id)
+
     error_trials = [
         "Sphere_Ela0_Var4", "Sphere_Ela0_Var6", "Sphere_Ela0_Var14", 
 
@@ -228,7 +239,7 @@ function main()
         if i in trial_indices
             push!(particle_indices, particle_index)
         end
-        gt_file = string("Data/RealFlowData/", expt_id, "/", gt_files[i])
+        gt_file = string(gt_dir, gt_files[i])
         particle_index += size(CSV.read(gt_file, DataFrame))[1]
     end
  
@@ -237,11 +248,20 @@ function main()
         println(error_trials[i])
         println(files[particle_indices[i]])
     end
-    
-    #gt_files = filter((file) -> occursin("Ela9_Var1_", file), gt_files)
+    =#
+
+    particle_indices = []
+    particle_index = 1
+    for file in gt_files
+        push!(particle_indices, particle_index)
+        gt_file = string(gt_dir, file)
+        frames = size(CSV.read(gt_file, DataFrame))[1]
+        println(frames)
+        particle_index += frames
+    end
 
     interval=[1, 10]
-    display_data_frames(r, particle_indices, interval)
+    #display_data_frames(r, particle_indices, interval)
     plot_trajectories(gt_files, particle_indices, r, expt_dir)
     
 end

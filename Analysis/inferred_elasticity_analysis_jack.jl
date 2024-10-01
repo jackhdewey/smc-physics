@@ -17,7 +17,7 @@ println(project_path)
 model_id = "Modelv5"
 target_id = "Cube"
 noise_id = "PosVar05"
-expt_id = "BulletxBullet"
+expt_id = "BulletTest"
 
 if target_id == "Cube"
     marker_shape = :square

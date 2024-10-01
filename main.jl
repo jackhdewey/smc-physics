@@ -7,8 +7,8 @@
 #      * etc.
 # Ground truth trajectories are generated in RealFlow and read from .csv files
 #
-# TODO: Try inference using MCMC
 # TODO: Infer elasticity for trajectories simulated in PyBullet
+# TODO: Debug MCMC
 # TODO: Display particle trajectory data 
 
 using Distributed
@@ -19,7 +19,6 @@ include("Model/bouncing_object.jl")
 include("Inference/mcmc.jl")
 include("Inference/particle_filter.jl")
 include("Utilities/plots.jl")
-include("Utilities/args.jl")
 
 
 @with_kw struct Args
@@ -27,11 +26,15 @@ include("Utilities/args.jl")
     # Data source
     gt_source::String = "Bullet"
 
+    # Experiment
+    expt_id::String = "BulletTest"
+
     # Model parameters
     model_id::String = "Modelv5"
-    target_id::String = "Cube"
-    noise_id::String = "PosVar05"
-    expt_id::String = "BulletxBullet"
+    target_id::String = "Sphere"
+    noise_id::String = "PosVar01"
+
+    # Filepaths
     output_id::String = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
     # Inference parameters
@@ -49,17 +52,29 @@ end
 function run(fname, args, w1, w2)
     
     # Initialize simulation context 
-    client = bullet.connect(bullet.DIRECT)::Int64
+    if args.algorithm=="DEBUG"
+        client = bullet.connect(bullet.GUI)::Int64
+    else 
+        client = bullet.connect(bullet.DIRECT)::Int64
+    end
+    
     bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
     bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
-    sim = BulletSim(step_dur=1/30; client=client)
+
+    if gt_source=="Bullet"
+        sim = BulletSim(step_dur=1/60; client=client)
+    else 
+        sim = BulletSim(step_dur=1/30; client=client)
+    end
 
     # Initialize scene 
-    init_scene()
+    init_scene(args.algorithm=="DEBUG")
 
     # Initialize target object state using observation data
-    args.gt_source == "RealFlow" ? fname = string("Data/RealFlowData/", args.expt_id, "/", fname) : fname = string("Tests/Data/", fname)
-    init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm == "PARTICLE_FILTER")
+    args.gt_source == "RealFlow" ? 
+        fname = string("Data/RealFlowData/", args.expt_id, "/", fname) : 
+        fname = string("Tests/BulletStimulus/Data/", args.target_id, "/", fname)
+    init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm=="PARTICLE_FILTER")
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
     model_args = (sim, init_state, t_s)
 
@@ -73,8 +88,9 @@ function run(fname, args, w1, w2)
     elseif args.algorithm == "MCMC"
         
         println("Initializing MCMC")
-        trace = gaussian_drift_inference(model_args, observations)
-        println(trace[:latents => 1 => :restitution])
+        avg_last_hundred, trace = gaussian_drift_inference(model_args, observations)
+        #println(trace[:latents => 1 => :restitution])
+        println("Elasticity estimate: ", avg_last_hundred)
 
         # Write output trajectory to a .csv file
         tokens = split(fname, "_")
@@ -130,16 +146,21 @@ function main()
     args = Args()
 
     # Read ground truth trajectories
-    args.gt_source == "RealFlow" ? dir = string("Data/RealFlowData/", args.expt_id, "/") : dir = string("Tests/BulletStimulus/Data/")
+    args.gt_source == "RealFlow" ? 
+        dir = string("Data/RealFlowData/", args.expt_id, "/") : 
+        dir = string("Tests/BulletStimulus/Data/", args.target_id, "/")
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    w1, w2 = make_directories_and_writers(args)
+    w1, w2 = make_directories_and_writers(args.output_id)
 
+    run(fnames[1], args, w1, w2)
+    #=
     for fname in fnames
         run(fname, args, w1, w2)
     end
+    =#
 
     # Map each observed trajectory to a process executing a particle filter
     #pmap(fname -> run(fname, args, w1, w2), fnames)
