@@ -33,4 +33,9 @@ for i = 2:4
 end
 
 # sort!(all_fnames, lt=trial_order)
-pmap(run, zip(all_fnames, all_args))
+param_array = zip(all_fnames, all_args)
+
+pmap(param_array) do param_tuple
+    fname, args = param_tuple
+    run(fname, args)
+end
