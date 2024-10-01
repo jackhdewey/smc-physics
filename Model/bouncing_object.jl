@@ -20,12 +20,13 @@ pybullet_data = pyimport("pybullet_data")
 
 include("../Utilities/truncatednorm.jl")
 
-INIT_VELOCITY_NOISE = .025
-TRANSITION_NOISE = .05
-OBSERVATION_NOISE = .05
+
+INIT_VELOCITY_NOISE = .025   # Currently disabled
+TRANSITION_NOISE = .01
+OBSERVATION_NOISE = .01
 
 # Sets initial scene configuration (in the future this could be inferred using an inverse graphics module)
-function init_scene()
+function init_scene(debug_viz::Bool)
 
     # Create and position ground plane
     planeID = bullet.createCollisionShape(bullet.GEOM_PLANE)
@@ -47,11 +48,11 @@ function init_scene()
     wall3 = bullet.createMultiBody(baseCollisionShapeIndex=wall3ID, basePosition=[0.51, 0, 0.51], baseOrientation=quaternion)
     bullet.changeDynamics(wall3, -1, mass=0.0, restitution=0.5)
 
-    #=
-    wall4ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
-    wall4 = bullet.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -0.51, 0.51], baseOrientation=quaternion)
-    bullet.changeDynamics(wall4, -1, mass=0.0, restitution=0.5)
-    =#
+    if !debug_viz
+        wall4ID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.01, 0.5])
+        wall4 = bullet.createMultiBody(baseCollisionShapeIndex=wall4ID, basePosition=[0, -0.51, 0.51], baseOrientation=quaternion)
+        bullet.changeDynamics(wall4, -1, mass=0.0, restitution=0.5)
+    end
     
     # Create and position ceiling
     ceilingID = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[0.5, 0.5, 0.01])
