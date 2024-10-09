@@ -9,7 +9,7 @@ using Parameters
     model_id::String = "Modelv5"
     target_id::String = "Cube"
     noise_id::String = "PosVar05"
-    expt_id::String = "BulletxBullet"
+    expt_id::String = "BulletTest"
     output_id::String = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
     # Inference parameters

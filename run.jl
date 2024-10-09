@@ -1,6 +1,7 @@
 # Parallel implementation
 
 using Distributed
+
 if nworkers() == 1
     addprocs(15)
 end
@@ -13,9 +14,11 @@ include("Utilities/fileio.jl")
 all_args = []
 all_fnames = []
 
+gt_source = "RealFlow"
+
 for i = 2:4
+    
     expt_id = "Exp$i"
-    gt_source = "RealFlow"
     args = Args(expt_id=expt_id, gt_source=gt_source, target_id="Sphere", save_intermediate=true)
 
     if gt_source == "RealFlow"

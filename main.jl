@@ -11,7 +11,6 @@
 # TODO: Infer elasticity for trajectories simulated in PyBullet
 # TODO: Display particle trajectory data
 
-using Distributed
 using ZipFile
 using Random
 
@@ -31,23 +30,25 @@ function run(fname, args)
     bullet.resetDebugVisualizerCamera(4, 0, -4, [0, 0, 2])
     sim = BulletSim(step_dur=1 / 30; client=client)
 
-    # Initialize scene and target object state using observed data
+    # Initialize scene 
     init_scene()
-    fname = string(args.expt_id, "/", fname)
 
+    # Initialize target object state using observed data
+    fname = string(args.expt_id, "/", fname)
     init_position = nothing
     init_velocity = nothing
     observations = nothing
     t_s = nothing
+
     try
         init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args, true)
     catch e
-        println("--------------------------------------------------------------------------------\n\n")
+        println("---------------------------------------------------------\n\n")
         println(e)
-        println("--------------------------------------------------------------------------------\n\n")
+        println("---------------------------------------------------------\n\n")
         return
-
     end
+
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
     model_args = (sim, init_state, t_s)
 
@@ -55,8 +56,8 @@ function run(fname, args)
         # Generate and display a single trace
         (trace, _) = Gen.generate(generate_trajectory, model_args, observations)
         display(Gen.get_choices(trace))
-    else
 
+    else
         # Filter n particles to explain the complete trajectory
         println("Initializing Particle Filter")
         results, _ = infer(generate_trajectory, model_args, observations, args, args.num_particles, args.save_intermediate, fname)
