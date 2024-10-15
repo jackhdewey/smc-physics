@@ -3,7 +3,7 @@
 using Gen
 using ZipFile
 
-include("../Model/bouncing_object.jl")
+
 include("../Utilities/fileio.jl")
 
 PROPOSAL_STD_DEV = 0.5
@@ -19,10 +19,10 @@ function block_resimulation_update(trace)
 end
 
 # Generate an initial trace then perform 500 block resimulation updates
-function block_resimulation_inference(args, observations)
+function block_resimulation_inference(model, args, observations)
 
     # Generate an initial conditioned trace
-    (trace, _) = generate(generate_trajectory, (args), observations)
+    (trace, _) = generate(model, (args), observations)
 
     # Perform 500 block resimulation updates
     for _=1:500
@@ -38,7 +38,7 @@ end
     choices = get_choices(trace)
 
     # Resample restitution from a Gaussian centered at the previous estimate
-    prev_res  = choices[:latents => 1 => :restitution]    
+    prev_res = choices[:latents => 1 => :restitution]    
     println(prev_res)
     restitution = {:latents => 1 => :restitution} ~ trunc_norm(prev_res, 0.1, 0.0, 1.0)
     println(restitution)
@@ -50,10 +50,10 @@ end
 end
 
 # Generate an initial trace then perform 1000 MH updates using Gaussian proposal
-function gaussian_drift_inference(args, observations)
+function gaussian_drift_inference(model, args, observations)
 
     # Generate an initial conditioned trace
-    (trace, _) = generate(generate_trajectory, (args), observations)
+    (trace, _) = generate(model, (args), observations)
 
     total_last_hundred = 0
 
@@ -61,10 +61,21 @@ function gaussian_drift_inference(args, observations)
     runs = 1000
     samples = 0
     accepts = 0 
+    high_score = -999999
+    map_elasticity = 0
     for i=1:runs        
+
         (trace, did_accept) = mh(trace, proposal, ())
-        println(trace[:latents => 1 => :restitution], " Score: ", get_score(trace), " Did accept? ", did_accept)
         accepts += did_accept
+        restitution = trace[:latents => 1 => :restitution]
+        score = get_score(trace)
+        if score > high_score
+            high_score = score
+            map_elasticity = restitution
+        end
+
+        println("Elasticity: ", restitution, " Score: ", score, " Did accept? ", did_accept)
+
         if i > runs - 100
             samples += 1 
             total_last_hundred += trace[:latents => 1 => :restitution]
@@ -72,8 +83,11 @@ function gaussian_drift_inference(args, observations)
     end
 
     avg_last_hundred = total_last_hundred / 100
-    println("Samples: ", samples)
+    
+    println("Runs: ", runs)
     println("Accepts: ", accepts)
+    println("Samples: ", samples)
+    println("MAP Elascitity: ", map_elasticity)
     
     return avg_last_hundred, trace
 end

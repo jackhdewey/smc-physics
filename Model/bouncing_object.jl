@@ -96,6 +96,7 @@ end
 @gen function sample_latents(l::RigidBodyLatents)
 
     res = {:restitution} ~ uniform(0, 1)
+
     # mass = {:mass} ~ gamma(1.2, 10.)
 
     return RigidBodyLatents(setproperties(l.data, restitution=res))
@@ -137,14 +138,14 @@ end
 # Before calling PhySMC.step, perturb position / velocity / orientation and store in new state
 @gen function kernel(t::Int, current_state::BulletState, sim::BulletSim)
 
-    # Applies system noise to position, orientation, and velocity
+    # Applies system noise to position
     noisy_kinematics = {:state} ~ Gen.Map(resample_state)(current_state.kinematics)
     current_state = setproperties(current_state, kinematics=noisy_kinematics)
 
-    # Applies observation noise to x, y, and z position
+    # Applies observation noise to position
     {:observation} ~ Gen.Map(sample_observation)(current_state.kinematics)
 
-    # Synchronizes state, then use Bullet to generate next state
+    # Synchronizes state, then uses Bullet to generate next state
     next_state::BulletState = PhySMC.step(sim, current_state)
 
     return next_state
@@ -153,11 +154,11 @@ end
 # Given an initial state, samples latents from their priors then runs a stochastic forward simulation
 @gen function generate_trajectory(sim::BulletSim, init_state::BulletState, T::Int)
 
-    # Sample an estimate of the target object's initial velocity
+    # Sample the target object's initial velocity
     #kinematics = { :init_state } ~ Gen.Map(sample_init_state)(init_state.kinematics)
     #init_state = setproperties(init_state; kinematics=kinematics)
 
-    # Sample an estimate of the target object's restitution
+    # Sample the target object's restitution
     latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
     init_state = setproperties(init_state; latents=latents)
 

@@ -3,7 +3,6 @@
 using DataFrames
 using CSV
 
-include("args.jl")
 
 # Remove any filenames that contain certain tokens
 function filter_unwanted_filenames(fnames)
@@ -68,10 +67,10 @@ function read_obs_file(fname, pf::Bool=false)
 end
 
 # Prepare directory for output files, and generate .zip file writers
-function make_directories_and_writers(args::Args)
+function make_directories_and_writers(output_id)
         
     # Locate / create base directory for output data
-    dir_base = string("Data/BulletData/", args.output_id)
+    dir_base = string("Data/BulletData/", output_id)
     if !isdir(dir_base)
         mkdir(dir_base)
     end
@@ -161,9 +160,9 @@ function trial_particle_order(x, y)
     x_tokens = split(x, "_")
     y_tokens = split(y, "_")
 
-    # Second token is elasticity
-    elasticity1 = replace(x_tokens[2], "Ela" => "")
-    elasticity2 = replace(y_tokens[2], "Ela" => "")
+    # First token is elasticity
+    elasticity1 = replace(x_tokens[1], "Ela" => "")
+    elasticity2 = replace(y_tokens[1], "Ela" => "")
 
     as_int1 = parse(Int64, elasticity1)
     as_int2 = parse(Int64, elasticity2)
@@ -172,9 +171,9 @@ function trial_particle_order(x, y)
         return as_int1 < as_int2
     end
 
-    # Third token is trial number
-    trial1 = replace(x_tokens[3], "Var" => "")
-    trial2 = replace(y_tokens[3], "Var" => "")
+    # Second token is trial number
+    trial1 = replace(x_tokens[2], "Var" => "")
+    trial2 = replace(y_tokens[2], "Var" => "")
 
     as_int1 = parse(Int64, trial1)
     as_int2 = parse(Int64, trial2)
@@ -183,9 +182,9 @@ function trial_particle_order(x, y)
         return as_int1 < as_int2
     end
 
-    # Fourth token is particle number
-    particle1 = replace(x_tokens[4], ".csv" => "")
-    particle2 = replace(y_tokens[4], ".csv" => "")
+    # Third token is particle number
+    particle1 = replace(x_tokens[3], ".csv" => "")
+    particle2 = replace(y_tokens[3], ".csv" => "")
 
     particle1_as_int = parse(Int64, particle1)
     particle2_as_int = parse(Int64, particle2)

@@ -78,7 +78,7 @@ end
 # Run the physics engine forward by one time step to generate the next state
 function PhySMC.forward_step(sim::BulletSim, state::BulletState)
     
-    # progress by `st.step_dur`
+    # Step until you have reached the target time interval
     dt::Float64 = 0.0
     while dt <= sim.step_dur
         @pycall pb.stepSimulation(;

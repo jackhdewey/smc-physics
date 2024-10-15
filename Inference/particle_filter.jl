@@ -13,18 +13,6 @@ using ZipFile
 include("../Utilities/fileio.jl")
 
 
-# Converts a sequence of observations in a single choice map into a vector of submaps
-function get_observations(choices::Gen.ChoiceMap, T::Int)
-    observations = Vector{Gen.ChoiceMap}(undef, T)
-    for i=1:T
-        cm = choicemap()
-        addr = :trajectory => i => :observation => :position
-        set_submap!(cm, addr, get_submap(choices, addr))
-        observations[i] = cm
-    end
-    return observations
-end
-
 # Resamples latent(s) from a Gaussian proposal distribution - for use in MCMC rejuvenation
 @gen function proposal(trace::Gen.Trace)
 
