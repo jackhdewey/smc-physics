@@ -74,7 +74,7 @@ function gaussian_drift_inference(model, args, observations)
             map_elasticity = restitution
         end
 
-        println("Elasticity: ", restitution, " Score: ", score, " Did accept? ", did_accept)
+        #println("Elasticity: ", restitution, " Score: ", score, " Did accept? ", did_accept)
 
         if i > runs - 100
             samples += 1 

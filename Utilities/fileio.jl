@@ -70,9 +70,24 @@ end
 function make_directories_and_writers(output_id)
         
     # Locate / create base directory for output data
-    dir_base = string("Data/BulletData/", output_id)
+    tokens = split(output_id, "/")
+    println(tokens)
+    dir_base = string("Data/BulletData/", tokens[1], "/")
     if !isdir(dir_base)
         mkdir(dir_base)
+    end
+    target_dir = string(dir_base, tokens[2], "/")
+    if !isdir(target_dir)
+        mkdir(target_dir)
+    end
+    println(target_dir)
+    noise_dir = string(target_dir, tokens[3], "/")
+    if !isdir(noise_dir)
+        mkdir(noise_dir)
+    end
+    expt_dir = string(noise_dir, tokens[4], "/")
+    if !isdir(expt_dir)
+        mkdir(expt_dir)
     end
 
     # Locate / create directories for intermediate particles and output data
