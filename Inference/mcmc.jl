@@ -55,14 +55,14 @@ function gaussian_drift_inference(model, args, observations)
     # Generate an initial conditioned trace
     (trace, _) = generate(model, (args), observations)
 
-    total_last_hundred = 0
-
     # Perform 1000 gaussian drift updates
     runs = 1000
     samples = 0
     accepts = 0 
     high_score = -999999
     map_elasticity = 0
+    total_last_hundred = 0
+    last_hundred_traces = Vector{Any}()
     for i=1:runs        
 
         (trace, did_accept) = mh(trace, proposal, ())
@@ -78,6 +78,7 @@ function gaussian_drift_inference(model, args, observations)
 
         if i > runs - 100
             samples += 1 
+            push!(last_hundred_traces, trace)
             total_last_hundred += trace[:latents => 1 => :restitution]
         end
     end
@@ -89,5 +90,5 @@ function gaussian_drift_inference(model, args, observations)
     println("Samples: ", samples)
     println("MAP Elascitity: ", map_elasticity)
     
-    return avg_last_hundred, trace
+    return avg_last_hundred, last_hundred_traces
 end

@@ -17,10 +17,9 @@ end
 #######################
 
 # Extracts initial position, initial velocity, and trajectory from two .csv files
-function read_obs_file(fname, pf::Bool=false)
+function read_obs_file(fname, alg::String)
 
     # Read ground truth initial state
-    #fname = string("Data/RealFlowData/", fname) 
     println("Reading...", fname)
     init_state = CSV.read(fname, DataFrame)
 
@@ -43,11 +42,11 @@ function read_obs_file(fname, pf::Bool=false)
     trajectory_data = CSV.read(obs_fname, DataFrame)
     time_steps = size(trajectory_data)[1]
 
-    # Split into a vector of choice maps 
-    if pf
+    # IF SMC, split into a vector of choice maps 
+    if alg == "SMC"
         observations = Vector{Gen.ChoiceMap}(undef, time_steps)
 
-    # Or store the trajectory in a single choice map
+    # Otherwise store the full trajectory in a single choice map
     else 
         observations = Gen.choicemap()
     end
@@ -56,7 +55,7 @@ function read_obs_file(fname, pf::Bool=false)
         datum = values(trajectory_data[i, :])
         position = [datum[1], datum[2], datum[3]]
         addr = :trajectory => i => :observation => 1 => :position
-        if pf
+        if alg == "SMC"
             observations[i] = Gen.choicemap((addr, position))
         else
             observations[addr] = position
@@ -71,16 +70,14 @@ function make_directories_and_writers(output_id)
         
     # Locate / create base directory for output data
     tokens = split(output_id, "/")
-    println(tokens)
-    dir_base = string("Data/BulletData/", tokens[1], "/")
-    if !isdir(dir_base)
-        mkdir(dir_base)
+    model_dir = string("Analysis/", tokens[1], "/")
+    if !isdir(model_dir)
+        mkdir(model_dir)
     end
-    target_dir = string(dir_base, tokens[2], "/")
+    target_dir = string(model_dir, tokens[2], "/")
     if !isdir(target_dir)
         mkdir(target_dir)
     end
-    println(target_dir)
     noise_dir = string(target_dir, tokens[3], "/")
     if !isdir(noise_dir)
         mkdir(noise_dir)
@@ -89,20 +86,22 @@ function make_directories_and_writers(output_id)
     if !isdir(expt_dir)
         mkdir(expt_dir)
     end
-
-    # Locate / create directories for intermediate particles and output data
-    particle_dir = string(dir_base, "/Intermediate/")
-    if !isdir(particle_dir)
-        mkdir(particle_dir)
+    alg_dir = string(expt_dir, tokens[5], "/")
+    if !isdir(alg_dir)
+        mkdir(alg_dir)
     end
-
-    output_dir = string(dir_base, "/Inferences/")
-    if !isdir(output_dir)
-        mkdir(output_dir)
+    data_dir = string(alg_dir, "Data/")
+    if !isdir(data_dir)
+        mkdir(data_dir)
     end
+    println("Output Filepath... ", data_dir)
 
-    w1 = ZipFile.Writer(string(output_dir, "/inferences.zip"))
-    w2 = ZipFile.Writer(string(particle_dir, "/particles.zip"))
+    # Initialize zip writers for inference data and (if SMC) intermediate particles
+    w1 = ZipFile.Writer(string(data_dir, "/inferences.zip"))
+    w2 = nothing
+    if tokens[5] == "SMC"
+        w2 = ZipFile.Writer(string(data_dir, "/particles.zip"))
+    end
 
     return w1, w2
 end

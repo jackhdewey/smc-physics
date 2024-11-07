@@ -29,7 +29,7 @@ include("../Utilities/fileio.jl")
 end
 
 # Generates num_particles trajectories, iteratively scoring and resampling (filtering) them according to their likelihood
-function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, w2, num_particles::Int=20, save_particles=false, fname::String=missing)
+function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false, w2=nothing, fname::String=missing)
 
     # Extract trial identification    
     tokens = split(fname, "_")
