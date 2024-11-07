@@ -10,32 +10,61 @@
 using Plots
 using ZipFile
 
+include("../args.jl")
 include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
 
-# Model variation
-model_id = "Modelv5"
-target_id = "Cube"
-noise_id = "PosVar05"
+#=
+@with_kw struct Args
+
+    # Data source
+    gt_source::String = "Bullet"
+
+    # Model parameters
+    model_id::String = "Modelv5"
+    target_id::String = "Sphere"
+    noise_id::String = "PosVar01"
+
+    # Experiment
+    expt_id::String = "BulletTest"
+
+    # Output filepath
+    output_id::String = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
+
+    # Inference parameters
+    algorithm::String = "MCMC"    # MCMC, SMC, or DEBUG
+    num_particles::Int = 20
+    save_intermediate::Bool = true
+
+    # Prediction parameters
+    predict::Bool = false
+    prediction_timesteps::Int = 90
+
+end
+=#
 
 # Data source
 gt_source = "Bullet"
 obj_type = "Cube"
 
+# Model parameters
+model_id = "Modelv5"
+target_id = "Cube"
+noise_id = "PosVar075"
+
+# Inference parameters
+num_particles = 20
+
 # Experiment
 expt_id = "BulletTest"
-
-# Filepaths
-gt_source == "Bullet" ? gt_dir = string("Tests/BulletStimulus/Data/", obj_type, "/") : gt_dir = string("Data/RealFlowData/", expt_id, "/")
-data_id = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
-
-# Inference variables
-num_particles = 20
 
 # Plotting variables
 interactive = false
 plot_interval = 5
+
+# Output filepath
+data_path = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
 # Displays (prints) the given particle filter states for the specified time steps
 function display_data_frames(r, particle_indices, interval)
@@ -162,18 +191,8 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
     end
 end
 
-function main()
-
-    # Load and sort ground truth trajectory files
-    gt_files = filter(contains("observed"), readdir(gt_dir))
-    sort!(gt_files, lt=trial_order)
-
-    # Load and sort intermediate particle filter state files
-    dir = string("Data/BulletData/", data_id, "/Intermediate/")
-    r = ZipFile.Reader(string(dir, "particles.zip"))
-    files = map((file) -> file.name, r.files)
-    particle_files = filter(contains(".csv"), files)
-    sort!(particle_files, lt=trial_particle_order)
+# Check whether the output filepath already exists, if not make directories
+function make_output_directories()
 
     plot_dir = string("Analysis/Plots/", model_id, "/")
     if !isdir(plot_dir)
@@ -196,9 +215,29 @@ function main()
         mkdir(data_dir)
     end
 
+end
+
+
+function main()
+
+    # Load and sort ground truth trajectory files
+    gt_source == "Bullet" ? 
+        gt_dir = string("Tests/BulletStimulus/Data/", obj_type, "/") : 
+        gt_dir = string("Data/RealFlowData/", expt_id, "/")
+    gt_files = filter(contains("observed"), readdir(gt_dir))
+    sort!(gt_files, lt=trial_order)
+
+    # Load and sort intermediate particle filter state files
+    dir = string("Data/BulletData/", data_path, "/Intermediate/")
+    r = ZipFile.Reader(string(dir, "particles.zip"))
+    files = map((file) -> file.name, r.files)
+    particle_files = filter(contains(".csv"), files)
+    sort!(particle_files, lt=trial_particle_order)
+
+    make_output_directories()
+
     # Filter to trials we want to plot
     #=
-
     #gt_files = filter((file) -> occursin("Ela9_Var1_", file), gt_files)
 
     #_, error_trials = process_individual_stimuli_sim(1, target_id)
@@ -250,14 +289,18 @@ function main()
     end
     =#
 
-    particle_indices = []
+    # Locate the indices of the intermediate particle filter state files for each gt_file
     particle_index = 1
+    particle_indices = []
     for file in gt_files
+        
         push!(particle_indices, particle_index)
+
         gt_file = string(gt_dir, file)
         frames = size(CSV.read(gt_file, DataFrame))[1]
         println(frames)
         particle_index += frames
+
     end
 
     interval=[1, 10]

@@ -14,11 +14,44 @@ include("utils.jl")
 project_path = dirname(@__DIR__)
 println(project_path)
 
+#=
+@with_kw struct Args
+
+    # Data source
+    gt_source::String = "Bullet"
+
+    # Model parameters
+    model_id::String = "Modelv5"
+    target_id::String = "Sphere"
+    noise_id::String = "PosVar01"
+
+    # Experiment
+    expt_id::String = "BulletTest"
+
+    # Output filepath
+    output_id::String = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
+
+    # Inference parameters
+    algorithm::String = "MCMC"    # MCMC, SMC, or DEBUG
+    num_particles::Int = 20
+    save_intermediate::Bool = true
+
+    # Prediction parameters
+    predict::Bool = false
+    prediction_timesteps::Int = 90
+
+end
+=#
+
+# Model parameters
 model_id = "Modelv5"
 target_id = "Cube"
 noise_id = "PosVar05"
+
+# Experiment
 expt_id = "BulletTest"
 
+# Plotting variables
 if target_id == "Cube"
     marker_shape = :square
 else
@@ -231,13 +264,20 @@ function plot_sim_vs_human_mean(expt, target_id)
 
 end
 
-#process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
-#plot_sim_vs_human_individual_stimuli(model_id, target_id, noise_id, expt_id)
-plot_sim_vs_gt(1, target_id)
 
-#=
-for expt = 1:2
-    plot_sim_vs_human_individual_stimuli(expt, target_id)
-    plot_sim_vs_human_mean(expt, target_id)
+function main()
+
+    #process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
+    #plot_sim_vs_human_individual_stimuli(model_id, target_id, noise_id, expt_id)
+    plot_sim_vs_gt(1, target_id)
+
+    #=
+    for expt = 1:2
+        plot_sim_vs_human_individual_stimuli(expt, target_id)
+        plot_sim_vs_human_mean(expt, target_id)
+    end
+    =#
+
 end
-=#
+
+main()
