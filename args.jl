@@ -1,22 +1,19 @@
 # Arguments to the entire pipeline, separated out to ensure consistency / eliminate redundency between files
-#
 
 @with_kw struct Args
 
     # Data source
     gt_source::String = "Bullet"
-    gt_obj::String = "Cube"
+    gt_shape::String = "Cube"       # Only used for PyBullet
+    expt_id::String = "BulletTest"
 
     # Model parameters
     model_id::String = "Modelv5"
     target_id::String = "Cube"
     noise_id::String = "PosVar075"
 
-    # Experiment
-    expt_id::String = "BulletTest"
-
     # Inference parameters
-    algorithm::String = "SMC"    # MCMC, SMC, or DEBUG
+    algorithm::String = "SMC"       # MCMC, SMC, or DEBUG
     num_particles::Int = 20
     save_intermediate::Bool = true
     

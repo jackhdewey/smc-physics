@@ -1,12 +1,6 @@
 # Data analysis
-# Synthesizes and displays particle filter state at each time step
-# Generates 3D plots showing particle trajectories vs ground truth
-#
-# QUESTION: Are the 'identities' of particles consistent across time, i.e. do they survive resampling?
-# DONE: Allow more flexible selection of elasticity / trial interval
-#
-# TODO: Streamline display of dataframes (particle filter states) at each timestep
-# TODO: Set the alpha / intensity to reflect the log weight of each particle
+# Synthesizes and displays MCMC state for each time run
+# Generates 3D plots showing simulated trajectories vs ground truth
 
 using Plots
 using ZipFile
@@ -15,36 +9,6 @@ include("../args.jl")
 include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
-
-#=
-@with_kw struct Args
-
-    # Data source
-    gt_source::String = "Bullet"
-    gt_obj::String = "Cube"
-
-    # Model parameters
-    model_id::String = "Modelv5"
-    target_id::String = "Sphere"
-    noise_id::String = "PosVar01"
-
-    # Experiment
-    expt_id::String = "BulletTest"
-
-    # Output filepath
-    output_id::String = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
-
-    # Inference parameters
-    algorithm::String = "MCMC"    # MCMC, SMC, or DEBUG
-    num_particles::Int = 20
-    save_intermediate::Bool = true
-
-    # Prediction parameters
-    predict::Bool = false
-    prediction_timesteps::Int = 90
-
-end
-=#
 
 # Ground truth source file
 gt_source = "Bullet"
@@ -55,8 +19,6 @@ target_id = "Sphere"
 noise_id = "PosVar05"
 
 expt_id = "BulletTest"
-
-algorithm = "MCMC"
 
 # Output filepath
 data_path = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)

@@ -7,10 +7,8 @@
 #      * etc.
 # Ground truth trajectories are generated in RealFlow and read from .csv files
 #
-# TODO: Infer elasticity for trajectories simulated in PyBullet
-# TODO: Display particle trajectory data 
-# TODO: Debug MCMC
-# TODO: Display MCMC trajectory data
+# TODO: Integrate parallel implementation
+# TODO: Infer elasticity for trajectories simulated in PyBullet using both MCMC and SMC
 
 using Distributed
 using Parameters
@@ -42,7 +40,7 @@ function run(fname, args, w1, w2)
 
     if args.gt_source=="Bullet"
         sim = BulletSim(step_dur=1/60; client=client)
-        fname = string("Tests/BulletStimulus/Data/", args.target_id, "/", fname)
+        fname = string("Tests/BulletStimulus/Data/", args.gt_shape, "/", fname)
     else 
         sim = BulletSim(step_dur=1/30; client=client)
         fname = string("Data/RealFlowData/", args.expt_id, "/", fname)
@@ -121,7 +119,7 @@ function main()
     # Read ground truth trajectories
     args.gt_source == "RealFlow" ? 
         dir = string("Data/RealFlowData/", args.expt_id, "/") : 
-        dir = string("Tests/BulletStimulus/Data/", args.target_id, "/")
+        dir = string("Tests/BulletStimulus/Data/", args.gt_shape, "/")
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
@@ -129,7 +127,7 @@ function main()
     w1, w2 = make_directories_and_writers(args.output_path)
 
     run(fnames[1], args, w1, w2)
-    #or fname in fnames
+    #for fname in fnames
     #    run(fname, args, w1, w2)
     #end
 
