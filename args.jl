@@ -3,9 +3,9 @@
 @with_kw struct Args
 
     # Data source
+    expt_id::String = "BulletTest"
     gt_source::String = "Bullet"
     gt_shape::String = "Cube"       # Only used for PyBullet
-    expt_id::String = "BulletTest"
 
     # Model parameters
     model_id::String = "Modelv5"

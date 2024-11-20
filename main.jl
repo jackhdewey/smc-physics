@@ -35,9 +35,6 @@ function run(fname, args, w1, w2)
     
     bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-    # Initialize scene 
-    init_scene(debug_viz)
-
     if args.gt_source=="Bullet"
         sim = BulletSim(step_dur=1/60; client=client)
         fname = string("Tests/BulletStimulus/Data/", args.gt_shape, "/", fname)
@@ -46,11 +43,15 @@ function run(fname, args, w1, w2)
         fname = string("Data/RealFlowData/", args.expt_id, "/", fname)
     end
 
-    # Initialize target object state using observation data
+
+    # Initialize scene, including target object state using observation data
+    init_scene(debug_viz)
     init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm)
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
     model_args = (sim, init_state, t_s)
 
+    
+    # Run inference 
     if args.algorithm == "DEBUG"
 
         # Generate and display a single trace 
@@ -108,6 +109,7 @@ function run(fname, args, w1, w2)
 end
 end
 
+
 ########
 # MAIN #
 ########
@@ -126,13 +128,20 @@ function main()
 
     w1, w2 = make_directories_and_writers(args.output_path)
 
+    # Run one test file
     run(fnames[1], args, w1, w2)
+    
     #for fname in fnames
     #    run(fname, args, w1, w2)
     #end
 
+    # Distribute to workers
+    if nworkers() == 1
+        addprocs(15)
+    end
+
     # Map each observed trajectory to a process executing a particle filter
-    #pmap(fname -> run(fname, args, w1, w2), fnames)
+    pmap(fname -> run(fname, args, w1, w2), fnames)
 
     close(w1)
     if args.algorithm == "SMC"
