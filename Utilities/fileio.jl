@@ -70,23 +70,23 @@ function make_directories_and_writers(output_id)
         
     # Locate / create base directory for output data
     tokens = split(output_id, "/")
-    model_dir = string("Analysis/", tokens[1], "/")
-    if !isdir(model_dir)
-        mkdir(model_dir)
-    end
-    target_dir = string(model_dir, tokens[2], "/")
-    if !isdir(target_dir)
-        mkdir(target_dir)
-    end
-    noise_dir = string(target_dir, tokens[3], "/")
-    if !isdir(noise_dir)
-        mkdir(noise_dir)
-    end
-    expt_dir = string(noise_dir, tokens[4], "/")
+    expt_dir = string("Analysis/", tokens[1], "/")
     if !isdir(expt_dir)
         mkdir(expt_dir)
     end
-    alg_dir = string(expt_dir, tokens[5], "/")
+    model_dir = string(expt_dir, tokens[2], "/")
+    if !isdir(model_dir)
+        mkdir(model_dir)
+    end
+    target_dir = string(model_dir, tokens[3], "/")
+    if !isdir(target_dir)
+        mkdir(target_dir)
+    end
+    noise_dir = string(target_dir, tokens[4], "/")
+    if !isdir(noise_dir)
+        mkdir(noise_dir)
+    end
+    alg_dir = string(noise_dir, tokens[5], "/")
     if !isdir(alg_dir)
         mkdir(alg_dir)
     end
