@@ -37,10 +37,10 @@ function run(fname, args, w1, w2)
 
     if args.gt_source=="Bullet"
         sim = BulletSim(step_dur=1/60; client=client)
-        fname = string("Tests/BulletStimulus/Data/", args.gt_shape, "/", fname)
+        fname = string("Tests/BulletStimulus/Data/", args.gt_shape, "/", fname) # Good
     else 
         sim = BulletSim(step_dur=1/30; client=client)
-        fname = string("Data/RealFlowData/", args.expt_id, "/", fname)
+        fname = string("Data/RealFlowData/", args.expt_id, "/", fname)          # Good
     end
 
 
@@ -141,7 +141,7 @@ function main()
     end
 
     # Map each observed trajectory to a process executing a particle filter
-    pmap(fname -> run(fname, args, w1, w2), fnames)
+    #pmap(fname -> run(fname, args, w1, w2), fnames)
 
     close(w1)
     if args.algorithm == "SMC"

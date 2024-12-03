@@ -14,25 +14,9 @@ using Plots
 include("../args.jl")
 include("utils.jl")
 
-
 project_path = dirname(@__DIR__)
 println(project_path)
 
-
-# Model parameters
-model_id = "Modelv5"
-target_id = "Cube"
-noise_id = "PosVar05"
-
-# Experiment
-expt_id = "BulletTest"
-
-# Plotting variables
-if target_id == "Cube"
-    marker_shape = :square
-else
-    marker_shape = :circle
-end
 
 #################
 # Data Analysis #
@@ -217,6 +201,14 @@ end
 
 
 function main()
+
+    # Plotting variables
+    args = Args()
+    if args.target_id == "Cube"
+        marker_shape = :square
+    else
+        marker_shape = :circle
+    end
 
     #process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
     #plot_sim_vs_human_individual_stimuli(model_id, target_id, noise_id, expt_id)
