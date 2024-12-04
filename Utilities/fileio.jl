@@ -4,17 +4,17 @@ using DataFrames
 using CSV
 
 
-# Remove any filenames that contain certain tokens
+#######################
+# READING AND WRITING #
+#######################
+
+# Removes unwanted filenames from a directory by checking for tokens
 function filter_unwanted_filenames(fnames)
     for i in ["predicted", "observed", "batch", "Store"]
         fnames = filter(!contains(i), fnames)
     end
     return fnames
 end 
-
-#######################
-# READING AND WRITING #
-#######################
 
 # Extracts initial position, initial velocity, and trajectory from two .csv files
 function read_obs_file(fname, alg::String)
@@ -42,15 +42,13 @@ function read_obs_file(fname, alg::String)
     trajectory_data = CSV.read(obs_fname, DataFrame)
     time_steps = size(trajectory_data)[1]
 
-    # IF SMC, split into a vector of choice maps 
-    if alg == "SMC"
+    if alg == "SMC"     # If SMC, split into a vector of choice maps 
         observations = Vector{Gen.ChoiceMap}(undef, time_steps)
-
-    # Otherwise store the full trajectory in a single choice map
-    else 
+    else                # Otherwise store the full trajectory in a single choice map
         observations = Gen.choicemap()
     end
 
+    # Populate choice map(s)
     for i=1:time_steps
         datum = values(trajectory_data[i, :])
         position = [datum[1], datum[2], datum[3]]
@@ -65,6 +63,7 @@ function read_obs_file(fname, alg::String)
     return initial_position, initial_orientation, initial_velocity, observations, time_steps
 end
 
+# Generate a string representation of the noise parameters for a model variation, e.g. "Init00_Obs05_Tra05"
 function generate_noise_id(args)
 
     init_string = split(string(args.init_vel_noise), ".")[2]
@@ -82,10 +81,7 @@ function generate_noise_id(args)
         transition_string = string(transition_string, "0")
     end
 
-    # e.g. "Init00_Obs05_Tra05"
-    noise_id::String = string("Init", init_string, "_Obs", obs_string, "_Tra", transition_string) 
-    
-    return(noise_id)   
+    return string("Init", init_string, "_Obs", obs_string, "_Tra", transition_string)  
 end
 
 # Prepare directory for output files, and generate .zip file writers
@@ -154,6 +150,7 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
 
     CSV.write(fname, particle_data, transform=truncator)
 end
+
 
 ############################################
 # Sorting comparators (for ordering files) #

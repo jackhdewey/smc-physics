@@ -4,6 +4,10 @@ using ZipFile
 using CSV
 
 
+##################
+#  READING DATA  #
+##################
+
 # Read the entire folder of simulation data
 function read_simulation_data(expt_id, model_id, target_id, noise_id)
     
@@ -84,6 +88,10 @@ function read_subject_data(expt)
     return df
 end
 
+
+#################
+#  SAVING PLOTS #
+#################
 
 # Generate the filepath where we will store the plots
 function generate_plot_path(expt_id, model_id, target_id, noise_id)

@@ -1,4 +1,4 @@
-# Arguments to the entire pipeline, separated out to ensure consistency / eliminate redundency between files
+# Arguments to the entire pipeline, separated out to ensure consistency + eliminate redundency between files
 
 @with_kw mutable struct Args
 

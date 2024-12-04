@@ -10,42 +10,13 @@ include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
 
-# Plotting variables
-interactive = false
-plot_interval = 5
-
 #########
 # PLOTS #
 #########
 
-function make_plot_directories()
-    model_dir = string("Analysis/Plots/", model_id, "/")
-    if !isdir(model_dir)
-        mkdir(model_dir)
-    end
-    target_dir = string(model_dir, target_id, "/")
-    if !isdir(target_dir)
-        mkdir(target_dir)
-    end
-    noise_dir = string(target_dir, noise_id, "/")
-    if !isdir(noise_dir)
-        mkdir(noise_dir)
-    end
-    alg_dir = string(noise_dir, "MCMC/")
-    if !isdir(alg_dir)
-        mkdir(alg_dir)
-    end
-    expt_dir = string(alg_dir, expt_id, "/")
-    if !isdir(expt_dir)
-        mkdir(expt_dir)
-    end
-    output_dir = string(expt_dir, "Trajectories/")
-    if !isdir(output_dir)
-        mkdir(output_dir)
-    end
-
-    return output_dir
-end
+# Plotting variables
+interactive = false
+plot_interval = 5
 
 function plot_ground_truth(gt_dir, file, output_dir)
 
