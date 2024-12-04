@@ -20,6 +20,9 @@ include("Inference/mcmc.jl")
 include("Inference/particle_filter.jl")
 
 
+parallel = false
+debug = false
+
 @everywhere begin
 function run(fname, args, w1, w2)
     
@@ -120,7 +123,10 @@ end
 function main()
 
     args = Args()
-    w1, w2 = make_directories_and_writers(args.output_path)
+    noise_id = generate_noise_id(args)
+    # Output filepath
+    output_path = string(args.expt_id, "/", args.model_id, "/", args.target_id, "/", noise_id, "/", args.algorithm)
+    w1, w2 = make_directories_and_writers(output_path)
 
     # Extract ground truth trajectory filenames from correct directory
     args.gt_source == "RealFlow" ? 

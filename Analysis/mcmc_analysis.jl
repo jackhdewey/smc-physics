@@ -10,11 +10,9 @@ include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
 
-
 # Plotting variables
 interactive = false
 plot_interval = 5
-
 
 #########
 # PLOTS #

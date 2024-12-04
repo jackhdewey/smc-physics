@@ -65,6 +65,29 @@ function read_obs_file(fname, alg::String)
     return initial_position, initial_orientation, initial_velocity, observations, time_steps
 end
 
+function generate_noise_id(args)
+
+    init_string = split(string(args.init_vel_noise), ".")[2]
+    if length(init_string) < 2
+        init_string = string(init_string, "0")
+    end
+
+    obs_string = split(string(args.observation_noise), ".")[2]
+    if length(obs_string) < 2
+        obs_string = string(obs_string, "0")
+    end
+
+    transition_string = split(string(args.transition_noise), ".")[2] 
+    if length(transition_string) < 2
+        transition_string = string(transition_string, "0")
+    end
+
+    # e.g. "Init00_Obs05_Tra05"
+    noise_id::String = string("Init", init_string, "_Obs", obs_string, "_Tra", transition_string) 
+    
+    return(noise_id)   
+end
+
 # Prepare directory for output files, and generate .zip file writers
 function make_directories_and_writers(output_id)
         

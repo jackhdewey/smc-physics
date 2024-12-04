@@ -20,7 +20,6 @@ include("../Utilities/plots.jl")
 interactive = false
 plot_interval = 5
 
-
 # Displays (prints) the given particle filter states for the specified time steps
 function display_data_frames(r, particle_indices, interval)
 
