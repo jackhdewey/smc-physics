@@ -10,18 +10,6 @@ include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
 
-# Ground truth source file
-gt_source = "Bullet"
-
-# Model variation 
-model_id = "Modelv5"
-target_id = "Sphere"
-noise_id = "PosVar05"
-
-expt_id = "BulletTest"
-
-# Output filepath
-data_path = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
 # Plotting variables
 interactive = false

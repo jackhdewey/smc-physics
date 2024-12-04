@@ -5,7 +5,7 @@ using CSV
 
 
 # Read the entire folder of simulation data
-function read_simulation_data(model_id, target_id, noise_id, expt_id)
+function read_simulation_data(expt_id, model_id, target_id, noise_id)
     
     simulation_folder = joinpath(project_path, "Data", "BulletData", model_id, target_id, noise_id, expt_id, "Inferences")
     r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip"))
@@ -84,10 +84,16 @@ function read_subject_data(expt)
     return df
 end
 
-# Generate the filepath where we will save the plots
-function generate_plot_path(model_id, target_id, noise_id, expt_id)
 
-    plots_path = joinpath(project_path, "Analysis", "Plots")
+# Generate the filepath where we will store the plots
+function generate_plot_path(expt_id, model_id, target_id, noise_id)
+
+    plots_path = joinpath(project_path, "Analysis")
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    plots_path = joinpath(plots_path, expt_id)
     if !isdir(plots_path)
         mkdir(plots_path)
     end
@@ -107,7 +113,7 @@ function generate_plot_path(model_id, target_id, noise_id, expt_id)
         mkdir(plots_path)
     end
 
-    plots_path = joinpath(plots_path, expt_id)
+    plots_path = joinpath(project_path, "Plots")
     if !isdir(plots_path)
         mkdir(plots_path)
     end

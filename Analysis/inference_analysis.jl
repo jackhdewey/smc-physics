@@ -23,9 +23,9 @@ println(project_path)
 #################
 
 # Group subject elasticity judgments by stimulus and compute mean rating for each stimulus
-function process_individual_stimuli_human(expt)
+function process_individual_stimuli_human(expt_id)
 
-    sub_data = read_subject_data(expt)
+    sub_data = read_subject_data(expt_id)
     nsubs = length(unique(sub_data.filename))
 
     sub_data_pred = @chain sub_data begin
@@ -47,10 +47,10 @@ function process_individual_stimuli_human(expt)
 end
 
 # Compute error on each stimulus, filter to extract high error trials
-function process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
+function process_individual_stimuli_sim(expt_id, model_id, target_id, noise_id)
 
     # Define model's elasticity judgment as average of output particles, compute error w.r.t. ground truth
-    sim_data = read_simulation_data(model_id, target_id, noise_id, expt_id)
+    sim_data = read_simulation_data(expt_id, model_id, target_id, noise_id)
     sim_data_pred = @chain sim_data begin
         @groupby :stimulusID
         @combine begin
@@ -76,9 +76,9 @@ end
 #########
 
 # Plot model against ground truth
-function plot_sim_vs_gt(expt, target_id)
+function plot_sim_vs_gt(expt_id, target_id)
 
-    sim, _ = process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
+    sim, _ = process_individual_stimuli_sim(expt_id, model_id, target_id, noise_id)
 
     # default(aspect_ratio = :equal)
     p = palette(:jet)
@@ -94,7 +94,7 @@ function plot_sim_vs_gt(expt, target_id)
             ylims=(0, 1),
             xlabel="Ground Truth Elasticity",
             ylabel="Model Estimate",
-            title="Exp $expt stimulus-specific elasticity ratings - $target_id",
+            title="Exp $expt_id stimulus-specific elasticity ratings - $target_id",
             colorbar=true,
             legend=false,
             palette=p,
@@ -103,15 +103,15 @@ function plot_sim_vs_gt(expt, target_id)
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(sim.elasticity, sim.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    plots_path = generate_plot_path(model_id, target_id, noise_id, expt_id)
-    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_model_", target_id, "Exp", expt, ".png")))
+    plots_path = generate_plot_path(expt_id, model_id, target_id, noise_id)
+    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_model_", target_id, "Exp", expt_id, ".png")))
 
 end
 
 # Plot human judgments against the ground truth
-function plot_human_vs_gt(expt)
+function plot_human_vs_gt(expt_id)
     
-    human = process_individual_stimuli_human(expt)
+    human = process_individual_stimuli_human(expt_id)
 
     # default(aspect_ratio = :equal)
     p = palette(:jet)
@@ -127,7 +127,7 @@ function plot_human_vs_gt(expt)
         ylims=(0, 1),
         xlabel="Ground Truth Elasticity",
         ylabel="Human Estimate",
-        title="Exp $expt stimulus-specific human ratings",
+        title="Exp $expt_id stimulus-specific human ratings",
         colorbar=true,
         legend=false,
         palette=p,
@@ -136,27 +136,27 @@ function plot_human_vs_gt(expt)
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(human.gtElasticity, human.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    plots_path = generate_plot_path(model_id, target_id, noise_id, expt_id)
-    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_human", "Exp", expt, ".png")))
+    plots_path = generate_plot_path(expt_id, model_id, target_id, noise_id)
+    savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_human", "Exp", expt_id, ".png")))
     # gui()
 
 end
 
 
 # Plot mean model estimates against mean human judgments
-function plot_sim_vs_human(expt, target_id, plot_mean)
+function plot_sim_vs_human(expt_id, target_id, plot_mean)
 
-    human = process_individual_stimuli_human(expt)
-    sim = process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
+    human = process_individual_stimuli_human(expt_id)
+    sim = process_individual_stimuli_sim(expt_id, model_id, target_id, noise_id)
 
     # default(aspect_ratio = :equal)
 
-    title = "Exp $expt stimulus-specific elasticity ratings - $target_id"
+    title = "Exp $expt_id stimulus-specific elasticity ratings - $target_id"
     filename = "individual_stimuli_judgments_high_elasticity"
 
     if plot_mean
 
-        title = "Exp $expt mean judgments across given elasticity - $target_id"
+        title = "Exp $expt_id mean judgments across given elasticity - $target_id"
         filename = "average_judgment_per_elasticity_"
 
         sim = @chain sim begin
@@ -193,8 +193,8 @@ function plot_sim_vs_human(expt, target_id, plot_mean)
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(model_mean_elasticity.judgment, human_mean_elasticity.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    plots_path = generate_plot_path(model_id, target_id, noise_id, expt_id)
-    savefig(joinpath(plots_path, string(filename, target_id, "Exp", expt, ".png")))
+    plots_path = generate_plot_path(expt_id, model_id, target_id, noise_id)
+    savefig(joinpath(plots_path, string(filename, target_id, "Exp", expt_id, ".png")))
     # gui()
 
 end
@@ -210,14 +210,14 @@ function main()
         marker_shape = :circle
     end
 
-    #process_individual_stimuli_sim(model_id, target_id, noise_id, expt_id)
+    #process_individual_stimuli_sim(args.expt_id, args.model_id, args.target_id, args.noise_id)
     #plot_sim_vs_human_individual_stimuli(model_id, target_id, noise_id, expt_id)
     plot_sim_vs_gt(1, target_id)
 
     #=
-    for expt = 1:2
-        plot_sim_vs_human(expt, target_id, false)
-        plot_sim_vs_human(expt, target_id, true)
+    for expt_id = 1:2
+        plot_sim_vs_human(expt_id, target_id, false)
+        plot_sim_vs_human(expt_id, target_id, true)
     end
     =#
 

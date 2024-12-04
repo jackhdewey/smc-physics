@@ -16,27 +16,10 @@ include("../Utilities/fileio.jl")
 include("../Utilities/plots.jl")
 
 
-# Data source
-gt_source = "Bullet"
-obj_type = "Cube"
-
-# Model parameters
-model_id = "Modelv5"
-target_id = "Cube"
-noise_id = "PosVar075"
-
-# Inference parameters
-num_particles = 20
-
-# Experiment
-expt_id = "BulletTest"
-
 # Plotting variables
 interactive = false
 plot_interval = 5
 
-# Output filepath
-data_path = string(model_id, "/", target_id, "/", noise_id, "/", expt_id)
 
 # Displays (prints) the given particle filter states for the specified time steps
 function display_data_frames(r, particle_indices, interval)
