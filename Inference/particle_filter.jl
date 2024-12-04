@@ -28,7 +28,8 @@ include("../Utilities/fileio.jl")
     return (restitution)
 end
 
-# Generates num_particles trajectories, iteratively scoring and resampling (filtering) them according to their likelihood
+# Generates num_particles trajectories
+# At each timestep, scores them according to their likelihood, and resamples (filters) poor performers
 function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false, w2=nothing, fname::String=missing)
 
     # Extract trial identification    

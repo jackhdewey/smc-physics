@@ -14,9 +14,6 @@ using Plots
 include("../args.jl")
 include("utils.jl")
 
-project_path = dirname(@__DIR__)
-println(project_path)
-
 
 #################
 # Data Analysis #
@@ -40,8 +37,6 @@ function process_individual_stimuli_human(expt)
         # @subset :gtElasticity .> 0.6
         @orderby :stimulusID
     end
-
-    println(sub_data_pred)
 
     return sub_data_pred
 end
