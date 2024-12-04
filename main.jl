@@ -23,7 +23,7 @@ include("Inference/particle_filter.jl")
 @everywhere begin
 function run(fname, args, w1, w2)
     
-    # Initialize simulation context 
+    # Initialize Bullet simulation context 
     debug_viz = false
     if args.algorithm=="DEBUG"
         debug_viz = true
@@ -44,14 +44,14 @@ function run(fname, args, w1, w2)
     end
 
 
-    # Initialize scene, including target object state using observation data
+    # Initialize scene, including target object state (using observation data)
     init_scene(debug_viz)
     init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm)
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
     model_args = (sim, init_state, t_s)
 
     
-    # Run inference 
+    # Generate a sample trace (no inference) 
     if args.algorithm == "DEBUG"
 
         # Generate and display a single trace 
@@ -59,6 +59,7 @@ function run(fname, args, w1, w2)
         (trace, _) = Gen.generate(generate_trajectory, model_args, observations)
         display(Gen.get_choices(trace))
 
+    # Run inference using MCMC
     elseif args.algorithm == "MCMC"
         
         println("Initializing MCMC")
@@ -73,13 +74,15 @@ function run(fname, args, w1, w2)
         f = ZipFile.addfile(w1, fname)
         write_to_csv(results, f)
         
+    # Run inference using particle filter    
     else
 
         # Filter n particles to explain the complete trajectory
         println("Initializing Particle Filter")
-        results, _ = infer(generate_trajectory, model_args, observations, args.num_particles, args.save_intermediate, w2, fname)
+        results, _ = infer(generate_trajectory, model_args, observations, 
+                            args.num_particles, args.save_intermediate, w2, fname)
 
-        # Write output particles to a .csv file
+        # Write output particles to a .csv
         tokens = split(fname, "_")
         fname = string(tokens[2], "_", tokens[3])
         f = ZipFile.addfile(w1, fname)
@@ -87,7 +90,7 @@ function run(fname, args, w1, w2)
 
         if args.predict
 
-            # For each particle, simulate the next 90 time steps
+            # For each particle, simulate next 90 time steps
             ppd = predict(results, args.prediction_timesteps)
             #gif(animate_traces(ppd), fps=24)
         
@@ -117,8 +120,9 @@ end
 function main()
 
     args = Args()
+    w1, w2 = make_directories_and_writers(args.output_path)
 
-    # Read ground truth trajectories
+    # Extract ground truth trajectory filenames from correct directory
     args.gt_source == "RealFlow" ? 
         dir = string("Data/RealFlowData/", args.expt_id, "/") : 
         dir = string("Tests/BulletStimulus/Data/", args.gt_shape, "/")
@@ -126,22 +130,23 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    w1, w2 = make_directories_and_writers(args.output_path)
-
-    # Run one test file
-    run(fnames[1], args, w1, w2)
-    
-    #for fname in fnames
-    #    run(fname, args, w1, w2)
-    #end
-
-    # Distribute to workers
-    if nworkers() == 1
-        addprocs(15)
+    # Map each observed trajectory (file) to a process executing a particle filter
+    if parallel
+        # Distribute to workers
+        if nworkers() == 1
+            addprocs(15)
+        end
+        pmap(fname -> run(fname, args, w1, w2), fnames)
+    else
+        # Run one test file
+        if debug
+            run(fnames[1], args, w1, w2)
+        else
+            #for fname in fnames
+            #    run(fname, args, w1, w2)
+            #end
+        end
     end
-
-    # Map each observed trajectory to a process executing a particle filter
-    #pmap(fname -> run(fname, args, w1, w2), fnames)
 
     close(w1)
     if args.algorithm == "SMC"
