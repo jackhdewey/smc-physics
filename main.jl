@@ -123,9 +123,6 @@ end
 function main()
 
     args = Args()
-    noise_id = generate_noise_id(args)
-    output_path = string(args.expt_id, "/", args.model_id, "/", args.target_id, "/", noise_id, "/", args.algorithm)
-    w1, w2 = make_directories_and_writers(output_path)
 
     # Extract ground truth trajectory filenames from correct directory
     args.gt_source == "RealFlow" ? 
@@ -135,16 +132,19 @@ function main()
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
 
-    # Map each observed trajectory (file) to a process executing a particle filter
-    if parallel
-        # Distribute to workers
+    # Generate output filepath(s) and writers
+    noise_id = generate_noise_id(args)
+    output_path = string(args.expt_id, "/", args.model_id, "/", args.target_id, "/", noise_id, "/", args.algorithm)
+    w1, w2 = make_directories_and_writers(output_path)
+
+    # Execute particle filter on all input trajectories
+    if parallel         # Distribute to workers
         if nworkers() == 1
             addprocs(15)
         end
         pmap(fname -> run(fname, args, w1, w2), fnames)
     else
-        # Run one test file
-        if debug
+        if debug        # Run one test file
             run(fnames[1], args, w1, w2)
         else
             for fname in fnames
