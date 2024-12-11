@@ -174,21 +174,27 @@ end
 
 function main()
 
+    args = Args()
+
     # Load and sort ground truth trajectory files
-    gt_source == "Bullet" ? 
-        gt_dir = string("Tests/BulletStimulus/Data/", obj_type, "/") : 
-        gt_dir = string("Data/RealFlowData/", expt_id, "/")
+    args.gt_source == "Bullet" ? 
+        gt_dir = string("Tests/BulletStimulus/Data/", args.gt_shape, "/") : 
+        gt_dir = string("Data/RealFlowData/", args.expt_id, "/")
     gt_files = filter(contains("observed"), readdir(gt_dir))
     sort!(gt_files, lt=trial_order)
 
+    noise_id = generate_noise_id(args)
+
     # Load and sort intermediate particle filter state files
-    dir = string("Data/BulletData/", data_path, "/Intermediate/")
+    data_path = string(args.expt_id, "/", args.model_id, "/", args.target_id, "/", noise_id, "/", args.algorithm, "/Data/")
+    dir = string("Analysis/", data_path)
     r = ZipFile.Reader(string(dir, "particles.zip"))
     files = map((file) -> file.name, r.files)
     particle_files = filter(contains(".csv"), files)
     sort!(particle_files, lt=trial_particle_order)
 
-    make_output_directories()
+    generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, "Trajectories")
+    #make_output_directories()
 
     # Filter to trials we want to plot
     #=

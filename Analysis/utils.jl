@@ -32,7 +32,7 @@ function generate_noise_id(args)
 end
 
 # Generate the directory location where we will store the plots
-function generate_plot_path(expt_id, model_id, target_id, noise_id)
+function generate_plot_path(expt_id, model_id, target_id, noise_id, type)
 
     plots_path = joinpath(project_path, "Analysis")
     if !isdir(plots_path)
@@ -73,7 +73,7 @@ function generate_plot_path(expt_id, model_id, target_id, noise_id)
         mkdir(plots_path)
     end
 
-    plots_path = joinpath(plots_path, "Judgments")
+    plots_path = joinpath(plots_path, type)
     if !isdir(plots_path)
         mkdir(plots_path)
     end
@@ -86,7 +86,7 @@ end
 #  READING DATA  #
 ##################
 
-# Read the entire folder of simulation data
+# Read all simulation data files at the specified directory 
 function read_simulation_data(expt_id, model_id, target_id, noise_id, algo)
     
     all_data = []

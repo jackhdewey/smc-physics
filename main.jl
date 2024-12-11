@@ -19,12 +19,13 @@ include("Inference/mcmc.jl")
 include("Inference/particle_filter.jl")
 
 
-parallel = false
+parallel = true
 debug = false
 
 @everywhere begin
 function run(fname, args, w1, w2)
     
+
     # Initialize Bullet simulation context 
     debug_viz = false
     if args.algorithm=="DEBUG"
@@ -139,19 +140,25 @@ function main()
     w1, w2 = make_directories_and_writers(output_path)
 
     # Execute particle filter on all input trajectories
-    if parallel         # Distribute to workers
+    if parallel         
+
+        # Distribute to workers
         if nworkers() == 1
             addprocs(15)
         end
         pmap(fname -> run(fname, args, w1, w2), fnames)
+
     else
-        if debug        # Run one test file
+
+        if debug        
+            # Run one test file
             run(fnames[1], args, w1, w2)
         else
             for fname in fnames
                 run(fname, args, w1, w2)
             end
         end
+        
     end
 
     close(w1)
