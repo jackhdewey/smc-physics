@@ -3,15 +3,42 @@
 using ZipFile
 using CSV
 
+##############
+#  
+##############
+
+project_path = dirname(@__DIR__)
+
+# Generate a string representation of the noise parameters for a model variation, e.g. "Init00_Obs05_Tra05"
+function generate_noise_id(args)
+
+    init_string = split(string(args.init_vel_noise), ".")[2]
+    if length(init_string) < 2
+        init_string = string(init_string, "0")
+    end
+
+    obs_string = split(string(args.observation_noise), ".")[2]
+    if length(obs_string) < 2
+        obs_string = string(obs_string, "0")
+    end
+
+    transition_string = split(string(args.transition_noise), ".")[2] 
+    if length(transition_string) < 2
+        transition_string = string(transition_string, "0")
+    end
+
+    return string("Init", init_string, "_Obs", obs_string, "_Tra", transition_string)  
+end
+
 
 ##################
 #  READING DATA  #
 ##################
 
 # Read the entire folder of simulation data
-function read_simulation_data(expt_id, model_id, target_id, noise_id)
+function read_simulation_data(expt_id, model_id, target_id, noise_id, alg)
     
-    simulation_folder = joinpath(project_path, "Data", "BulletData", model_id, target_id, noise_id, expt_id, "Inferences")
+    simulation_folder = joinpath(project_path, "Analysis", expt_id, model_id, target_id, noise_id, alg, "Data")
     r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip"))
 
     all_data = []
@@ -101,10 +128,14 @@ function generate_plot_path(expt_id, model_id, target_id, noise_id)
         mkdir(plots_path)
     end
 
+    println("PLOTS PATH: ", plots_path)
+
     plots_path = joinpath(plots_path, expt_id)
     if !isdir(plots_path)
         mkdir(plots_path)
     end
+
+    println("PLOTS PATH: ", plots_path)
 
     plots_path = joinpath(plots_path, model_id)
     if !isdir(plots_path)
@@ -121,7 +152,12 @@ function generate_plot_path(expt_id, model_id, target_id, noise_id)
         mkdir(plots_path)
     end
 
-    plots_path = joinpath(project_path, "Plots")
+    plots_path = joinpath(plots_path, "SMC")
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    plots_path = joinpath(plots_path, "Plots")
     if !isdir(plots_path)
         mkdir(plots_path)
     end

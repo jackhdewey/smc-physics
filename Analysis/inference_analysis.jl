@@ -1,9 +1,9 @@
 # Data analysis
-# Assess model performance at inferring elasticity, relative to ground truth and/or human judgments
+# Assess model performance at inferring elasticity relative to ground truth and/or human judgments
 # Identify trials with poor model / human correlation by absolute error
 # Generate 2D plots showing model-inferred elasticities vs human judgments
 #
-# TODO: Display particle trajectory data 
+# TODO: Integrate particle trajectory data 
 # TODO: Display MCMC trajectory data
 
 using DataFrames
@@ -41,16 +41,20 @@ function process_individual_stimuli_human(expt_id)
     return sub_data_pred
 end
 
-# Compute error on each stimulus, filter to extract high error trials
-function process_individual_stimuli_sim(expt_id, model_id, target_id, noise_id)
+# Compute error on each stimulus filter to extract high error trials
+function process_individual_stimuli_sim(expt_id, model_id, target_id, noise_id, alg)
 
-    # Define model's elasticity judgment as average of output particles, compute error w.r.t. ground truth
-    sim_data = read_simulation_data(expt_id, model_id, target_id, noise_id)
+    # Define model's elasticity judgment as average of output particles
+    sim_data = read_simulation_data(expt_id, model_id, target_id, noise_id, alg)
+    display(sim_data)
     sim_data_pred = @chain sim_data begin
         @groupby :stimulusID
         @combine begin
-            :judgment = mean(:elasticity)       # :elasticity = :gtElasticity
-            :elasticity = first(:gtElasticity)
+
+            :judgment = mean(:elasticity)       
+            :elasticity = first(:gtElasticity)  # :elasticity = :gtElasticity
+
+            # compute error w.r.t. ground truth
             :error = mean(:elasticity) - first(:gtElasticity)
         end
         # @subset :elasticity .> 0.6
@@ -71,9 +75,7 @@ end
 #########
 
 # Plot model against ground truth
-function plot_sim_vs_gt(expt_id, target_id)
-
-    sim, _ = process_individual_stimuli_sim(expt_id, model_id, target_id, noise_id)
+function plot_sim_vs_gt(sim, expt_id, target_id, marker_shape, plots_path)
 
     # default(aspect_ratio = :equal)
     p = palette(:jet)
@@ -98,7 +100,6 @@ function plot_sim_vs_gt(expt_id, target_id)
     plot!(0:1, 0:1, line=:dash)
     corr_string = "r = " * string(round(cor(sim.elasticity, sim.judgment), digits=3))
     annotate!(0.2, 0.8, corr_string, 10)
-    plots_path = generate_plot_path(expt_id, model_id, target_id, noise_id)
     savefig(joinpath(plots_path, string("individual_stimuli_judgments_", "against_gt_model_", target_id, "Exp", expt_id, ".png")))
 
 end
@@ -197,8 +198,15 @@ end
 
 function main()
 
-    # Plotting variables
     args = Args()
+
+    # Generate output filepath
+    noise_id = generate_noise_id(args)
+    sim, _ = process_individual_stimuli_sim(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm)
+    plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id)
+    println("PLOTS PATH: ", plots_path)
+
+    # Plotting variables
     if args.target_id == "Cube"
         marker_shape = :square
     else
@@ -207,7 +215,7 @@ function main()
 
     #process_individual_stimuli_sim(args.expt_id, args.model_id, args.target_id, args.noise_id)
     #plot_sim_vs_human_individual_stimuli(model_id, target_id, noise_id, expt_id)
-    plot_sim_vs_gt(1, target_id)
+    plot_sim_vs_gt(sim, 1, args.target_id, marker_shape, plots_path)
 
     #=
     for expt_id = 1:2

@@ -7,7 +7,7 @@
 #      * etc.
 # Ground truth trajectories are generated in RealFlow and read from .csv files
 #
-# TODO: Integrate parallel implementation
+# TODO: Parallel implementation
 # TODO: Infer elasticity for trajectories simulated in PyBullet using both MCMC and SMC
 
 using Distributed
@@ -21,7 +21,7 @@ include("Inference/particle_filter.jl")
 
 
 parallel = false
-debug = true
+debug = false
 
 @everywhere begin
 function run(fname, args, w1, w2)
@@ -51,7 +51,7 @@ function run(fname, args, w1, w2)
     init_scene(debug_viz)
     init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm)
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
-    model_args = (sim, init_state, t_s)
+    sim_args = (sim, init_state, t_s)
 
     
     # Generate a sample trace (no inference) 
@@ -59,14 +59,14 @@ function run(fname, args, w1, w2)
 
         # Generate and display a single trace 
         println("DEBUGGING")
-        (trace, _) = Gen.generate(generate_trajectory, model_args, observations)
+        (trace, _) = Gen.generate(generate_trajectory, sim_args, observations)
         display(Gen.get_choices(trace))
 
     # Run inference using MCMC
     elseif args.algorithm == "MCMC"
         
         println("Initializing MCMC")
-        avg_last_hundred, results = gaussian_drift_inference(generate_trajectory, model_args, observations)
+        avg_last_hundred, results = gaussian_drift_inference(generate_trajectory, sim_args, observations)
         println("Elasticity estimate: ", avg_last_hundred)
 
         # Write output trajectory to a .csv file
@@ -82,8 +82,10 @@ function run(fname, args, w1, w2)
 
         # Filter n particles to explain the complete trajectory
         println("Initializing Particle Filter")
-        results, _ = infer(generate_trajectory, model_args, observations, 
-                            args.num_particles, args.save_intermediate, w2, fname)
+        n = args.num_particles
+        s = args.save_intermediate
+        results, _ = infer(generate_trajectory, sim_args, observations, 
+                            n, s, w2, fname)
 
         # Write output particles to a .csv
         tokens = split(fname, "_")

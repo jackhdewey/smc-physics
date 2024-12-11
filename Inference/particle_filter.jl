@@ -1,7 +1,7 @@
 # Particle filter 
 #
 # Generates and does inference using a set of concurrent simulations (particles)
-# Each simulation is procedurally 1) updated by one time step, 2) scored, 3) (potentially) resampled, and 4) rejuvenated
+# Each simulation is procedurally 1) updated by one time step, 2) scored, 3) (potentially) resampled, and 4) (potentially) rejuvenated
 #
 # CONSIDER: Changing number of rejuvenation moves
 # CONSIDER: Changing number of particles
