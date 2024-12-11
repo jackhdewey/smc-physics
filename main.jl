@@ -11,7 +11,6 @@
 # TODO: Infer elasticity for trajectories simulated in PyBullet using both MCMC and SMC
 
 using Distributed
-using Parameters
 using ZipFile
 
 include("args.jl")
