@@ -18,13 +18,9 @@ include("Model/bouncing_object.jl")
 include("Inference/mcmc.jl")
 include("Inference/particle_filter.jl")
 
-
-parallel = true
-debug = false
-
-@everywhere begin
-function run(fname, args, w1, w2)
+@everywhere function run_inference(fname, args, output_path)
     
+    w1, w2 = make_directories_and_writers(output_path)
 
     # Initialize Bullet simulation context 
     debug_viz = false
@@ -106,6 +102,11 @@ function run(fname, args, w1, w2)
         end
     end
 
+    close(w1)
+    if args.algorithm == "SMC"
+        close(w2)  
+    end
+
     bullet.disconnect()
     #=
     catch e
@@ -115,13 +116,12 @@ function run(fname, args, w1, w2)
     end
     =#
 end
-end
-
 
 ########
 # MAIN #
 ########
 
+#=
 function main()
 
     args = Args()
@@ -168,3 +168,4 @@ function main()
 end
 
 main()
+=#
