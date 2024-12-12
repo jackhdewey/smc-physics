@@ -30,7 +30,7 @@ function main()
 
         # Distribute to workers
         if nworkers() == 1
-            addprocs(11)
+            addprocs(15)
         end
         pmap(fname -> run_inference(fname, args, output_path), fnames)
 
@@ -50,23 +50,3 @@ function main()
 end
 
 main()
-
-#=
-addprocs(4)
-
-include("Utilities/fileio.jl")
-
-@everywhere include("main.jl")
-
-expt_id = "Exp1"
-dir = string("RealFlowData/", expt_id, "/")
-
-fnames = readdir(dir)
-fnames = filter_unwanted_filenames(fnames)
-
-sort!(fnames, lt=trial_order)
-
-fnames = [joinpath(expt_id, f) for f in fnames]
-
-pmap(main, fnames)
-=#
