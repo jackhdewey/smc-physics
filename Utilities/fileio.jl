@@ -157,6 +157,20 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
     CSV.write(fname, particle_data, transform=truncator)
 end
 
+function zip_folder(filepath)
+
+    w1, w2 = make_writers(filepath)
+
+    inference_path = string(filepath, "/inferences/")
+    particle_path = string(filepath, "/intermediate/")
+    println(inference_path)
+    println(particle_path)
+
+    for (root, dirs, files) in walkdir(filepath)
+    end
+
+end
+
 
 ############################################
 # Sorting comparators (for ordering files) #

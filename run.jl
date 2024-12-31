@@ -56,6 +56,8 @@ function main()
         
     end
 
+    # COMPRESS OUTPUT FILES
+
 end
 
 main()
