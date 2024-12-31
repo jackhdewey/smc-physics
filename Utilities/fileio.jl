@@ -85,10 +85,11 @@ function generate_noise_id(args)
 end
 
 # Prepare directory for output files, and generate .zip file writers
-function make_directories_and_writers(output_id)
-        
-    # Locate / create base directory for output data
+function make_directories(output_id)
+    
     tokens = split(output_id, "/")
+
+    # If it doesn't already exist, create base directory for output data
     expt_dir = string("Analysis/", tokens[1], "/")
     if !isdir(expt_dir)
         mkdir(expt_dir)
@@ -115,13 +116,18 @@ function make_directories_and_writers(output_id)
     end
     println("Output Filepath... ", data_dir)
 
+    return data_dir
+end
+
+function make_writers(data_dir)
+
     # Initialize zip writers for inference data and (if SMC) intermediate particles
     w1 = ZipFile.Writer(string(data_dir, "/inferences.zip"))
     w2 = nothing
     if tokens[5] == "SMC"
         w2 = ZipFile.Writer(string(data_dir, "/particles.zip"))
     end
-
+    
     return w1, w2
 end
 

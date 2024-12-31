@@ -18,9 +18,13 @@ include("Model/bouncing_object.jl")
 include("Inference/mcmc.jl")
 include("Inference/particle_filter.jl")
 
-@everywhere function run_inference(fname, args, output_path)
+
+@everywhere function run_inference(fname, args, output_path, zip)
     
-    w1, w2 = make_directories_and_writers(output_path)
+    w1, w2 = nothing, nothing
+    if zip
+        w1, w2 = make_writers(output_path)
+    end
 
     # Initialize Bullet simulation context 
     debug_viz = false
@@ -42,13 +46,11 @@ include("Inference/particle_filter.jl")
         fname = string("Data/RealFlowData/", args.expt_id, "/", fname)          # Good
     end
 
-
     # Initialize scene, including target object state (using observation data)
     init_scene(debug_viz)
     init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm)
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
     sim_args = (sim, init_state, t_s)
-
     
     # Generate a sample trace (no inference) 
     if args.algorithm == "DEBUG"
@@ -68,10 +70,17 @@ include("Inference/particle_filter.jl")
         # Write output trajectory to a .csv file
         tokens = split(fname, "_")
         tokens = split(fname, "_")
-        fname = string(tokens[2], "_", tokens[3])
-        println("Writing to: ", fname)
-        f = ZipFile.addfile(w1, fname)
-        write_to_csv(results, f)
+        output_fname = string(tokens[2], "_", tokens[3])
+        
+        println("Writing to: ", output_path, output_fname)
+        if zip
+            f = ZipFile.addfile(w1, output_fname)
+            write_to_csv(results, f)
+        else
+            mkdir(string(output_path, "/inferences"))
+            write_to_csv(results, string(output_path, "/inferences/", output_fname))
+        end
+
         
     # Run inference using particle filter    
     else
@@ -80,14 +89,23 @@ include("Inference/particle_filter.jl")
         println("Initializing Particle Filter")
         n = args.num_particles
         s = args.save_intermediate
-        results, _ = infer(generate_trajectory, sim_args, observations, 
-                            n, s, w2, fname)
+        results, _ = infer(fname, generate_trajectory, sim_args, observations, n, s, output_path, w2)
 
         # Write output particles to a .csv
         tokens = split(fname, "_")
-        fname = string(tokens[2], "_", tokens[3])
-        f = ZipFile.addfile(w1, fname)
-        write_to_csv(results, f)
+        output_fname = string(tokens[2], "_", tokens[3])
+
+        println("Writing to: ", output_path, output_fname)
+        if zip
+            f = ZipFile.addfile(w1, output_fname)
+            write_to_csv(results, f)
+        else
+            target_dir = string(output_path, "inferences/")
+            if !isdir(target_dir)
+                mkdir(target_dir)
+            end
+            write_to_csv(results, string(target_dir, output_fname))
+        end
 
         if args.predict
 
@@ -102,9 +120,11 @@ include("Inference/particle_filter.jl")
         end
     end
 
-    close(w1)
-    if args.algorithm == "SMC"
-        close(w2)  
+    if zip
+        close(w1)
+        if args.algorithm == "SMC"
+            close(w2)  
+        end
     end
 
     bullet.disconnect()
@@ -116,56 +136,3 @@ include("Inference/particle_filter.jl")
     end
     =#
 end
-
-########
-# MAIN #
-########
-
-#=
-function main()
-
-    args = Args()
-
-    # Extract ground truth trajectory filenames from correct directory
-    args.gt_source == "RealFlow" ? 
-        dir = string("Data/RealFlowData/", args.expt_id, "/") : 
-        dir = string("Tests/BulletStimulus/Data/", args.gt_shape, "/")
-    fnames = readdir(dir)
-    fnames = filter_unwanted_filenames(fnames)
-    sort!(fnames, lt=trial_order)
-
-    # Generate output filepath(s) and writers
-    noise_id = generate_noise_id(args)
-    output_path = string(args.expt_id, "/", args.model_id, "/", args.target_id, "/", noise_id, "/", args.algorithm)
-    w1, w2 = make_directories_and_writers(output_path)
-
-    # Execute particle filter on all input trajectories
-    if parallel         
-
-        # Distribute to workers
-        if nworkers() == 1
-            addprocs(15)
-        end
-        pmap(fname -> run(fname, args, w1, w2), fnames)
-
-    else
-
-        if debug        
-            # Run one test file
-            run(fnames[1], args, w1, w2)
-        else
-            for fname in fnames
-                run(fname, args, w1, w2)
-            end
-        end
-        
-    end
-
-    close(w1)
-    if args.algorithm == "SMC"
-        close(w2)  
-    end
-end
-
-main()
-=#

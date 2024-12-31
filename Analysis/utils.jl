@@ -87,13 +87,21 @@ end
 ##################
 
 # Read all simulation data files at the specified directory 
-function read_simulation_data(expt_id, model_id, target_id, noise_id, algo)
+function read_simulation_data(expt_id, model_id, target_id, noise_id, algo, zip)
     
     all_data = []
 
-    simulation_folder = joinpath(project_path, "Analysis", expt_id, model_id, target_id, noise_id, algo, "Data")
-    r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip"))
-    for file in r.files
+    simulation_folder = joinpath(project_path, "Analysis", expt_id, model_id, target_id, noise_id, algo, "Data", "inferences")
+    if zip 
+        r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip")
+        files = r.files
+    else 
+        files = readdir(simulation_folder)
+    end
+
+    for file in files
+        
+        # TODO: FINISH IMPLEMENTING NON-ZIP OPTIONs
         println(file.name)
 
         # Extract ground truth elasticity from filename

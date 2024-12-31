@@ -5,8 +5,8 @@ using Parameters
 @with_kw mutable struct Args
 
     # Data source
-    expt_id::String = "BulletTest"
-    gt_source::String = "Bullet"
+    expt_id::String = "Exp1"
+    gt_source::String = "RealFlow"
     gt_shape::String = "Cube"       # Only used for Bullet
 
     # Model parameters

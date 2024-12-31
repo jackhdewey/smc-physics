@@ -30,7 +30,7 @@ end
 
 # Generates num_particles trajectories
 # At each timestep, scores them according to their likelihood, and resamples (filters) poor performers
-function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false, w2=nothing, fname::String=missing)
+function infer(fname::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false, output_path=nothing, w2=nothing)
 
     # Extract trial identification    
     tokens = split(fname, "_")
@@ -57,9 +57,17 @@ function infer(gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::In
             
             # Dump current particles to a .csv file
             if save_particles
-                fname = string(tokens[2], "_", csv[1], "_", t, ".", csv[2])
-                f = ZipFile.addfile(w2, fname)
-                write_to_csv(state.traces, f)
+                output_fname = string(tokens[2], "_", csv[1], "_", t, ".", csv[2])
+                if w2 != nothing
+                    f = ZipFile.addfile(w2, output_fname)
+                    write_to_csv(state.traces, f)
+                else
+                    target_dir = string(output_path, "intermediate/")
+                    if !isdir(target_dir)
+                        mkdir(target_dir)
+                    end
+                    write_to_csv(state.traces, string(target_dir, output_fname))
+                end
             end
 
         end
