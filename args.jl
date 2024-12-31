@@ -11,7 +11,7 @@ using Parameters
 
     # Model parameters
     model_id::String = "Modelv5"
-    target_id::String = "Cube"
+    target_id::String = "Sphere"
     init_vel_noise::Float32 = 0.0
     observation_noise::Float32 = 0.05
     transition_noise::Float32 = 0.075

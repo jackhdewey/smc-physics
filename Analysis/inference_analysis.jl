@@ -198,11 +198,11 @@ function main()
 
     # Generate output filepath
     noise_id = generate_noise_id(args)
-    plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id)
+    plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, "TestJudgments")
     println("PLOTS PATH: ", plots_path)
 
     # Read simulation data and organize into desired form
-    sim_data = read_simulation_data(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm)
+    sim_data = read_simulation_data(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, true)
     sim_data, error_trials = process_individual_stimuli_sim(sim_data)
     display(sim_data)
     println("High Error Trials: ", error_trials)
