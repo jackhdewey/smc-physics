@@ -19,7 +19,7 @@ using Parameters
     # Inference parameters
     algorithm::String = "SMC"       # MCMC, SMC, or DEBUG
     num_particles::Int = 20         # Only used for SMC
-    save_intermediate::Bool = true  # Only used for SMC
+    save_particles::Bool = false    # Only used for SMC
     
     # Prediction parameters
     predict::Bool = false

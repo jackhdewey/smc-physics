@@ -15,59 +15,6 @@ include("../args.jl")
 include("utils.jl")
 
 
-#################
-# Data Analysis #
-#################
-
-# Compute error on each stimulus, extract high error trials
-function process_individual_stimuli_sim(sim_data)
-
-    # Define model's elasticity judgment as average of output particles
-    sim_data_pred = @chain sim_data begin
-        @groupby :stimulusID
-        @combine begin
-
-            :judgment = mean(:elasticity)       
-            :gtElasticity = first(:gtElasticity)  # :elasticity = :gtElasticity
-
-            # compute error w.r.t. ground truth
-            :error = mean(:elasticity) - first(:gtElasticity)
-        end
-        # @subset :elasticity .> 0.6
-        @orderby :stimulusID
-    end
-
-    # Filter by error threshold, save high error trials
-    high_error = sim_data_pred[sim_data_pred.error .> .2, :]
-    high_error_trials = high_error[:, 1]
-
-    return sim_data_pred, high_error_trials
-end
-
-# Group subject's elasticity judgments by stimulus and compute mean rating for each stimulus
-function process_individual_stimuli_human(sub_data)
-
-    nsubs = length(unique(sub_data.filename))   # number of subjects
-    sub_data_pred = @chain sub_data begin
-        @groupby :stimulusID
-        # @groupby :elasticity# :filename
-        # @DataFramesMeta.transform :prediction = mean(:rating)     # Gen also has a transform macro
-        @combine begin
-
-            :judgment = mean(:rating)
-            :std_err_mean = std(:rating) / sqrt(nsubs) 
-
-            :gtElasticity = mean(:elasticity)
-
-        end
-        # @subset :gtElasticity .> 0.6
-        @orderby :stimulusID
-    end
-
-    return sub_data_pred
-end
-
-
 #########
 # PLOTS #
 #########
@@ -196,13 +143,10 @@ function main()
 
     args = Args()
 
-    # Generate output filepath
-    noise_id = generate_noise_id(args)
-    plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, "TestJudgments")
-    println("PLOTS PATH: ", plots_path)
-
     # Read simulation data and organize into desired form
-    sim_data = read_simulation_data(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, true)
+    noise_id = generate_noise_id(args)
+    sim_data = read_simulation_data(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, false)
+    display(sim_data)
     sim_data, error_trials = process_individual_stimuli_sim(sim_data)
     display(sim_data)
     println("High Error Trials: ", error_trials)
@@ -213,6 +157,10 @@ function main()
     else
         marker_shape = :circle
     end
+
+    # Generate output filepath
+    plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, "TestJudgments")
+    println("PLOTS PATH: ", plots_path)
 
     # Plot inferred elasticity against ground truth, display correlation
     plot_sim_vs_gt(sim_data, marker_shape, plots_path, 1, args.target_id)

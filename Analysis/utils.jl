@@ -92,26 +92,41 @@ function read_simulation_data(expt_id, model_id, target_id, noise_id, algo, zip=
     all_data = []
 
     simulation_folder = joinpath(project_path, "Analysis", expt_id, model_id, target_id, noise_id, algo, "Data")
+    println("Reading simulation data at ", simulation_folder)
     if zip 
         r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip"))
         files = r.files
-    else 
+    else
+        # TODO: FINISH IMPLEMENTING NON-ZIP OPTION 
         files = readdir(joinpath(simulation_folder, "inferences"))
     end
 
     for file in files
         
-        # TODO: FINISH IMPLEMENTING NON-ZIP OPTION
-        println(file.name)
+        if zip 
+            filename = file.name
+        else
+            filename = joinpath(simulation_folder, "inferences", file)
+        end
+
+        if filename == "inferences/"
+            continue
+        end
 
         # Extract ground truth elasticity from filename
-        elasticity_string, variation_string = split(file.name, ['_', '.'])
-        elasticity = parse(Int, elasticity_string[end]) * 0.1 # fix order of magnitude
+        tokens = split(filename, ['/', '_', '.'])
+        elasticity_string, variation_string = tokens[length(tokens)-2], tokens[length(tokens)-1]
+        elasticity = parse(Int, elasticity_string[end]) * 0.1   # fix order of magnitude
         variation = parse(Int64, variation_string[4:end])
 
         # Try to read the file into a dataframe
+        println("Reading file ", filename)
         try
-            data = CSV.File(read(file)) |> DataFrame
+            if zip
+                data = CSV.File(read(file)) |> DataFrame
+            else 
+                data = CSV.File(read(filename)) |> DataFrame
+            end
             data = insertcols(
                 data,
                 "filename" => file,
@@ -131,6 +146,31 @@ function read_simulation_data(expt_id, model_id, target_id, noise_id, algo, zip=
     # filter(:variation => x -> x <= 15, all_data)
     
     return all_data
+end
+
+# Compute error on each stimulus, extract high error trials
+function process_individual_stimuli_sim(sim_data)
+
+    # Define model's elasticity judgment as average of output particles
+    sim_data_pred = @chain sim_data begin
+        @groupby :stimulusID
+        @combine begin
+
+            :judgment = mean(:elasticity)       
+            :gtElasticity = first(:gtElasticity)  # :elasticity = :gtElasticity
+
+            # compute error w.r.t. ground truth
+            :error = mean(:elasticity) - first(:gtElasticity)
+        end
+        # @subset :elasticity .> 0.6
+        @orderby :stimulusID
+    end
+
+    # Filter by error threshold, save high error trials
+    high_error = sim_data_pred[sim_data_pred.error .> .2, :]
+    high_error_trials = high_error[:, 1]
+
+    return sim_data_pred, high_error_trials
 end
 
 
@@ -159,4 +199,27 @@ function read_subject_data(expt_id)
     end
 
     return df
+end
+
+# Group subject's elasticity judgments by stimulus and compute mean rating for each stimulus
+function process_individual_stimuli_human(sub_data)
+
+    nsubs = length(unique(sub_data.filename))   # number of subjects
+    sub_data_pred = @chain sub_data begin
+        @groupby :stimulusID
+        # @groupby :elasticity# :filename
+        # @DataFramesMeta.transform :prediction = mean(:rating)     # Gen also has a transform macro
+        @combine begin
+
+            :judgment = mean(:rating)
+            :std_err_mean = std(:rating) / sqrt(nsubs) 
+
+            :gtElasticity = mean(:elasticity)
+
+        end
+        # @subset :gtElasticity .> 0.6
+        @orderby :stimulusID
+    end
+
+    return sub_data_pred
 end
