@@ -62,17 +62,15 @@ include("particle_filter.jl")
         avg_last_hundred, results = gaussian_drift_inference(generate_trajectory, sim_args, observations)
         println("Elasticity estimate: ", avg_last_hundred)
         
-        #=
         # Write output trajectory to a .csv file
-        tokens = split(fname, "_")
         tokens = split(fname, "_")
         output_fname = string(tokens[2], "_", tokens[3])
         println("Writing to: ", output_path, output_fname)
+        write_to_csv(results, string(output_path, output_fname))
+
+        #=
         f = ZipFile.addfile(w1, output_fname)
         write_to_csv(results, f)
-
-        mkdir(string(output_path, "/inferences"))
-        write_to_csv(results, string(output_path, "/inferences/", output_fname))
         =#
         
     # Run inference using particle filter    
@@ -80,7 +78,11 @@ include("particle_filter.jl")
 
         # Filter n particles to explain the complete trajectory
         println("Initializing Particle Filter")
-        results, _ = infer(fname, generate_trajectory, sim_args, observations, args.num_particles, args.save_particles, output_path, w2)
+        target_dir = string(output_path, "intermediate/")
+        if !isdir(target_dir)
+            mkdir(target_dir)
+        end
+        results, _ = infer(fname, generate_trajectory, sim_args, observations, args.num_particles, args.save_particles, target_dir, w2)
 
         # Write output particles to a .csv
         tokens = split(fname, "_")

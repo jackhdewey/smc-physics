@@ -62,12 +62,7 @@ function infer(fname::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, nu
                     f = ZipFile.addfile(w2, output_fname)
                     write_to_csv(state.traces, f)
                 else
-                    println("HERE")
-                    target_dir = string(output_path, "intermediate/")
-                    if !isdir(target_dir)
-                        mkdir(target_dir)
-                    end
-                    write_to_csv(state.traces, string(target_dir, output_fname))
+                    write_to_csv(state.traces, string(output_path, output_fname))
                 end
             end
 

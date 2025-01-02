@@ -6,10 +6,6 @@ using CSV
 project_path = dirname(@__DIR__)
 
 
-###################
-#  GENERATE PATH  #
-###################
-
 # Generate a string representation of the model's noise parameters, e.g. "Init00_Obs05_Tra05"
 function generate_noise_id(args)
 
@@ -29,56 +25,6 @@ function generate_noise_id(args)
     end
 
     return string("Init", init_string, "_Obs", obs_string, "_Tra", transition_string)  
-end
-
-# Generate the directory location where we will store the plots
-function generate_plot_path(expt_id, model_id, target_id, noise_id, type)
-
-    plots_path = joinpath(project_path, "Analysis")
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-
-    println("PLOTS PATH: ", plots_path)
-
-    plots_path = joinpath(plots_path, expt_id)
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-
-    println("PLOTS PATH: ", plots_path)
-
-    plots_path = joinpath(plots_path, model_id)
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-
-    plots_path = joinpath(plots_path, target_id)
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-
-    plots_path = joinpath(plots_path, noise_id)
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-
-    plots_path = joinpath(plots_path, "SMC")
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-
-    plots_path = joinpath(plots_path, "Plots")
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-
-    plots_path = joinpath(plots_path, type)
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-
-    return plots_path
 end
 
 
@@ -178,10 +124,10 @@ end
 function read_subject_data(expt_id)
 
     folders = Dict(
-        1 => "Exp1_allElasticities_fullMotion",
-        2 => "Exp2_allElasticities_1second",
-        3 => "Exp3_mediumElasticity_fullMotion",
-        4 => "Exp4_mediumElasticity_1second"
+        "Exp1" => "Exp1_allElasticities_fullMotion",
+        "Exp2" => "Exp2_allElasticities_1second",
+        "Exp3" => "Exp3_mediumElasticity_fullMotion",
+        "Exp4" => "Exp4_mediumElasticity_1second"
     )
     exp_data_folder = joinpath(project_path, "Data", "HumanData", "EstimationTask", folders[expt_id], "Results")
 
@@ -194,7 +140,9 @@ function read_subject_data(expt_id)
     df = vcat(data...)     # combine all together with splat operator
 
     # elasticity is coded as integer
-    if expt >= 3
+    id_no = parse(Int, expt_id[4])
+    println("EXPT NO. ", id_no)
+    if id_no >= 3
         df.elasticity = df.elasticity / 10
     end
 
@@ -211,10 +159,9 @@ function process_individual_stimuli_human(sub_data)
         # @DataFramesMeta.transform :prediction = mean(:rating)     # Gen also has a transform macro
         @combine begin
 
+            :gtElasticity = mean(:elasticity)
             :judgment = mean(:rating)
             :std_err_mean = std(:rating) / sqrt(nsubs) 
-
-            :gtElasticity = mean(:elasticity)
 
         end
         # @subset :gtElasticity .> 0.6
@@ -222,4 +169,59 @@ function process_individual_stimuli_human(sub_data)
     end
 
     return sub_data_pred
+end
+
+
+###################
+#  GENERATE PATH  #
+###################
+
+# Generate the directory location where we will store the plots
+function generate_plot_path(expt_id, model_id, target_id, noise_id, type)
+
+    plots_path = joinpath(project_path, "Analysis")
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    println("PLOTS PATH: ", plots_path)
+
+    plots_path = joinpath(plots_path, expt_id)
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    println("PLOTS PATH: ", plots_path)
+
+    plots_path = joinpath(plots_path, model_id)
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    plots_path = joinpath(plots_path, target_id)
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    plots_path = joinpath(plots_path, noise_id)
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    plots_path = joinpath(plots_path, "SMC")
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    plots_path = joinpath(plots_path, "Plots")
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    plots_path = joinpath(plots_path, type)
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    return plots_path
 end

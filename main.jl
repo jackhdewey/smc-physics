@@ -19,8 +19,8 @@ function main()
 
     # Extract ground truth trajectory filenames from correct directory
     args.gt_source == "RealFlow" ? 
-    dir = string("Data/RealFlowData/", args.expt_id, "/") : 
-    dir = string("Tests/BulletStimulus/Data/", args.gt_shape, "/")
+        dir = string("Data/RealFlowData/", args.expt_id, "/") : 
+        dir = string("Tests/BulletStimulus/Data/", args.gt_shape, "/")
     fnames = readdir(dir)
     fnames = filter_unwanted_filenames(fnames)
     sort!(fnames, lt=trial_order)
@@ -38,15 +38,15 @@ function main()
         if nworkers() == 1
             addprocs(15)
         end
+
         pmap(fname -> run_inference(fname, args, output_path, w1, w2), fnames)
         println("DONE")
 
     else
 
-        if debug        
-            # Run one test file
+        if debug                 # Run one test file
             run_inference(fnames[1], args, output_path, w1, w2)
-        else
+        else                     # Run all files on one process
             for fname in fnames
                 println(fname)
                 run_inference(fname, args, output_path, w1, w2)
