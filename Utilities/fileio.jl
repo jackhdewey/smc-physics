@@ -202,10 +202,19 @@ function generate_noise_id(args)
     return string("Init", init_string, "_Obs", obs_string, "_Tra", transition_string)  
 end
 
+# Generate a string representation of the algorithm parameters
+function generate_inference_param_id(args)
+
+    particle_string = string(args.num_particles)
+    rejuvenation_string = string(args.rejuvenation_moves)
+
+    return string("Particles", particle_string, "_Rejuv", rejuvenation_string)
+end
+
 # Prepare directory for output files, and generate .zip file writers
-function make_directories(output_id)
+function make_directories(output_path)
     
-    tokens = split(output_id, "/")
+    tokens = split(output_path, "/")
 
     # If it doesn't already exist, create base directory for output data
     expt_dir = string("Analysis/", tokens[1], "/")
@@ -228,11 +237,14 @@ function make_directories(output_id)
     if !isdir(alg_dir)
         mkdir(alg_dir)
     end
-    data_dir = string(alg_dir, "Data/")
+    infer_dir = string(alg_dir, tokens[6], "/")
+    if !isdir(infer_dir)
+        mkdir(infer_dir)
+    end
+    data_dir = string(infer_dir, "Data/")
     if !isdir(data_dir)
         mkdir(data_dir)
     end
-    println("Output Filepath... ", data_dir)
 
     return data_dir
 end

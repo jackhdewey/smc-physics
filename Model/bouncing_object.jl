@@ -21,10 +21,6 @@ include("../args.jl")
 include("../Utilities/truncatednorm.jl")
 
 
-INIT_VELOCITY_NOISE = 0.0   # Currently disabled
-TRANSITION_NOISE = .075
-OBSERVATION_NOISE = .05
-
 model_args = Args()
 
 # Sets initial scene configuration (in the future this could be inferred using an inverse graphics module)
@@ -95,8 +91,9 @@ end
 # Samples the target object's latent dynamic properties from their priors
 @gen function sample_latents(l::RigidBodyLatents)
 
-    # mass = {:mass} ~ gamma(1.2, 10.)
     res = {:restitution} ~ uniform(0, 1)
+
+    # mass = {:mass} ~ gamma(1.2, 10.)
 
     return RigidBodyLatents(setproperties(l.data, restitution=res))
 end
@@ -115,6 +112,7 @@ end
 @gen function resample_state(k::RigidBodyState)
 
     position = {:position} ~ broadcasted_normal(k.position, model_args.transition_noise)
+    
     #=
     orientation::Vector{3, Float64} = bullet.getEulerFromQuaternion(k.orientation)
     orientation = {:orientation} ~ broadcasted_normal(orientation, 0.1)
@@ -152,11 +150,11 @@ end
 # Given an initial state, samples latents from their priors then runs a stochastic forward simulation
 @gen function generate_trajectory(sim::BulletSim, init_state::BulletState, T::Int)
 
-    # Sample the target object's restitution
+    # Sample the object's restitution (elasticity)
     latents = {:latents} ~ Gen.Map(sample_latents)(init_state.latents)
     init_state = setproperties(init_state; latents=latents)
 
-    # Sample the target object's initial velocity
+    # Sample the object's initial velocity
     #kinematics = { :init_state } ~ Gen.Map(sample_init_state)(init_state.kinematics)
     #init_state = setproperties(init_state; kinematics=kinematics)
 
@@ -166,7 +164,7 @@ end
     return states
 end
 
-# Generates a constrained trace with the specified elasticity
+# Generates a trace with the specified elasticity
 function generate_constrained(sim_args::Tuple, restitution::Float64)
   
     gt_constraints = choicemap((:latents => 1 => :restitution, restitution))

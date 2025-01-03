@@ -122,18 +122,15 @@ function main()
 
     args = Args()
 
-    # Read human data
-    human_data = read_subject_data(args.expt_id)
-    human_data = process_individual_stimuli_human(human_data)
-
     # Read simulation data into data frame and store high-error trials
     noise_id = generate_noise_id(args)
-    sim_data = read_simulation_data(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, false)
+    inference_param_id = generate_inference_param_id(args)
+    sim_data = read_simulation_data(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, inference_param_id, false)
     sim_data, error_trials = process_individual_stimuli_sim(sim_data)
     println("High Error Trials: ", error_trials)
 
     # Generate output filepath
-    plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, "TestJudgments")
+    plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, inference_param_id, "TestJudgments")
     println("PLOTS PATH: ", plots_path)
 
     # Plotting variables
@@ -145,8 +142,14 @@ function main()
 
     # Plot inferred elasticity against ground truth, display correlation
     plot_vs_gt(sim_data, "sim", marker_shape, args.expt_id, args.target_id, plots_path)
+
+    #=
+    # Read human data
+    human_data = read_subject_data(args.expt_id)
+    human_data = process_individual_stimuli_human(human_data)
     plot_vs_gt(human_data, "human", marker_shape, args.expt_id, args.target_id, plots_path)
     plot_sim_vs_human(sim_data, human_data, marker_shape, args.expt_id, args.target_id, args.plot_mean, plots_path)
+    =#
 
     #=
 

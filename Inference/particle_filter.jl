@@ -30,7 +30,7 @@ end
 
 # Generates num_particles trajectories
 # At each timestep, scores them according to their likelihood, and resamples (filters) poor performers
-function infer(fname::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, num_particles::Int=20, save_particles=false, output_path=nothing, w2=nothing)
+function infer(fname::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, rejuvenation_moves=1, num_particles::Int=20, save_particles=false, output_path=nothing, w2=nothing)
 
     # Extract trial identification    
     tokens = split(fname, "_")
@@ -52,7 +52,9 @@ function infer(fname::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, nu
 
             # Rejuvenation - resamples elasticity, resimulates to current time step, then accepts / rejects
             for i=1:num_particles
-                state.traces[i], _ = Gen.mh(state.traces[i], proposal, ())
+                for i=1:rejuvenation_moves
+                    state.traces[i], _ = Gen.mh(state.traces[i], proposal, ())
+                end
             end
             
             # Dump current particles to a .csv file

@@ -19,7 +19,7 @@ include("mcmc.jl")
 include("particle_filter.jl")
 
 
-@everywhere function run_inference(fname, args, output_path, w1, w2)
+@everywhere function run_inference(fname, args, output_path, w1=nothing, w2=nothing)
 
     # Initialize Bullet simulation context 
     debug_viz = false
@@ -78,21 +78,22 @@ include("particle_filter.jl")
 
         # Filter n particles to explain the complete trajectory
         println("Initializing Particle Filter")
-        target_dir = string(output_path, "intermediate/")
-        if !isdir(target_dir)
-            mkdir(target_dir)
+        
+        particle_dir = string(output_path, "intermediate/")
+        if !isdir(particle_dir)
+            mkdir(particle_dir)
         end
-        results, _ = infer(fname, generate_trajectory, sim_args, observations, args.num_particles, args.save_particles, target_dir, w2)
+        results, _ = infer(fname, generate_trajectory, sim_args, observations, args.rejuvenation_moves, args.num_particles, args.save_particles, particle_dir, w2)
 
         # Write output particles to a .csv
+        result_dir = string(output_path, "inferences/")
+        if !isdir(result_dir)
+            mkdir(result_dir)
+        end
         tokens = split(fname, "_")
         output_fname = string(tokens[2], "_", tokens[3])
-        println("Writing to: ", output_path, output_fname)
-        target_dir = string(output_path, "inferences/")
-        if !isdir(target_dir)
-            mkdir(target_dir)
-        end
-        write_to_csv(results, string(target_dir, output_fname))
+        println("Writing to: ", target, output_fname)
+        write_to_csv(results, string(result_dir, output_fname))
 
         #=
         f = ZipFile.addfile(w1, output_fname)

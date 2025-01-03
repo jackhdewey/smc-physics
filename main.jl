@@ -1,19 +1,21 @@
 # Parallel implemention 
 
-using Distributed
-using ZipFile
 
+using Distributed
+if nworkers() == 1
+    addprocs(15)
+end
+@everywhere include("Inference/run_inference.jl")
+
+using ZipFile
 include("Utilities/fileio.jl")
 
-@everywhere include("Inference/run_inference.jl")
 
 debug = false
 parallel = true
 zip = false
 
 function main()
-
-    @everywhere include("Inference/run_inference.jl")
 
     args = Args()
 
@@ -27,26 +29,28 @@ function main()
 
     # Generate output filepath(s)
     noise_id = generate_noise_id(args)
-    output_path = string(args.expt_id, "/", args.model_id, "/", args.target_id, "/", noise_id, "/", args.algorithm)
+    inference_id = generate_inference_param_id(args)
+    output_path = joinpath(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, inference_id, "Data")
     output_path = make_directories(output_path)
-    w1, w2 = make_writers(output_path, args.algorithm)
+    println("Output Filepath... ", output_path)
+
+    w1, w2 = nothing, nothing
+    #w1, w2 = make_writers(output_path, args.algorithm)
 
     # Execute particle filter on all input trajectories
     if parallel    
 
         # Distribute to workers
-        if nworkers() == 1
-            addprocs(15)
-        end
-
         pmap(fname -> run_inference(fname, args, output_path, w1, w2), fnames)
         println("DONE")
 
     else
 
-        if debug                 # Run one test file
+        if debug                 
+            # Run one test file
             run_inference(fnames[1], args, output_path, w1, w2)
-        else                     # Run all files on one process
+        else                     
+            # Run all files on one process
             for fname in fnames
                 println(fname)
                 run_inference(fname, args, output_path, w1, w2)
@@ -55,12 +59,12 @@ function main()
         
     end
   
+    #=
     close(w1)
     if args.algorithm == "SMC"
         close(w2)  
     end
-
-    # COMPRESS OUTPUT FILES
+    =#
 
 end
 

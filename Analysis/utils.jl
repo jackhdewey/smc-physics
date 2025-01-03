@@ -27,23 +27,30 @@ function generate_noise_id(args)
     return string("Init", init_string, "_Obs", obs_string, "_Tra", transition_string)  
 end
 
+# Generate a string representation of the algorithm parameters
+function generate_inference_param_id(args)
+
+    particle_string = string(args.num_particles)
+    rejuvenation_string = string(args.rejuvenation_moves)
+
+    return string("Particles", particle_string, "_Rejuv", rejuvenation_string)
+end
 
 ##################
 #  READING DATA  #
 ##################
 
 # Read all simulation data files at the specified directory 
-function read_simulation_data(expt_id, model_id, target_id, noise_id, algo, zip=true)
+function read_simulation_data(expt_id, model_id, target_id, noise_id, alg_id, inference_param_id, zip=true)
     
     all_data = []
 
-    simulation_folder = joinpath(project_path, "Analysis", expt_id, model_id, target_id, noise_id, algo, "Data")
+    simulation_folder = joinpath(project_path, "Analysis", expt_id, model_id, target_id, noise_id, alg_id, inference_param_id, "Data")
     println("Reading simulation data at ", simulation_folder)
     if zip 
         r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip"))
         files = r.files
     else
-        # TODO: FINISH IMPLEMENTING NON-ZIP OPTION 
         files = readdir(joinpath(simulation_folder, "inferences"))
     end
 
@@ -177,21 +184,17 @@ end
 ###################
 
 # Generate the directory location where we will store the plots
-function generate_plot_path(expt_id, model_id, target_id, noise_id, type)
+function generate_plot_path(expt_id, model_id, target_id, noise_id, inference_param_id, type)
 
     plots_path = joinpath(project_path, "Analysis")
     if !isdir(plots_path)
         mkdir(plots_path)
     end
 
-    println("PLOTS PATH: ", plots_path)
-
     plots_path = joinpath(plots_path, expt_id)
     if !isdir(plots_path)
         mkdir(plots_path)
     end
-
-    println("PLOTS PATH: ", plots_path)
 
     plots_path = joinpath(plots_path, model_id)
     if !isdir(plots_path)
@@ -209,6 +212,11 @@ function generate_plot_path(expt_id, model_id, target_id, noise_id, type)
     end
 
     plots_path = joinpath(plots_path, "SMC")
+    if !isdir(plots_path)
+        mkdir(plots_path)
+    end
+
+    plots_path = joinpath(plots_path, inference_param_id)
     if !isdir(plots_path)
         mkdir(plots_path)
     end
