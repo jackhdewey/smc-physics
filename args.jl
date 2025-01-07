@@ -20,7 +20,7 @@ using Parameters
     algorithm::String = "SMC"        # MCMC, SMC, or DEBUG
     num_particles::Int = 20          # Only used for SMC
     rejuvenation_moves::Int = 5      # Only used for SMC
-    save_particles::Bool = false     # Only used for SMC
+    save_particles::Bool = true     # Only used for SMC
     
     # Prediction parameters
     predict::Bool = false
