@@ -92,7 +92,7 @@ include("particle_filter.jl")
         end
         tokens = split(fname, "_")
         output_fname = string(tokens[2], "_", tokens[3])
-        println("Writing to: ", target, output_fname)
+        println("Writing to: ", result_dir, output_fname)
         write_to_csv(results, string(result_dir, output_fname))
 
         #=
