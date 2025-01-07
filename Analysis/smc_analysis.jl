@@ -21,14 +21,14 @@ interactive = false
 plot_interval = 5
 
 # Displays (prints) the given particle filter states for the specified time steps
-function display_data_frames(r, particle_indices, interval)
+function display_data_frames(reader, particle_indices, interval)
 
     # For the files starting at the selected indices
     for particle_index in particle_indices
 
         # For an interval of particle filter time steps
         for t=interval[1]:interval[2]
-            file = r.files[particle_index + t - 1]
+            file = reader.files[particle_index + t - 1]
             data = CSV.File(read(file)) |> DataFrame
 
             # Select only one frame for each particle
@@ -50,7 +50,7 @@ function display_data_frames(r, particle_indices, interval)
 end
 
 # Plot the trajectories 
-function plot_trajectories(gt_files, particle_indices, r, expt_dir)
+function plot_trajectories(gt_files, particle_indices, reader, plot_path)
 
     # Plot parameters
     if interactive
@@ -94,13 +94,13 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
             plot!(plt, true_x, true_y, true_z, linewidth=3, linecolor=:red)
 
             # Extract and sort particle files
-            files = map((file) -> file.name, r.files)
+            files = map((file) -> file.name, reader.files)
             files = filter(contains(".csv"), files)
             sort!(files, lt=trial_particle_order)
 
-            # Index into correct file and read into dataframe
+            # Index into correct particle file and read into dataframe
             d_file = files[particle_indices[i] + t - 1]
-            t_file = filter((file) -> file.name == d_file, r.files)[1]
+            t_file = filter((file) -> file.name == d_file, reader.files)[1]
             data = CSV.File(read(t_file)) |> DataFrame
 
             # For each particle
@@ -137,38 +137,15 @@ function plot_trajectories(gt_files, particle_indices, r, expt_dir)
 
                 tokens = split(t_file.name, "_")
                 if !interactive
-                    savefig(string(expt_dir, "/Trajectories/", tokens[1], "_", tokens[2], "_", t))
+                    savefig(string(plot_path, tokens[1], "_", tokens[2], "_", t))
                 end
             end
         end
-        #particle_index += num_timesteps
-    end
-end
+        
+        # Update index to correct particle filter file
+        particle_index += num_timesteps
 
-# Check whether the output filepath already exists, if not make directories
-function make_output_directories()
-
-    plot_dir = string("Analysis/Plots/", model_id, "/")
-    if !isdir(plot_dir)
-        mkdir(plot_dir)
     end
-    target_dir = string(plot_dir, target_id, "/")
-    if !isdir(target_dir)
-        mkdir(target_dir)
-    end
-    noise_dir = string(target_dir, noise_id, "/")
-    if !isdir(noise_dir)
-        mkdir(noise_dir)
-    end
-    expt_dir = string(noise_dir, expt_id, "/")
-    if !isdir(expt_dir)
-        mkdir(expt_dir)
-    end
-    data_dir = string(expt_dir, "Trajectories/")
-    if !isdir(data_dir)
-        mkdir(data_dir)
-    end
-
 end
 
 
@@ -184,16 +161,38 @@ function main()
     sort!(gt_files, lt=trial_order)
 
     noise_id = generate_noise_id(args)
+    inference_id = generate_inference_param_id(args)
 
     # Load and sort intermediate particle filter state files
-    data_path = string(args.expt_id, "/", args.model_id, "/", args.target_id, "/", noise_id, "/", args.algorithm, "/Data/")
-    dir = string("Analysis/", data_path)
-    r = ZipFile.Reader(string(dir, "particles.zip"))
-    files = map((file) -> file.name, r.files)
+    data_path = joinpath("Analysis", args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, "Data")
+    files = readdir(data_path)
+    
+    #reader = ZipFile.Reader(string(dir, "particles.zip"))
+    #files = map((file) -> file.name, reader.files)
+
     particle_files = filter(contains(".csv"), files)
     sort!(particle_files, lt=trial_particle_order)
 
-    generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, "Trajectories")
+    # For each gt_file, store the index of the first corresponding intermediate particle filter state file
+    particle_index = 1
+    particle_indices = []
+    for file in gt_files
+        
+        push!(particle_indices, particle_index)
+    
+        gt_file = string(gt_dir, file)
+        num_frames = size(CSV.read(gt_file, DataFrame))[1]
+        println(num_frames)
+        particle_index += frames
+    
+    end
+
+    plot_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, inference_id, "Trajectories")
+    plot_trajectories(gt_files, particle_indices, reader, plot_path)
+
+    #interval=[1, 10]
+    #display_data_frames(reader, particle_indices, interval)
+
     #make_output_directories()
 
     # Filter to trials we want to plot
@@ -248,24 +247,6 @@ function main()
         println(files[particle_indices[i]])
     end
     =#
-
-    # Locate the indices of the intermediate particle filter state files for each gt_file
-    particle_index = 1
-    particle_indices = []
-    for file in gt_files
-        
-        push!(particle_indices, particle_index)
-
-        gt_file = string(gt_dir, file)
-        frames = size(CSV.read(gt_file, DataFrame))[1]
-        println(frames)
-        particle_index += frames
-
-    end
-
-    interval=[1, 10]
-    #display_data_frames(r, particle_indices, interval)
-    plot_trajectories(gt_files, particle_indices, r, expt_dir)
     
 end
 
