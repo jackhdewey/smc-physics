@@ -60,7 +60,7 @@ function infer(fname::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, re
             # Dump current particles to a .csv file
             if save_particles
                 output_fname = string(tokens[2], "_", csv[1], "_", t, ".", csv[2])
-                if w2 isnothing
+                if isnothing(w2)
                     write_to_csv(state.traces, string(output_path, output_fname))
                 else
                     f = ZipFile.addfile(w2, output_fname)

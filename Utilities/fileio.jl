@@ -4,9 +4,9 @@ using DataFrames
 using CSV
 
 
-###########
-# READING #
-###########
+#############################
+# READING OBSERVATION FILES #
+#############################
 
 # Removes unwanted filenames from a directory by checking for tokens
 function filter_unwanted_filenames(fnames)
@@ -64,11 +64,11 @@ function read_obs_file(fname, alg::String)
 end
 
 
-############################
-# File sorting comparators #
-############################
+################################
+# Comparators for File Sorting #
+################################
 
-# Comparator to sort output files into correct order
+# Sort output files based on elasticity -> variation
 function trial_order(x, y)
 
     x_tokens = split(x, "_")
@@ -100,7 +100,7 @@ function trial_order(x, y)
     end
 end
 
-# Comparator to sort intermediate particle filter state files into correct order
+# Sort intermediate particle filter state files baseed on elasticity -> variation -> time step
 function trial_particle_order(x, y)
 
     x_tokens = split(x, "_")
@@ -128,17 +128,17 @@ function trial_particle_order(x, y)
         return as_int1 < as_int2
     end
 
-    # Third token is particle number
-    particle1 = replace(x_tokens[3], ".csv" => "")
-    particle2 = replace(y_tokens[3], ".csv" => "")
+    # Third token is time step
+    step1 = replace(x_tokens[3], ".csv" => "")
+    step2 = replace(y_tokens[3], ".csv" => "")
 
-    particle1_as_int = parse(Int64, particle1)
-    particle2_as_int = parse(Int64, particle2)
+    as_int1 = parse(Int64, step1)
+    as_int2 = parse(Int64, step2)
 
-    return particle1_as_int < particle2_as_int
+    return as_int1 < as_int2
 end
 
-# Comparator to sort plots of particle filter state over time into correct order
+# Sort plots of particle filter state based on elasticity -> variation -> time step
 function png_particle_order(x, y)
 
     x_tokens = split(x, "_")
@@ -166,20 +166,20 @@ function png_particle_order(x, y)
         return as_int1 < as_int2
     end
 
-    # Third token is particle number
-    particle1 = replace(x_tokens[3], ".png" => "")
-    particle2 = replace(y_tokens[3], ".png" => "")
+    # Third token is time step
+    step1 = replace(x_tokens[3], ".png" => "")
+    step2 = replace(y_tokens[3], ".png" => "")
 
-    particle1_as_int = parse(Int64, particle1)
-    particle2_as_int = parse(Int64, particle2)
+    as_int1 = parse(Int64, step1)
+    as_int2 = parse(Int64, step2)
 
-    return particle1_as_int < particle2_as_int
+    return as_int1 < as_int2
 end
 
 
-###########
-# WRITING #
-###########
+########################
+# WRITING OUTPUT FILES #
+########################
 
 # Generate a string representation of the noise parameters for a model variation, e.g. "Init00_Obs05_Tra05"
 function generate_noise_id(args)
