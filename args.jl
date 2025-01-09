@@ -18,8 +18,8 @@ using Parameters
 
     # Inference parameters
     algorithm::String = "SMC"        # MCMC, SMC, or DEBUG
-    num_particles::Int = 50          # Only used for SMC
-    rejuvenation_moves::Int = 1      # Only used for SMC
+    num_particles::Int = 20          # Only used for SMC
+    rejuvenation_moves::Int = 10     # Only used for SMC
     save_particles::Bool = true      # Only used for SMC
     
     # Prediction parameters
