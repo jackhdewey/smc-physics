@@ -15,14 +15,14 @@ include("../args.jl")
 include("utils.jl")
 
 
-plot_mean = true
-
 #########
 # PLOTS #
 #########
 
+plot_mean = true
+
 # Plot model against ground truth
-function plot_vs_gt(data, type, marker_shape, expt_id, target_id, plots_path)
+function plot_vs_gt(type, data, expt_id, target_id, marker_shape, plots_path)
 
     if type == "sim"
         ylabel = "Model Estimate"
@@ -57,14 +57,14 @@ function plot_vs_gt(data, type, marker_shape, expt_id, target_id, plots_path)
     annotate!(0.2, 0.8, corr_string, 10)
 
     type == "sim" ?
-        savefig(joinpath(plots_path, "sim_v_gt_individual_stimuli.png")) :
-        savefig(joinpath(plots_path, "human_v_gt_individual_stimuli.png"))
+        savefig(joinpath(plots_path, "sim_vs_gt_individual_stimuli.png")) :
+        savefig(joinpath(plots_path, "human_vs_gt_individual_stimuli.png"))
 
 end
 
 
 # Plot mean model estimates against mean human judgments
-function plot_sim_vs_human(sim_data, human_data, marker_shape, expt_id, target_id, plot_mean, plots_path)
+function plot_sim_vs_human(sim_data, human_data, expt_id, target_id, marker_shape, plot_mean, plots_path)
 
     yerror = human_data.std_err_mean ./ 2
 
@@ -131,7 +131,7 @@ function main()
 
     # Generate output filepath
     plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, inference_param_id, "TestJudgments")
-    println("PLOTS PATH: ", plots_path)
+    println("Plots Path: ", plots_path)
 
     # Plotting variables
     if args.target_id == "Cube"
@@ -141,23 +141,17 @@ function main()
     end
 
     # Plot inferred elasticity against ground truth, display correlation
-    plot_vs_gt(sim_data, "sim", marker_shape, args.expt_id, args.target_id, plots_path)
+    plot_vs_gt("sim", sim_data, args.expt_id, args.target_id, marker_shape, plots_path)
 
-    #=
-    # Read human data
-    human_data = read_subject_data(args.expt_id)
-    human_data = process_individual_stimuli_human(human_data)
-    plot_vs_gt(human_data, "human", marker_shape, args.expt_id, args.target_id, plots_path)
-    plot_sim_vs_human(sim_data, human_data, marker_shape, args.expt_id, args.target_id, args.plot_mean, plots_path)
-    =#
+    if occursin("Exp", args.expt_id)
+        # Read human data into data frame
+        human_data = read_subject_data(args.expt_id)
+        human_data = process_individual_stimuli_human(human_data)
 
-    #=
-
-    for expt_id = 1:2
-        plot_sim_vs_human(expt_id, target_id, false)
-        plot_sim_vs_human(expt_id, target_id, true)
+        # Plot human inferred elasticity against ground truth, display correlation
+        plot_vs_gt("human", human_data, args.expt_id, args.target_id, marker_shape, plots_path)
+        plot_sim_vs_human(sim_data, human_data, args.expt_id, args.target_id, marker_shape, args.plot_mean, plots_path)
     end
-    =#
 
 end
 

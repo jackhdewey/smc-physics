@@ -5,20 +5,20 @@ using Parameters
 @with_kw mutable struct Args
 
     # Data source
-    expt_id::String = "BulletTest"
+    expt_id::String = "BulletTestSphere"
     gt_source::String = "Bullet"     # Bullet or RealFlow
-    gt_shape::String = "Cube"        # Only used for Bullet
+    gt_shape::String = "Sphere"      # Only used for Bullet
 
     # Model parameters
     model_id::String = "Modelv5"
-    target_id::String = "Cube"
+    target_id::String = "Sphere"
     init_vel_noise::Float32 = 0.0
     observation_noise::Float32 = 0.05
     transition_noise::Float32 = 0.075
 
     # Inference parameters
     algorithm::String = "SMC"        # MCMC, SMC, or DEBUG
-    num_particles::Int = 20          # Only used for SMC
+    num_particles::Int = 50          # Only used for SMC
     rejuvenation_moves::Int = 1      # Only used for SMC
     save_particles::Bool = true      # Only used for SMC
     

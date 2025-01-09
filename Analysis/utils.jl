@@ -180,7 +180,7 @@ function generate_inference_param_id(args)
     particle_string = string(args.num_particles)
     rejuvenation_string = string(args.rejuvenation_moves)
 
-    return string("Particles", particle_string, "_Rejuv", rejuvenation_string)
+    return string("Par", particle_string, "_Rej", rejuvenation_string)
 end
 
 # Generate the directory location where we will store the plots
