@@ -52,7 +52,7 @@ function infer(fname::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, re
 
             # Rejuvenation - resamples elasticity, resimulates to current time step, then accepts / rejects
             for i=1:num_particles
-                for i=1:rejuvenation_moves
+                for j=1:rejuvenation_moves
                     state.traces[i], _ = Gen.mh(state.traces[i], proposal, ())
                 end
             end
