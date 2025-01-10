@@ -5,9 +5,9 @@ using Parameters
 @with_kw mutable struct Args
 
     # Data source
-    expt_id::String = "BulletTestSphere"
-    gt_source::String = "Bullet"     # Bullet or RealFlow
-    gt_shape::String = "Sphere"      # Only used for Bullet
+    expt_id::String = "Exp1"           # BulletTestCube, BulletTestSphere, Exp1, Exp2, etc.
+    gt_source::String = "RealFlow"     # Bullet or RealFlow
+    gt_shape::String = "Sphere"        # Sphere or Cube (only used when gt_source is Bullet)
 
     # Model parameters
     model_id::String = "Modelv5"
@@ -17,10 +17,10 @@ using Parameters
     transition_noise::Float32 = 0.075
 
     # Inference parameters
-    algorithm::String = "SMC"        # MCMC, SMC, or DEBUG
-    num_particles::Int = 20          # Only used for SMC
-    rejuvenation_moves::Int = 10     # Only used for SMC
-    save_particles::Bool = true      # Only used for SMC
+    algorithm::String = "SMC"         # MCMC, SMC, or DEBUG
+    num_particles::Int = 20           # Only used for SMC
+    rejuvenation_moves::Int = 5       # Only used for SMC
+    save_particles::Bool = true       # Only used for SMC
     
     # Prediction parameters
     predict::Bool = false

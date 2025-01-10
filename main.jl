@@ -21,7 +21,7 @@ function main()
     args = Args()
 
     # Extract ground truth trajectory files from appropriate directory
-    args.gt_source == "RealFlow" ? 
+    contains(args.gt_source, "RealFlow") ? 
         dir = string("Data/RealFlowData/", args.expt_id, "/") : 
         dir = string("Tests/BulletStimulus/Data/", args.gt_shape, "/")
     fnames = filter_unwanted_filenames(readdir(dir))
