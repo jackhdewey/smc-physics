@@ -1,4 +1,4 @@
-# Utility functions to assist with file i/o for analysis scripts
+# Utility functions for analysis scripts, mostly file I/O
 
 using ZipFile
 using CSV

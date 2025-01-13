@@ -1,4 +1,5 @@
-#
+# Data analysis
+# Generates a 2D plot showing the evolution of elastities in the particle population over time
 
 using CSV
 using DataFramesMeta

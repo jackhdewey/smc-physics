@@ -1,10 +1,7 @@
 # Data analysis
-# Assess model performance at inferring elasticity relative to ground truth and/or human judgments
-# Identify trials with poor model / human correlation by absolute error
-# Generate 2D plots showing model-inferred elasticities vs human judgments
-#
-# TODO: Integrate particle trajectory data 
-# TODO: Display MCMC trajectory data
+# Evaluate and visualize model performance at inferring elasticity relative to ground truth and/or human judgments
+#   Identify trials with poor model / human correlation by absolute error
+#   Generate 2D plots showing model-inferred elasticities vs human judgments
 
 using DataFrames
 using DataFramesMeta

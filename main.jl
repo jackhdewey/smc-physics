@@ -1,4 +1,4 @@
-# Starting point for running inference with a generative model in the loop, with options to:
+# Starting point for performing inference with a generative model in the loop, with options to:
 #    1. run in parallel or on a single process
 #    2. debug (run and display a single trace of the generative model)
 

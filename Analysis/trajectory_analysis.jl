@@ -1,10 +1,8 @@
 # Data analysis
-# Synthesizes and displays particle filter state at each time step
-# Generates 3D plots showing particle trajectories vs ground truth
+# Generates 3D plots showing particle trajectories and ground truth, i.e. displaying particle filter state at each time ste
 #
-# DONE: Allow more flexible selection of elasticity / trial interval
-# TODO: Streamline display of dataframes (particle filter states) at each timestep
 # TODO: Set the alpha / intensity to reflect the log weight of each particle
+# TODO: Streamline display of dataframes (particle filter states) at each timestep
 #
 # QUESTION: Are the 'identities' of particles consistent across time, i.e. do they survive resampling?
 
