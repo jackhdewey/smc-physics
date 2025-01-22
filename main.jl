@@ -2,9 +2,15 @@
 #    1. run in parallel or on a single process
 #    2. debug (run and display a single trace of the generative model)
 
+
+debug = true
+parallel = false
+zip = false
+
+
 using Distributed
-if nworkers() == 1
-    addprocs(15)
+if parallel && (nworkers() == 1)
+    addprocs(3)
 end
 @everywhere include("Inference/run_inference.jl")
 
@@ -12,20 +18,17 @@ using ZipFile
 include("Utilities/fileio.jl")
 
 
-debug = false
-parallel = true
-zip = false
+function main(args)
 
-function main()
-
-    args = Args()
-
+    # args = Args()
     # Extract ground truth trajectory files from appropriate directory
     contains(args.gt_source, "RealFlow") ? 
         dir = string("Data/RealFlowData/", args.expt_id, "/") : 
         dir = string("Tests/BulletStimulus/Data/", args.gt_shape, "/")
     fnames = filter_unwanted_filenames(readdir(dir))
     sort!(fnames, lt=trial_order)
+
+    fnames = fnames[1:3]
 
     # Generate output filepath(s)
     noise_id = generate_noise_id(args)
@@ -46,6 +49,7 @@ function main()
 
         if debug                 
             # Run one test file
+            println("DEBUG")
             run_inference(fnames[1], args, output_path, w1, w2)
         else                     
             # Run all files on one process
@@ -67,4 +71,5 @@ function main()
 
 end
 
-main()
+args = Args()
+main(args)

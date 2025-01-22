@@ -118,9 +118,7 @@ function plot_sim_vs_human(sim_data, human_data, expt_id, target_id, marker_shap
 end
 
 
-function main()
-
-    args = Args()
+function main(args)
 
     # Read simulation data into data frame and store high-error trials
     noise_id = generate_noise_id(args)
@@ -155,4 +153,5 @@ function main()
 
 end
 
-main()
+args = Args()
+main(args)

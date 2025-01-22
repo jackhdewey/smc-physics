@@ -30,22 +30,22 @@ end
 
 # Generates num_particles trajectories
 # At each timestep, scores them according to their likelihood, and resamples (filters) poor performers
-function infer(fname::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, rejuvenation_moves=1, num_particles::Int=20, save_particles=false, output_path=nothing, w2=nothing)
+function infer(fname::String, gm, gm_args::Tuple, args::Args, obs::Vector{Gen.ChoiceMap}, rejuvenation_moves=1, num_particles::Int=20, save_particles=false, output_path=nothing, w2=nothing)
 
     # Extract trial identification    
     tokens = split(fname, "_")
     csv = split(tokens[3], ".")
 
     # Initiliaze the particle filter (with no observations)
-    state = Gen.initialize_particle_filter(gm, (gm_args[1], gm_args[2], 0), EmptyChoiceMap(), num_particles)
-    
+    state = Gen.initialize_particle_filter(gm, (gm_args[1], gm_args[2], args, 0), EmptyChoiceMap(), num_particles)
+
     # Iteratively simulate and filter particles
     argdiffs = (UnknownChange(), NoChange(), NoChange())
     for t=1:gm_args[3]
         @elapsed begin
 
             # Simulates the next time step and scores against new observation
-            Gen.particle_filter_step!(state, (gm_args[1], gm_args[2], t), argdiffs, obs[t])
+            Gen.particle_filter_step!(state, (gm_args[1], gm_args[2], args, t), argdiffs, obs[t])
 
             # Decides whether to cull and resample poorly performing particles
             Gen.maybe_resample!(state, ess_threshold=num_particles/2)

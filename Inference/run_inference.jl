@@ -42,7 +42,7 @@ include("particle_filter.jl")
     end
 
     # Initialize scene, including target object state (using observation data)
-    init_scene(debug_viz)
+    init_scene(debug_viz, args)
     init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm)
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
     sim_args = (sim, init_state, t_s)
@@ -83,7 +83,9 @@ include("particle_filter.jl")
         if !isdir(particle_dir)
             mkdir(particle_dir)
         end
-        results, _ = infer(fname, generate_trajectory, sim_args, observations, args.rejuvenation_moves, args.num_particles, args.save_particles, particle_dir, w2)
+
+        # generate_trajectory = generate_trajectory_closure(args)
+        results, _ = infer(fname, generate_trajectory, sim_args, args, observations, args.rejuvenation_moves, args.num_particles, args.save_particles, particle_dir, w2)
 
         # Write output particles to a .csv
         result_dir = string(output_path, "inferences/")
