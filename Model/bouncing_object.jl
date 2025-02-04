@@ -1,8 +1,7 @@
 # Generative Model
-#
-# Generates a PyBullet enviorment featuring a rigid cube or sphere (with variable initial position and velocity) within a larger cubic enclosure
-# Simulates rigid body physics for a specified number of time steps, returning a series of (noisy) position observations 
-#
+# Generates a PyBullet environment featuring a rigid cube or sphere with randomly sampled initial position and velocity within a larger cubic enclosure
+# Simulates (noisy) rigid body physics, returning a series of (noisy) 3D position observations 
+
 # CONSIDER: Add noise to initial orientation
 # CONSIDER: Add additional noise at collisions
 

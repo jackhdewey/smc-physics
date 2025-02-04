@@ -11,7 +11,6 @@ end
 using ZipFile
 include("Utilities/fileio.jl")
 
-
 debug = false
 parallel = true
 zip = false
@@ -21,9 +20,12 @@ function main()
     args = Args()
 
     # Extract ground truth trajectory files from appropriate directory
-    contains(args.gt_source, "RealFlow") ? 
-        dir = string("Data/RealFlowData/", args.expt_id, "/") : 
-        dir = string("Tests/BulletStimulus/Data/", args.gt_shape, "/")
+    if contains(args.expt_id, "Bullet")  
+        bullet_shape = split(args.expt_id, "_")[2] 
+        dir = string("Tests/BulletStimulus/Data/", bullet_shape, "/") 
+    else
+        dir = string("Data/RealFlowData/", args.expt_id, "/") 
+    end
     fnames = filter_unwanted_filenames(readdir(dir))
     sort!(fnames, lt=trial_order)
 
@@ -33,9 +35,9 @@ function main()
     output_path = make_directories(joinpath(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, inference_id, "Data"))
     println("Output Filepath... ", output_path)
 
-    # Generate writers (not currently used so null)
-    w1, w2 = nothing, nothing
+    # Generate writers (not currently used)
     #w1, w2 = make_writers(output_path, args.algorithm)
+    w1, w2 = nothing, nothing
 
     # Execute particle filter on all observed trajectories
     if parallel    

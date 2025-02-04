@@ -1,7 +1,7 @@
 # Data analysis
-# Evaluate and visualize model performance at inferring elasticity relative to ground truth and/or human judgments
-#   Identify trials with poor model / human correlation by absolute error
+# Evaluate and visualize model performance (at inferring elasticity, relative to ground truth and/or human judgments)
 #   Generate 2D plots showing model-inferred elasticities vs human judgments
+#   Identify trials with poor model / human correlation by absolute error
 
 using DataFrames
 using DataFramesMeta
@@ -15,8 +15,6 @@ include("utils.jl")
 #########
 # PLOTS #
 #########
-
-plot_mean = true
 
 # Plot model against ground truth
 function plot_vs_gt(type, data, expt_id, target_id, marker_shape, plots_path)
@@ -61,28 +59,12 @@ end
 
 
 # Plot mean model estimates against mean human judgments
-function plot_sim_vs_human(sim_data, human_data, expt_id, target_id, marker_shape, plot_mean, plots_path)
+function plot_sim_vs_human(sim_data, human_data, expt_id, target_id, marker_shape, plots_path)
 
     yerror = human_data.std_err_mean ./ 2
 
     title = "$expt_id Model ($target_id) vs. Human Individual Stimuli"
     filename = "sim_vs_human_individual_stimuli"
-
-    if plot_mean
-
-        title = "$expt_id Model ($target_id) vs. Human Mean"
-        filename = "sim_vs_human_average_judgments"
-
-        sim_data = @chain sim_data begin
-            @groupby :gtElasticity
-            @combine :judgment = mean(:judgment)
-        end
-
-        human_data = @chain human_data begin
-            @groupby :gtElasticity
-            @combine :judgment = mean(:judgment)
-        end
-    end
 
     # @infiltrate
     # default(aspect_ratio = :equal)
@@ -110,7 +92,48 @@ function plot_sim_vs_human(sim_data, human_data, expt_id, target_id, marker_shap
     annotate!(0.2, 0.8, corr_string, 10)
 
     savefig(joinpath(plots_path, filename))
+
+
+    title = "$expt_id Model ($target_id) vs. Human Mean"
+    filename = "sim_vs_human_average_judgments"
+
+    sim_data = @chain sim_data begin
+        @groupby :gtElasticity
+        @combine :judgment = mean(:judgment)
+    end
+
+    human_data = @chain human_data begin
+        @groupby :gtElasticity
+        @combine :judgment = mean(:judgment)
+    end
     # gui()
+
+    # @infiltrate
+    # default(aspect_ratio = :equal)
+    p = palette(:jet)
+    scatter(human_data.judgment,
+            sim_data.judgment,
+            yerror = yerror,
+            aspect_ratio=:equal,
+            markersize=5,
+            markeralpha=0.5,
+            zcolor = human_data.gtElasticity,
+            xlims=(0, 1.05),
+            ylims=(0, 1),
+            clims=(0, 1),
+            xlabel="Human",
+            ylabel="Model",
+            title=title,
+            legend=false,
+            colorbar=true,
+            palette=p,
+            markershape=marker_shape)
+
+    plot!(0:1, 0:1, line=:dash)
+    corr_string = "r = " * string(round(cor(sim_data.judgment, human_data.judgment), digits=3))
+    annotate!(0.2, 0.8, corr_string, 10)
+
+    savefig(joinpath(plots_path, filename))
 
 end
 
@@ -147,7 +170,7 @@ function main()
 
         # Plot human inferred elasticity against ground truth, display correlation
         plot_vs_gt("human", human_data, args.expt_id, args.target_id, marker_shape, plots_path)
-        plot_sim_vs_human(sim_data, human_data, args.expt_id, args.target_id, marker_shape, args.plot_mean, plots_path)
+        plot_sim_vs_human(sim_data, human_data, args.expt_id, args.target_id, marker_shape, plots_path)
     end
 
 end

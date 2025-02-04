@@ -5,7 +5,7 @@ using CSV
 
 
 #############################
-# READING OBSERVATION FILES #
+# Reading Observation Files #
 #############################
 
 # Removes unwanted filenames from a directory by checking for tokens
@@ -71,16 +71,15 @@ end
 # Sort output files based on elasticity -> variation
 function trial_order(x, y)
 
+    # Split each file name into a set of tokens
     x_tokens = split(x, "_")
     y_tokens = split(y, "_")
 
     # Second token is elasticity
     elasticity1 = replace(x_tokens[2], "Ela" => "")
     elasticity2 = replace(y_tokens[2], "Ela" => "")
-
     as_int1 = parse(Int64, elasticity1)
     as_int2 = parse(Int64, elasticity2)
-
     if (as_int1 != as_int2)
         return as_int1 < as_int2
     end
@@ -88,13 +87,10 @@ function trial_order(x, y)
     # Third token is trial number
     trial1 = replace(x_tokens[3], "Var" => "")
     trial2 = replace(y_tokens[3], "Var" => "")
-
     trial1 = replace(trial1, ".csv" => "")
     trial2 = replace(trial2, ".csv" => "")
-
     as_int1 = parse(Int64, trial1)
     as_int2 = parse(Int64, trial2)
-
     if (as_int1 != as_int2)
         return as_int1 < as_int2
     end
@@ -103,16 +99,15 @@ end
 # Sort intermediate particle filter state files baseed on elasticity -> variation -> time step
 function trial_particle_order(x, y)
 
+    # Split each file name into a set of tokens
     x_tokens = split(x, "_")
     y_tokens = split(y, "_")
 
     # First token is elasticity
     elasticity1 = replace(x_tokens[1], "Ela" => "")
     elasticity2 = replace(y_tokens[1], "Ela" => "")
-
     as_int1 = parse(Int64, elasticity1)
     as_int2 = parse(Int64, elasticity2)
-
     if (as_int1 != as_int2)
         return as_int1 < as_int2
     end
@@ -120,10 +115,8 @@ function trial_particle_order(x, y)
     # Second token is trial number
     trial1 = replace(x_tokens[2], "Var" => "")
     trial2 = replace(y_tokens[2], "Var" => "")
-
     as_int1 = parse(Int64, trial1)
     as_int2 = parse(Int64, trial2)
-
     if (as_int1 != as_int2)
         return as_int1 < as_int2
     end
@@ -131,7 +124,6 @@ function trial_particle_order(x, y)
     # Third token is time step
     step1 = replace(x_tokens[3], ".csv" => "")
     step2 = replace(y_tokens[3], ".csv" => "")
-
     as_int1 = parse(Int64, step1)
     as_int2 = parse(Int64, step2)
 
@@ -141,16 +133,15 @@ end
 # Sort plots of particle filter state based on elasticity -> variation -> time step
 function png_particle_order(x, y)
 
+    # Split each file name into a set of tokens
     x_tokens = split(x, "_")
     y_tokens = split(y, "_")
 
     # First token is elasticity
     elasticity1 = replace(x_tokens[1], "Ela" => "")
     elasticity2 = replace(y_tokens[1], "Ela" => "")
-
     as_int1 = parse(Int64, elasticity1)
     as_int2 = parse(Int64, elasticity2)
-
     if (as_int1 != as_int2)
         return as_int1 < as_int2
     end
@@ -158,10 +149,8 @@ function png_particle_order(x, y)
     # Second token is trial number
     trial1 = replace(x_tokens[2], "Var" => "")
     trial2 = replace(y_tokens[2], "Var" => "")
-
     as_int1 = parse(Int64, trial1)
     as_int2 = parse(Int64, trial2)
-
     if (as_int1 != as_int2)
         return as_int1 < as_int2
     end
@@ -169,7 +158,6 @@ function png_particle_order(x, y)
     # Third token is time step
     step1 = replace(x_tokens[3], ".png" => "")
     step2 = replace(y_tokens[3], ".png" => "")
-
     as_int1 = parse(Int64, step1)
     as_int2 = parse(Int64, step2)
 
@@ -208,7 +196,7 @@ function generate_inference_param_id(args)
     particle_string = string(args.num_particles)
     rejuvenation_string = string(args.rejuvenation_moves)
 
-    return string("Par", particle_string, "_Rej", rejuvenation_string)
+    return string("Par", particle_string, "_Rej", rejuvenation_string, "-2")
 end
 
 # Prepare directory for output files, and generate .zip file writers
@@ -251,7 +239,7 @@ end
 
 function make_writers(data_dir, algorithm)
 
-    # Initialize zip writers for inference data and (if SMC) intermediate particles
+    # Initialize zip writers - one for writing output data and one for (if SMC) intermediate particles
     w1 = ZipFile.Writer(string(data_dir, "/inferences.zip"))
     w2 = nothing
     if algorithm == "SMC"
@@ -287,6 +275,7 @@ function write_to_csv(particles, fname=joinpath(pwd(), "test.csv"))
     CSV.write(fname, particle_data, transform=truncator)
 end
 
+# Zip a folder (incomplete / unused)
 function zip_folder(filepath)
 
     w1, w2 = make_writers(filepath)

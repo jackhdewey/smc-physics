@@ -1,8 +1,10 @@
 # Particle filter 
-#
-# Generates and does inference using a set of concurrent simulations (particles)
-# Each simulation is procedurally 1) updated by one time step, 2) scored, 3) (potentially) resampled, and 4) (potentially) rejuvenated
-#
+# Performs Bayesian inference using a set of concurrent simulations (particles)
+# Each simulation is procedurally: 
+#   1) updated by one time step
+#   2) scored against observations
+#   3) (potentially) resampled
+#   4) (potentially) rejuvenated
 # VARIABLES: Number of rejuvenation moves, number of particles, proposal distribution for elasticity during rejuvenation
 
 using Gen

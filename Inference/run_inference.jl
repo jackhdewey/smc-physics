@@ -1,12 +1,10 @@
 # Galileo 3
-#
-# Infers the elasticity of a bouncing soft body from a sequence of postition observations and predicts its future trajectory 
-# What representation in the generative model produces inferences that correlate best with human judgments?
-#      * using a rigid body
-#      * using a sphere
-#      * etc.
+# Infers the elasticity of a bouncing soft body from a sequence of postition observations 
 # Ground truth trajectories are generated in RealFlow and read from .csv files
-#
+# What representational choices in the generative model produce inferences that correlate best with human judgments?
+#      * using a rigid body v. a sphere
+#      * variable amounts / types of noise
+
 # TODO: Parallel implementation
 # TODO: Infer elasticity for trajectories simulated in PyBullet using both MCMC and SMC
 
@@ -33,9 +31,10 @@ include("particle_filter.jl")
     
     bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
 
-    if args.gt_source=="Bullet"
-        sim = BulletSim(step_dur=1/60; client=client)
-        fname = string("Tests/BulletStimulus/Data/", args.gt_shape, "/", fname) # Good
+    if contains(args.expt_id, "Bullet")
+        sim = BulletSim(step_dur=1/240; client=client)
+        bullet_shape = split(args.expt_id, "_")[2]
+        fname = string("Tests/BulletStimulus/Data/", bullet_shape, "/", fname)  # Good
     else 
         sim = BulletSim(step_dur=1/30; client=client)
         fname = string("Data/RealFlowData/", args.expt_id, "/", fname)          # Good
