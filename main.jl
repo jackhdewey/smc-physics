@@ -57,16 +57,16 @@ function main()
             run_inference(fname, output_path, w1, w2)
         end
 
-        function run_inference_all_trials(job_args)
+        function run_inference_all_trials(args)
 
             noise_id = generate_noise_id(args)
             inference_id = generate_inference_param_id(args)
             output_path = make_directories(joinpath(
-                job_args.expt_id,
-                job_args.model_id,
-                job_args.target_id,
+                args.expt_id,
+                args.model_id,
+                args.target_id,
                 noise_id,
-                job_args.algorithm,
+                args.algorithm,
                 inference_id,
                 "Data"
             ))
