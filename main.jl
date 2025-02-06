@@ -5,8 +5,7 @@
 using Distributed
 
 if nworkers() == 1
-    # addprocs(15)
-    addprocs(4)
+    addprocs(15)
 end
 
 @everywhere begin
