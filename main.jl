@@ -3,10 +3,16 @@
 #    2. debug (run and display a single trace of the generative model)
 
 using Distributed
+
 if nworkers() == 1
-    addprocs(15)
+    # addprocs(15)
+    addprocs(4)
 end
-@everywhere include("Inference/run_inference.jl")
+
+@everywhere begin
+    global args = nothing
+    include("Inference/run_inference.jl")
+end
 
 using ZipFile
 include("Utilities/fileio.jl")
@@ -40,28 +46,60 @@ function main()
     # Execute particle filter on all observed trajectories
     if parallel    
         # Distribute to workers
-        pmap(fname -> run_inference(fname, args, output_path, w1, w2), fnames)
+
+        arglist = [Args() for i in 1:10]
+        for (i, a) in enumerate(arglist)
+            a.num_particles = i
+        end
+
+        function run_inference_with_process_specific_args(fname, job_args, output_path, w1, w2)
+            global args = job_args
+            run_inference(fname, output_path, w1, w2)
+        end
+
+        function run_inference_all_trials(job_args)
+
+            noise_id = generate_noise_id(args)
+            inference_id = generate_inference_param_id(args)
+            output_path = make_directories(joinpath(
+                job_args.expt_id,
+                job_args.model_id,
+                job_args.target_id,
+                noise_id,
+                job_args.algorithm,
+                inference_id,
+                "Data"
+            ))
+            
+            pmap(fname -> run_inference_with_process_specific_args(fname, args, output_path, w1, w2), fnames)
+        end
+
+        for a in arglist
+            run_inference_all_trials(a)
+        end
+
+
         println("DONE")
     else
 
         if debug                 
             # Run one test file
-            run_inference(fnames[1], args, output_path, w1, w2)
+            run_inference(fnames[1], output_path, w1, w2)
         else                     
             # Run all files on one process
             for fname in fnames
                 println(fname)
-                run_inference(fname, args, output_path, w1, w2)
+                run_inference(fname, output_path, w1, w2)
             end
         end
         
     end
-  
+    
     #=
     # Close writers
     close(w1)
     if args.algorithm == "SMC"
-        close(w2)  
+    close(w2)  
     end
     =#
 

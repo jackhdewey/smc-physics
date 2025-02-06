@@ -19,8 +19,9 @@ include("mcmc.jl")
 include("particle_filter.jl")
 
 
-@everywhere function run_inference(fname, args, output_path, w1=nothing, w2=nothing)
-
+@everywhere function run_inference(fname, output_path, w1=nothing, w2=nothing)
+    global args
+    println(args.expt_id)
     # Initialize Bullet simulation context 
     debug_viz = false
     if args.algorithm=="DEBUG"

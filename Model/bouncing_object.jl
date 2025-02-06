@@ -19,7 +19,7 @@ include("../args.jl")
 include("../Utilities/truncatednorm.jl")
 
 
-model_args = Args()
+# args = Args()
 
 # Sets initial scene configuration (in the future this could be inferred using an inverse graphics module)
 function init_scene(debug_viz::Bool)
@@ -99,7 +99,7 @@ end
 # Samples the target object's initial velocity
 @gen function sample_init_state(k::RigidBodyState)
 
-    velocity = {:init_velocity} ~ broadcasted_normal(k.linear_vel, model_args.init_vel_noise)
+    velocity = {:init_velocity} ~ broadcasted_normal(k.linear_vel, args.init_vel_noise)
 
     return setproperties(k, linear_vel=velocity)
 end
@@ -109,7 +109,7 @@ end
 #   - Alternatives: ground truth as mean; derive variance from average acceleration (empirical distribution of data)
 @gen function resample_state(k::RigidBodyState)
 
-    position = {:position} ~ broadcasted_normal(k.position, model_args.transition_noise)
+    position = {:position} ~ broadcasted_normal(k.position, args.transition_noise)
     
     #=
     orientation::Vector{3, Float64} = bullet.getEulerFromQuaternion(k.orientation)
@@ -123,7 +123,7 @@ end
 # Adds measurement noise to position to capture uncertainty in observation
 @gen function sample_observation(k::RigidBodyState)
 
-    obs = {:position} ~ broadcasted_normal(k.position, model_args.observation_noise)
+    obs = {:position} ~ broadcasted_normal(k.position, args.observation_noise)
 
     return obs
 end
