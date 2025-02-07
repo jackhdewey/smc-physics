@@ -17,12 +17,13 @@ zip = false
 
 function main()
 
+    # Initialize modeling and inference arguments
     args = Args()
 
     # Extract ground truth trajectory files from appropriate directory
     if contains(args.expt_id, "Bullet")  
         bullet_shape = split(args.expt_id, "_")[2] 
-        dir = string("Tests/BulletStimulus/Data/", bullet_shape, "/") 
+        dir = string("Data/BulletStimulus/New/", bullet_shape, "/") 
     else
         dir = string("Data/RealFlowData/", args.expt_id, "/") 
     end

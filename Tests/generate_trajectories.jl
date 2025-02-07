@@ -2,13 +2,14 @@
 
 using Dates
 using Gen
+using PyCall
+using PhySMC
+using PhyBullet
 using CSV
 using DataFrames
-using PyCall
 
 bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
-
 
 obj_type::String = "Cube"
 debug_viz::Bool = false
@@ -59,7 +60,7 @@ function init_scene()
 end
 
 # Stochastically sample the target object's initial kinematic state
-function sample_target_state(elasticity)
+function sample_target_state(elasticity, sim)
 
     if obj_type == "Cube"
         body = bullet.createCollisionShape(bullet.GEOM_BOX, halfExtents=[.05, .05, .05])
@@ -75,24 +76,26 @@ function sample_target_state(elasticity)
                 uniform(height_range[1], height_range[2])]
 
     rotation_range = [0., 2pi]
-    orientation = [uniform(rotation_range[1], rotation_range[2]), 
+    orientation_euler = [uniform(rotation_range[1], rotation_range[2]), 
                 uniform(rotation_range[1], rotation_range[2]), 
                 uniform(rotation_range[1], rotation_range[2])]
-    init_orientation = bullet.getQuaternionFromEuler(orientation)
+    orientation_quat = bullet.getQuaternionFromEuler(orientation_euler)
 
-    println("Orientation: ", rotation)
-    println("Orientation: ", init_orientation)
+    println("Orientation: ", orientation_euler)
+    println("Orientation: ", orientation_quat)
 
     velocity_range = [-5., 5.]
     linear_velocity = [ uniform(velocity_range[1], velocity_range[2]), 
                         uniform(velocity_range[1], velocity_range[2]), 
                         uniform(velocity_range[1], velocity_range[2])]
 
-    target = bullet.createMultiBody(baseCollisionShapeIndex=body, basePosition=position, baseOrientation=init_orientation) 
+    target = bullet.createMultiBody(baseCollisionShapeIndex=body, basePosition=position, baseOrientation=orientation_quat) 
     bullet.resetBaseVelocity(target, linearVelocity=linear_velocity)
     bullet.changeDynamics(target, -1, mass=1.0, restitution=elasticity)
 
-    return target, rotation
+    init_state = BulletState(sim, [RigidBody(target)])
+
+    return target, init_state
 
 end
 
@@ -100,29 +103,36 @@ function main()
 
     for i=3:29
 
-        ela = div(i, 3)
-
+        # Establish bullet server
         if debug_viz
-            bullet.connect(bullet.GUI)::Int64
+            client = bullet.connect(bullet.GUI)::Int64
         else
-            bullet.connect(bullet.DIRECT)::Int64
+            client = bullet.connect(bullet.DIRECT)::Int64
         end
         bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
         bullet.resetDebugVisualizerCamera(3, 0, -3, [0, 0, 1])
 
+        # Initilize PhyBullet
+        sim = BulletSim(step_dur=1/60; client=client)
+
+        # Set up container room
         init_scene()
 
+        # Set elasticity, initial state
+        ela = div(i, 3)
         elasticity = .1 * ela
-        target, rotation = sample_target_state(elasticity)
+        target, init_state = sample_target_state(elasticity, sim)
+
+        # Print initial state
         linear_velocity, angular_velocity = bullet.getBaseVelocity(target)
-        init_position, orientation = bullet.getBasePositionAndOrientation(target)
-        init_orientation = bullet.getEulerFromQuaternion(orientation)
-
         println("Elasticity: ", elasticity)
-        println("Orientation: ", orientation)
-        println("Orientation: ", init_orientation)
+        init_position, orientation = bullet.getBasePositionAndOrientation(target)
+        println("Orientation (Quaternion): ", orientation)
+        init_orientation = bullet.getEulerFromQuaternion(orientation)
+        println("Orientation (Euler): ", init_orientation)
 
-        state = DataFrame(
+        # Setup and initialize state representation
+        state_data = DataFrame(
             Date=Date[], 
             SceneID=String[], 
             Elasticity=Float64[], 
@@ -137,9 +147,7 @@ function main()
             VelocityY=Float64[], 
             VelocityZ=Float64[]
         )
-        
-        # Create the initial state
-        init_state = (
+        init_state_data = (
             Date = Date("2024-08-30"),
             SceneID = string("Cube_Ela", ela, "Var_", (i % 3 + 1)),
             Elasticity = elasticity,
@@ -147,32 +155,31 @@ function main()
             PositionX = init_position[1],
             PositionY = init_position[2],
             PositionZ = init_position[3],
-            RotationX = rotation[1],
-            RotationY = rotation[2],
-            RotationZ = rotation[3],
+            RotationX = init_orientation[1],
+            RotationY = init_orientation[2],
+            RotationZ = init_orientation[3],
             VelocityX = linear_velocity[1],
             VelocityY = linear_velocity[2],
             VelocityZ = linear_velocity[3]
         )
-        push!(state, init_state)
-        #println(state)
+        push!(state_data, init_state_data)
 
         # Truncate to 5 digits and write to CSV
         truncator(col, val) = trunc(val, digits=5)
         truncator(col, val::Int) = val
-        CSV.write(string("Tests/BulletStimulus/Data/", obj_type, "/", obj_type, "_Ela", ela, "_Var", (i % 3 + 1), ".csv"), state)
+        CSV.write(string("Data/BulletStimulus/", obj_type, "/", obj_type, "_Ela", ela, "_Var", (i % 3 + 1), ".csv"), state_data)
         
         # Generate the trajectory
         t = 0
         trajectory_data = DataFrame(x=[], y=[], z=[])
         vel = linear_velocity
+        state::BulletState = init_state
         while t < 120 && (abs(vel[1]) > 0.1 || abs(vel[2]) > 0.1 || abs(vel[3]) > 0.1)
             
-            bullet.stepSimulation()
-            
+            state = PhySMC.step(sim, state)
+            #bullet.stepSimulation()
+     
             position, orientation = bullet.getBasePositionAndOrientation(target)
-
-            #time_step = [position[1]; position[2]; position[3]]
             println("Position: ", position)
 
             orientation = bullet.getEulerFromQuaternion(orientation)
@@ -191,7 +198,7 @@ function main()
         end
 
         # Write to CSV
-        CSV.write(string("Tests/BulletStimulus/Data/", obj_type, "/", obj_type, "_Ela", ela, "_Var", (i % 3 + 1), "_observed.csv"), trajectory_data, transform=truncator)
+        CSV.write(string("Data/BulletStimulus/New/", obj_type, "/", obj_type, "_Ela", ela, "_Var", (i % 3 + 1), "_observed.csv"), trajectory_data, transform=truncator)
         
         bullet.disconnect()
         
