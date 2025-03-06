@@ -7,9 +7,9 @@ using CSV
 project_path = dirname(@__DIR__)
 
 
-############################
-#  READING / PROCESS DATA  #
-############################
+#########################
+#  READ / PROCESS DATA  #
+#########################
 
 # Read all simulation data files at the specified directory 
 function read_simulation_data(expt_id, model_id, target_id, noise_id, alg_id, inference_param_id, zip=true)
@@ -181,7 +181,7 @@ function generate_inference_param_id(args)
     particle_string = string(args.num_particles)
     rejuvenation_string = string(args.rejuvenation_moves)
 
-    return string("Par", particle_string, "_Rej", rejuvenation_string, "-2")
+    return string("Par", particle_string, "_Rej", rejuvenation_string)
 end
 
 # Generate the directory location where we will store the plots

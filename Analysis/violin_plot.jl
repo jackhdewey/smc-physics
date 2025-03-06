@@ -7,38 +7,44 @@ using Glob
 using Printf
 using StatsPlots
 
-base = "/Users/maxs/smc-physics/"
+include("../args.jl")
+include("utils.jl")
 
-data_path = joinpath(base, "debug_bulletxbullet/")
 
-infPath = joinpath(data_path, "inferences")
-partPath = joinpath(data_path, "intermediate")
+# Locate relevant data files
+base = pwd()
+args = Args()
+param_id = generate_inference_param_id(args)
+data_path = joinpath(base, args.expt_id, args.model_id, param_id, "Data")
 
-inferences = readdir(infPath)
-particles = readdir(partPath)
+inf_path = joinpath(data_path, "inferences")
+inferences = readdir(inf_path)
 
-nPar = 20
-num_stim = length(inferences)
+part_path = joinpath(data_path, "intermediate")
+particles = readdir(part_path)
+
+# 
 elast_chars = [split(f, '_')[1][4:end] for f in inferences]
 elasticities = [parse(Float64, c) * 0.1 for c in elast_chars]
 variations = [split(f, ['_', '.'])[2][4:end] for f in inferences]
 
-
+# Generate plots
 plots = []
-for iStim = 1:1
-    currEla = Int64(elasticities[iStim] * 10)
-    currVar = variations[iStim]
-    id = string("Ela", currEla, "_Var", currVar)
-
-    stimPath = @sprintf("%s/%s_*.csv", partPath, id)
-    fList = glob(id * "_*.csv", partPath)
-    currModelPred = fill(NaN, nPar, length(fList))
-    for iFrm = 1:length(fList)
-        iFrmPath = @sprintf("%s/%s_%d.csv", partPath, id, iFrm)
-        T = CSV.read(iFrmPath, DataFrame)
-        for iPar = 1:nPar
-            val = T.elasticity[findall(T.particle .== iPar)[end]]
-            currModelPred[iPar, iFrm] = val
+num_particles = args.num_particles
+for i = 1:1
+    
+    ela = Int64(elasticities[i] * 10)
+    var = variations[i]
+    id = string("Ela", ela, "_Var", var)
+    
+    files = glob(id * "_*.csv", part_path)
+    model_pred = fill(NaN, num_particles, length(files))
+    for t_s = 1:length(files)
+        var_timestep = @sprintf("%s/%s_%d.csv", part_path, id, t_s)
+        particle_data = CSV.read(var_timestep, DataFrame)
+        for p = 1:num_particles
+            pred_ela = particle_data.elasticity[findall(particle_data.particle .== p)[end]]
+            model_pred[p, t_s] = pred_ela
         end
     end
 
@@ -52,16 +58,16 @@ for iStim = 1:1
         primary=false
     )
     # p = plot()
-    nFrames = size(currModelPred)[2]
+    
+    nFrames = size(model_pred)[2]
     for i = 1:nFrames
-        data = currModelPred[:, i]
+        data = model_pred[:, i]
         scatter!(i * ones(20), data, color="black", markersize=1)
         # xlims!(1, nFrames)
         yticks!(0:0.1:1)
-
     end
 
-    currElaDecimal = currEla
+    currElaDecimal = ela
     println(currElaDecimal)
     hline!([currElaDecimal, currElaDecimal], color="black", label="GT")
 
