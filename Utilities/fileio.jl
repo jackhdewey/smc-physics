@@ -17,7 +17,7 @@ function filter_unwanted_filenames(fnames)
 end 
 
 # Extracts initial position, initial velocity, and trajectory from two .csv files
-function read_obs_file(fname, alg::String)
+function read_obs_file(fname, source::String, alg::String)
 
     # Read ground truth initial state
     println("Reading...", fname)
@@ -36,9 +36,11 @@ function read_obs_file(fname, alg::String)
     initial_velocity = [datum...]
 
     # Read ground truth trajectory
-    head, tail = split(fname, '.')
-    obs_fname = join([head, "_observed.", tail])
-    println("Reading...", obs_fname)
+    if source == "RealFlow"
+        head, tail = split(fname, '.')
+        fname = join([head, "_observed.", tail])
+    end
+    println("Reading...", fname)
     trajectory_data = CSV.read(obs_fname, DataFrame)
     time_steps = size(trajectory_data)[1]
 
@@ -196,7 +198,7 @@ function generate_inference_param_id(args)
     particle_string = string(args.num_particles)
     rejuvenation_string = string(args.rejuvenation_moves)
 
-    return string("Par", particle_string, "_Rej", rejuvenation_string, "-2")
+    return string("Par", particle_string, "_Rej", rejuvenation_string)
 end
 
 # Prepare directory for output files, and generate .zip file writers

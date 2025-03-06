@@ -29,15 +29,19 @@ include("../Utilities/fileio.jl")
 end
 
 # Generates num_particles trajectories
-# At each timestep, scores them according to their likelihood, and resamples (filters) poor performers
-function infer(fname::String, gm, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, rejuvenation_moves=1, num_particles::Int=20, save_particles=false, output_path=nothing, w2=nothing)
+# At each timestep:
+#   1. simulates a forward step
+#   2. scores each particle's likelihood against observation
+#   3. resamples poor performers
+#   4. proposes an update to each surviving particle
+function run_smc(fname::String, model, gm_args::Tuple, obs::Vector{Gen.ChoiceMap}, rejuvenation_moves=1, num_particles::Int=20, save_particles=false, output_path=nothing, w2=nothing)
 
     # Extract trial identification    
     tokens = split(fname, "_")
     csv = split(tokens[3], ".")
 
     # Initiliaze the particle filter (with no observations)
-    state = Gen.initialize_particle_filter(gm, (gm_args[1], gm_args[2], 0), EmptyChoiceMap(), num_particles)
+    state = Gen.initialize_particle_filter(model, (gm_args[1], gm_args[2], 0), EmptyChoiceMap(), num_particles)
     
     # Iteratively simulate and filter particles
     argdiffs = (UnknownChange(), NoChange(), NoChange())

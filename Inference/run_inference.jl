@@ -31,17 +31,19 @@ include("particle_filter.jl")
     bullet.setAdditionalSearchPath(pybullet_data.getDataPath())
 
     if contains(args.expt_id, "Bullet")
+        source = "Bullet"
         sim = BulletSim(step_dur=1/60; client=client)
         bullet_shape = split(args.expt_id, "_")[2]
-        fname = string("Data/BulletStimulus/New/", bullet_shape, "/", fname)  # Good
+        fname = string("Data/BulletStimulus/New/", bullet_shape, "/", fname) 
     else 
+        source = "RealFlow"
         sim = BulletSim(step_dur=1/30; client=client)
-        fname = string("Data/RealFlowData/", args.expt_id, "/", fname)    # Good
+        fname = string("Data/RealFlowData/", args.expt_id, "/", fname)     
     end
 
     # Initialize scene, including target object state (using observation data)
     init_scene(debug_viz)
-    init_position, _, init_velocity, observations, t_s = read_obs_file(fname, args.algorithm)
+    init_position, _, init_velocity, obs, t_s = read_obs_file(fname, source, args.algorithm)
     init_state = init_target_state(sim, args.target_id, init_position, init_velocity)
     sim_args = (sim, init_state, t_s)
     
@@ -50,14 +52,14 @@ include("particle_filter.jl")
 
         # Generate and display a single trace 
         println("DEBUGGING")
-        (trace, _) = Gen.generate(generate_trajectory, sim_args, observations)
+        (trace, _) = Gen.generate(generate_trajectory, sim_args, obs)
         display(Gen.get_choices(trace))
 
     # Run inference using MCMC
     elseif args.algorithm == "MCMC"
         
         println("Initializing MCMC")
-        avg_last_hundred, results = gaussian_drift_inference(generate_trajectory, sim_args, observations)
+        avg_last_hundred, results = gaussian_drift_mcmc(generate_trajectory, sim_args, obs)
         println("Elasticity estimate: ", avg_last_hundred)
         
         # Write output trajectory to a .csv file
@@ -81,7 +83,7 @@ include("particle_filter.jl")
         if !isdir(particle_dir)
             mkdir(particle_dir)
         end
-        results, _ = infer(fname, generate_trajectory, sim_args, observations, args.rejuvenation_moves, args.num_particles, args.save_particles, particle_dir, w2)
+        results, _ = run_smc(fname, generate_trajectory, sim_args, obs, args.rejuvenation_moves, args.num_particles, args.save_particles, particle_dir, w2)
 
         # Write output particles to a .csv
         result_dir = string(output_path, "inferences/")

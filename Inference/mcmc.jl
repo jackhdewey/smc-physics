@@ -19,7 +19,7 @@ function block_resimulation_update(trace)
 end
 
 # Generate an initial trace then perform 500 block resimulation updates
-function block_resimulation_inference(model, args, observations)
+function block_resimulation_mcmc(model, args, observations)
 
     # Generate an initial conditioned trace
     (trace, _) = generate(model, (args), observations)
@@ -50,7 +50,7 @@ end
 end
 
 # Generate an initial trace then perform 1000 MH updates using Gaussian proposal
-function gaussian_drift_inference(model, args, observations)
+function gaussian_drift_mcmc(model, args, observations)
 
     # Generate an initial conditioned trace
     (trace, _) = generate(model, (args), observations)

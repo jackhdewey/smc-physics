@@ -11,7 +11,7 @@ using DataFrames
 bullet = pyimport("pybullet")
 pybullet_data = pyimport("pybullet_data")
 
-obj_type::String = "Cube"
+obj_type::String = "Sphere"
 debug_viz::Bool = false
 
 # Sets initial scene configuration (in the future this could be inferred using an inverse graphics module)
@@ -99,6 +99,11 @@ function sample_target_state(elasticity, sim)
 
 end
 
+
+########
+# MAIN #
+########
+
 function main()
 
     for i=3:29
@@ -131,8 +136,9 @@ function main()
         init_orientation = bullet.getEulerFromQuaternion(orientation)
         println("Orientation (Euler): ", init_orientation)
 
-        # Setup and initialize state representation
-        state_data = DataFrame(
+        # Setup initial state representation
+        #=
+        trajectory_data = DataFrame(
             Date=Date[], 
             SceneID=String[], 
             Elasticity=Float64[], 
@@ -147,7 +153,8 @@ function main()
             VelocityY=Float64[], 
             VelocityZ=Float64[]
         )
-        init_state_data = (
+        =#
+        init_state_data = DataFrame(
             Date = Date("2024-08-30"),
             SceneID = string("Cube_Ela", ela, "Var_", (i % 3 + 1)),
             Elasticity = elasticity,
@@ -162,12 +169,12 @@ function main()
             VelocityY = linear_velocity[2],
             VelocityZ = linear_velocity[3]
         )
-        push!(state_data, init_state_data)
+        #push!(init_state_data, init_state_data)
 
         # Truncate to 5 digits and write to CSV
         truncator(col, val) = trunc(val, digits=5)
         truncator(col, val::Int) = val
-        CSV.write(string("Data/BulletStimulus/", obj_type, "/", obj_type, "_Ela", ela, "_Var", (i % 3 + 1), ".csv"), state_data)
+        CSV.write(string("Data/BulletStimulus/", obj_type, "/", obj_type, "_Ela", ela, "_Var", (i % 3 + 1), ".csv"), init_state_data)
         
         # Generate the trajectory
         t = 0
