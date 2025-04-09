@@ -1,4 +1,5 @@
-# Utility functions for analysis scripts, mostly file I/O
+# Utility functions for analysis scripts - mostly file I/O
+
 using DataFrames
 using DataFramesMeta
 using ZipFile
@@ -7,9 +8,9 @@ using CSV
 project_path = dirname(@__DIR__)
 
 
-#########################
-#  READ / PROCESS DATA  #
-#########################
+###############
+#  READ DATA  #
+###############
 
 # Read all simulation data files at the specified directory 
 function read_simulation_data(expt_id, model_id, target_id, noise_id, alg_id, inference_param_id, zip=true)
@@ -72,32 +73,6 @@ function read_simulation_data(expt_id, model_id, target_id, noise_id, alg_id, in
     return all_data
 end
 
-# Compute error on each stimulus, extract high error trials
-function process_individual_stimuli_sim(sim_data)
-
-    # Define model's elasticity judgment as average of output particles
-    sim_data_pred = @chain sim_data begin
-        @groupby :stimulusID
-        @combine begin
-
-            :judgment = mean(:elasticity)       
-            :gtElasticity = first(:gtElasticity)  # :elasticity = :gtElasticity
-
-            # compute error w.r.t. ground truth
-            :error = mean(:elasticity) - first(:gtElasticity)
-        end
-        # @subset :elasticity .> 0.6
-        @orderby :stimulusID
-    end
-
-    # Filter by error threshold, save high error trials
-    high_error = sim_data_pred[sim_data_pred.error .> .2, :]
-    high_error_trials = high_error[:, 1]
-
-    return sim_data_pred, high_error_trials
-end
-
-
 # Read the human predictions
 function read_subject_data(expt_id)
 
@@ -127,6 +102,36 @@ function read_subject_data(expt_id)
     return df
 end
 
+
+################
+# PROCESS DATA #
+################
+
+# Compute error on each stimulus, extract high error trials
+function process_individual_stimuli_sim(sim_data)
+
+    # Define model's elasticity judgment as average of output particles
+    sim_data_pred = @chain sim_data begin
+        @groupby :stimulusID
+        @combine begin
+
+            :judgment = mean(:elasticity)       
+            :gtElasticity = first(:gtElasticity)  # :elasticity = :gtElasticity
+
+            # compute error w.r.t. ground truth
+            :error = mean(:elasticity) - first(:gtElasticity)
+        end
+        # @subset :elasticity .> 0.6
+        @orderby :stimulusID
+    end
+
+    # Filter by error threshold, save high error trials
+    high_error = sim_data_pred[sim_data_pred.error .> .2, :]
+    high_error_trials = high_error[:, 1]
+
+    return sim_data_pred, high_error_trials
+end
+
 # Group subject's elasticity judgments by stimulus and compute mean rating for each stimulus
 function process_individual_stimuli_human(sub_data)
 
@@ -147,6 +152,40 @@ function process_individual_stimuli_human(sub_data)
     end
 
     return sub_data_pred
+end
+
+
+################
+# DISPLAY DATA #
+################
+
+# Displays (prints) the given particle filter states for the specified time steps
+function display_data_frames(reader, particle_indices, interval)
+
+    # For the files starting at the selected indices
+    for particle_index in particle_indices
+
+        # For an interval of particle filter time steps
+        for t=interval[1]:interval[2]
+            file = reader.files[particle_index + t - 1]
+            data = CSV.File(read(file)) |> DataFrame
+
+            # Select only one frame for each particle
+            time_step = data[data.frame.==1, :]
+
+            # For each particle, check if its elasticity is unique
+            unique = Dict()
+            for i=1:num_particles
+                if !haskey(unique, time_step[i, 2])
+                    unique[time_step[i, 2]] = 1
+                else   
+                    unique[time_step[i, 2]] += 1
+                end
+            end
+            println(unique)
+        end
+    end
+
 end
 
 
@@ -185,24 +224,24 @@ function generate_inference_param_id(args)
 end
 
 # Generate the directory location where we will store the plots
-function generate_plot_path(expt_id, model_id, target_id, noise_id, inference_param_id, type)
+function generate_plot_path(args, expt_id, model_id, target_id, noise_id, inference_param_id)
 
     plots_path = joinpath(project_path, "Analysis")
     if !isdir(plots_path)
         mkdir(plots_path)
     end
 
-    plots_path = joinpath(plots_path, expt_id)
+    plots_path = joinpath(plots_path, args.expt_id)
     if !isdir(plots_path)
         mkdir(plots_path)
     end
 
-    plots_path = joinpath(plots_path, model_id)
+    plots_path = joinpath(plots_path, args.model_id)
     if !isdir(plots_path)
         mkdir(plots_path)
     end
 
-    plots_path = joinpath(plots_path, target_id)
+    plots_path = joinpath(plots_path, args.target_id)
     if !isdir(plots_path)
         mkdir(plots_path)
     end
@@ -223,11 +262,6 @@ function generate_plot_path(expt_id, model_id, target_id, noise_id, inference_pa
     end
 
     plots_path = joinpath(plots_path, "Plots")
-    if !isdir(plots_path)
-        mkdir(plots_path)
-    end
-
-    plots_path = joinpath(plots_path, type)
     if !isdir(plots_path)
         mkdir(plots_path)
     end

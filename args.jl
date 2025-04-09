@@ -1,11 +1,11 @@
-# Arguments to the entire pipeline, separated out to provide a single interface for testing variations
+# Arguments to the entire pipeline - a unified interface for testing variations
 
 using Parameters
 
 @with_kw mutable struct Args
 
-    # Data source
-    expt_id::String = "BulletTest_Sphere"  # BulletTest_Cube, BulletTest_Sphere, Exp1, Exp2, etc.
+    # Data source - BulletTest_Cube, BulletTest_Sphere, Exp1, Exp2, etc.
+    expt_id::String = "BulletTest_Sphere"  
 
     # Model parameters
     model_id::String = "Modelv5"

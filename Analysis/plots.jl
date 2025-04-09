@@ -1,9 +1,24 @@
+# Generate plots showing:
+    # Correlation of final model / human / ground truth elasticity judgments
+    # The evolution of elastities in the particle population over time
+    # 3D position trajectories over time
+
+using CSV
+using DataFrames
+using DataFramesMeta
+using Statistics
+using Plots
+using StatsPlots
+using Glob
+using Printf
+
+
 #########
 # PLOTS #
 #########
 
 # Plot model against ground truth
-function plot_vs_gt(type, data, expt_id, target_id, marker_shape, plots_path)
+function plot_inferences_vs_gt(type, data, expt_id, target_id, marker_shape, plots_path)
 
     if type == "sim"
         ylabel = "Model Estimate"
@@ -44,7 +59,7 @@ end
 
 
 # Plot mean model estimates against mean human judgments
-function plot_sim_vs_human(sim_data, human_data, expt_id, target_id, marker_shape, plots_path)
+function plot_inferences_sim_vs_human(sim_data, human_data, expt_id, target_id, marker_shape, plots_path)
 
     yerror = human_data.std_err_mean ./ 2
 
@@ -122,7 +137,72 @@ function plot_sim_vs_human(sim_data, human_data, expt_id, target_id, marker_shap
 
 end
 
-# Plot all particle trajectories 
+# Plot elasticity estimates for each particle across time 
+function generate_violin_plot(expt_id, model_id, param_id, num_particles)
+
+    base = pwd()
+    data_path = joinpath(base, expt_id, model_id, param_id, "Data")
+    inf_path = joinpath(data_path, "inferences")
+    inferences = readdir(inf_path)
+    part_path = joinpath(data_path, "intermediate")
+    particles = readdir(part_path)
+
+    # Parse filenames for ground truth elasticity and variation
+    elast_chars = [split(f, '_')[1][4:end] for f in inferences]
+    elasticities = [parse(Float64, c) * 0.1 for c in elast_chars]
+    variations = [split(f, ['_', '.'])[2][4:end] for f in inferences]
+
+    # Generate plots
+    plots = []
+    num_particles = num_particles
+    for i = 1:1
+        
+        ela = Int64(elasticities[i] * 10)
+        var = variations[i]
+        id = string("Ela", ela, "_Var", var)
+        
+        files = glob(id * "_*.csv", part_path)
+        model_pred = fill(NaN, num_particles, length(files))
+        for t_s = 1:length(files)
+            var_timestep = @sprintf("%s/%s_%d.csv", part_path, id, t_s)
+            particle_data = CSV.read(var_timestep, DataFrame)
+            for p = 1:num_particles
+                pred_ela = particle_data.elasticity[findall(particle_data.particle .== p)[end]]
+                model_pred[p, t_s] = pred_ela
+            end
+        end
+
+        p = violin(
+            currModelPred,
+            legend=false,
+            reuse=false,
+            alpha=0.5,
+            xticks=0:5:length(currModelPred),
+            yticks=1:0.1:1,
+            primary=false
+        )
+        # p = plot()
+        
+        nFrames = size(model_pred)[2]
+        for i = 1:nFrames
+            data = model_pred[:, i]
+            scatter!(i * ones(20), data, color="black", markersize=1)
+            # xlims!(1, nFrames)
+            yticks!(0:0.1:1)
+        end
+
+        currElaDecimal = ela
+        println(currElaDecimal)
+        hline!([currElaDecimal, currElaDecimal], color="black", label="GT")
+
+        display(p)
+        # push!(plots, p)
+
+    end
+
+end
+
+# Plot 3D position trajectories for each particle across time
 function plot_trajectories(gt_dir, gt_files, data_path, particle_files, particle_indices, num_particles, plot_path)
 
     # Plot parameters
