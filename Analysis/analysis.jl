@@ -19,12 +19,13 @@ function get_paths(args)
     noise_id = generate_noise_id(args)
     inference_id = generate_inference_param_id(args)
     trial_path = joinpath("Analysis", args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, inference_id)
+    plots_path = generate_plot_path(args, noise_id, inference_id)
 
-    return gt_path, trial_path
+    return gt_path, trial_path, plots_path
 end
 
 # Read ground truth trajectory data and intermediate particle filter data
-function read_data(gt_path, trial_path)
+function get_files(gt_path, trial_path)
 
     # Load and sort ground truth trajectory files
     gt_files = filter(contains("observed"), readdir(gt_path))
@@ -41,11 +42,10 @@ function read_data(gt_path, trial_path)
     #particle_files = map((file) -> file.name, reader.files)
     sort!(particle_files, lt=trial_particle_order)
 
-    # TODO: use generated path
-    inference_data_path = joinpath(data_path, "inferences")
-    output_data = read_simulation_data(inference_data_path, false)
-
-    return gt_files, particle_files, output_data
+    # Load inference output files
+    output_files = readdir(joinpath(data_path, "inferences"))
+    
+    return gt_files, particle_files, output_files
 
 end
 
@@ -169,10 +169,10 @@ end
 function main()
 
     args = Args()
-    gt_path, trial_path = get_paths(args)
-    gt_files, particle_files, output_data = read_data(gt_path, trial_path)
+    gt_path, trial_path, plots_path = get_paths(args)
+    gt_files, particle_files, output_files = get_files(gt_path, trial_path)
+    output_data = read_simulation_data(output_files)
     
-    plots_path = generate_plot_path(args)
     #analyze_trajectories(particle_files, gt_files, plots_path, args)
     generate_violin_plot(args.expt_id, args.model_id, args.param_id, args.num_particles, plots_path)
     #analyze_inference(output_data, plots_path, args)

@@ -13,19 +13,11 @@ project_path = dirname(@__DIR__)
 ###############
 
 # Read all simulation data files at the specified directory 
-function read_simulation_data(data_path, zip=true)
+function read_simulation_data(data_files, zip=true)
     
     all_data = []
 
-    println("Reading simulation data at ", data_path)
-    if zip 
-        r = ZipFile.Reader(joinpath(data_path, "inferences.zip"))
-        files = r.files
-    else
-        files = readdir(joinpath(data_path, "inferences"))
-    end
-
-    for file in files
+    for file in data_files
         
         if zip 
             filename = file.name
@@ -66,10 +58,10 @@ function read_simulation_data(data_path, zip=true)
 
     end
 
-    all_data = vcat(all_data...)    # join all dfs
+    sim_data = vcat(all_data...)    # join all dfs
     # filter(:variation => x -> x <= 15, all_data)
     
-    return all_data
+    return sim_data
 end
 
 # Read the human predictions
@@ -223,7 +215,7 @@ function generate_inference_param_id(args)
 end
 
 # Generate the directory location where we will store the plots
-function generate_plot_path(args, expt_id, model_id, target_id, noise_id, inference_param_id)
+function generate_plot_path(args, noise_id, inference_param_id)
 
     plots_path = joinpath(project_path, "Analysis")
     if !isdir(plots_path)
