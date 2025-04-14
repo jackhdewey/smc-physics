@@ -63,6 +63,8 @@ function plot_inferences_sim_vs_human(sim_data, human_data, expt_id, target_id, 
 
     yerror = human_data.std_err_mean ./ 2
 
+    # Plot judgments for each individual stimulus
+
     title = "$expt_id Model ($target_id) vs. Human Individual Stimuli"
     filename = "sim_vs_human_individual_stimuli"
 
@@ -93,6 +95,7 @@ function plot_inferences_sim_vs_human(sim_data, human_data, expt_id, target_id, 
 
     savefig(joinpath(plots_path, filename))
 
+    # Plot only average judgments for each gt_elasticity
 
     title = "$expt_id Model ($target_id) vs. Human Mean"
     filename = "sim_vs_human_average_judgments"
@@ -138,23 +141,24 @@ function plot_inferences_sim_vs_human(sim_data, human_data, expt_id, target_id, 
 end
 
 # Plot elasticity estimates for each particle across time 
-function generate_violin_plot(expt_id, model_id, param_id, num_particles)
+function generate_violin_plot(expt_id, model_id, param_id, num_particles, plot_path)
 
+    # Read inference data
     base = pwd()
     data_path = joinpath(base, expt_id, model_id, param_id, "Data")
     inf_path = joinpath(data_path, "inferences")
     inferences = readdir(inf_path)
-    part_path = joinpath(data_path, "intermediate")
-    particles = readdir(part_path)
 
     # Parse filenames for ground truth elasticity and variation
     elast_chars = [split(f, '_')[1][4:end] for f in inferences]
     elasticities = [parse(Float64, c) * 0.1 for c in elast_chars]
     variations = [split(f, ['_', '.'])[2][4:end] for f in inferences]
 
+    # Read particle data
+    part_path = joinpath(data_path, "intermediate")
+    particles = readdir(part_path)
+
     # Generate plots
-    plots = []
-    num_particles = num_particles
     for i = 1:1
         
         ela = Int64(elasticities[i] * 10)
@@ -196,7 +200,6 @@ function generate_violin_plot(expt_id, model_id, param_id, num_particles)
         hline!([currElaDecimal, currElaDecimal], color="black", label="GT")
 
         display(p)
-        # push!(plots, p)
 
     end
 

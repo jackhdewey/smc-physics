@@ -1,5 +1,9 @@
 # Runs analysis scripts and generates plots 
-# TODO: 
+
+include("../args.jl")
+include("plots.jl")
+include("utils.jl")
+
 
 # Generate paths to relevant data
 function get_paths(args)
@@ -39,7 +43,7 @@ function read_data(gt_path, trial_path)
 
     # TODO: use generated path
     inference_data_path = joinpath(data_path, "inferences")
-    output_data = read_simulation_data(args.expt_id, args.model_id, args.target_id, noise_id, args.algorithm, inference_param_id, false)
+    output_data = read_simulation_data(inference_data_path, false)
 
     return gt_files, particle_files, output_data
 
@@ -48,7 +52,7 @@ end
 # Identify trials with high model error (vs. human)
 # Evaluate and plot model performance at inferring elasticity relative to ground truth
 # Evaluate and plot model-inferred vs human elasticity judgments
-function analyze_inferences(sim_data, plots_path, args)
+function analyze_inference(sim_data, plots_path, args)
 
     # Extract high-error trials
     sim_data, error_trials = process_individual_stimuli_sim(sim_data)
@@ -66,9 +70,9 @@ function analyze_inferences(sim_data, plots_path, args)
     end
 
     # Plot model-inferred elasticity against ground truth
-    plot_vs_gt("sim", sim_data, args.expt_id, args.target_id, marker_shape, plots_path)
+    plot_inferences_vs_gt("sim", sim_data, args.expt_id, args.target_id, marker_shape, plots_path)
 
-    # If we have human data - RealFlow trials only
+    # RealFlow trials only
     if occursin("Exp", args.expt_id)
 
         # Read human data into data frame
@@ -86,7 +90,7 @@ function analyze_inferences(sim_data, plots_path, args)
 end
 
 # Generates 3D plots showing particle trajectories and ground truth, i.e. displaying particle filter state at each time step
-function analyze_trajectories(plots_path, args)
+function analyze_trajectories(particle_files, gt_files, plots_path, args)
 
     plot_path = joinpath(plots_path, "Trajectories")
 
@@ -102,7 +106,7 @@ function analyze_trajectories(plots_path, args)
     
     end
 
-    plot_trajectories(gt_dir, gt_files, data_path, particle_files, particle_indices, args.num_particles, plot_path)
+    plot_trajectories(gt_dir, gt_files, data_path, particle_files, particle_indices, args.num_particles, plots_path)
 
     #interval=[1, 10]
     #display_data_frames(reader, particle_indices, interval)
@@ -168,9 +172,11 @@ function main()
     gt_path, trial_path = get_paths(args)
     gt_files, particle_files, output_data = read_data(gt_path, trial_path)
     
-    plot_path = generate_plot_path(args)
-    
-    analyze_trajectories(sim_data, plots_path, args)
-    analyze_inferences(plots_path, args)
+    plots_path = generate_plot_path(args)
+    #analyze_trajectories(particle_files, gt_files, plots_path, args)
+    generate_violin_plot(args.expt_id, args.model_id, args.param_id, args.num_particles, plots_path)
+    #analyze_inference(output_data, plots_path, args)
 
 end
+
+main()

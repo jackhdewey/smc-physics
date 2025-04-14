@@ -2,8 +2,8 @@
 
 using DataFrames
 using DataFramesMeta
-using ZipFile
 using CSV
+using ZipFile
 
 project_path = dirname(@__DIR__)
 
@@ -13,17 +13,16 @@ project_path = dirname(@__DIR__)
 ###############
 
 # Read all simulation data files at the specified directory 
-function read_simulation_data(expt_id, model_id, target_id, noise_id, alg_id, inference_param_id, zip=true)
+function read_simulation_data(data_path, zip=true)
     
     all_data = []
 
-    simulation_folder = joinpath(project_path, "Analysis", expt_id, model_id, target_id, noise_id, alg_id, inference_param_id, "Data")
-    println("Reading simulation data at ", simulation_folder)
+    println("Reading simulation data at ", data_path)
     if zip 
-        r = ZipFile.Reader(joinpath(simulation_folder, "inferences.zip"))
+        r = ZipFile.Reader(joinpath(data_path, "inferences.zip"))
         files = r.files
     else
-        files = readdir(joinpath(simulation_folder, "inferences"))
+        files = readdir(joinpath(data_path, "inferences"))
     end
 
     for file in files
