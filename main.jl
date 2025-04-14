@@ -1,6 +1,6 @@
-# Starting point for performing inference with a probabilistic generative model, with options to:
-#    1. debug (run and display a single trace of the generative model)
-#    2. run in parallel or on a single process
+# Starting point for inference using a probabilistic generative model, with options to:
+#    1. debug the model (run and display a single trace)
+#    2. run inference in parallel or on a single process
 
 using Distributed
 if nworkers() == 1
@@ -17,10 +17,10 @@ zip = false
 
 function main()
 
-    # Instance of modeling and inference arguments
+    # Instantiate of modeling and inference arguments
     args = Args()
 
-    # Extract ground truth trajectory files from appropriate directory
+    # Extract ground truth trajectory files from relevant directory
     if contains(args.expt_id, "Bullet")  
         bullet_shape = split(args.expt_id, "_")[2] 
         dir = string("Data/BulletStimulus/New/", bullet_shape, "/") 
@@ -38,27 +38,26 @@ function main()
     println("Output Filepath... ", output_path)
 
     # Generate writers (not currently used)
-    w1, w2 = nothing, nothing
     #w1, w2 = make_writers(output_path, args.algorithm)
+    w1, w2 = nothing, nothing
 
     # Iterate over all parameter settings
-    for o_noise in args.observation_noise
-        for t_noise in args.transition_noise
-            for n_p in args.num_particles
-                for r_m in args.rejuvenation_moves
-                    params = [o_noise t_noise, n_p, r_m]
+    #for o_noise in args.observation_noise
+    #    for t_noise in args.transition_noise
+    #        for n_p in args.num_particles
+    #            for r_m in args.rejuvenation_moves
+    #                params = [o_noise t_noise, n_p, r_m]
 
                     # Execute particle filter on all observed trajectories
-                    if parallel    
-                        # Distribute to workers
-                        pmap(fname -> run_inference(fname, args, output_path, w1, w2), fnames)
-                        println("DONE")
-                    else
-
-                        if debug                 
-                            # Run one test file
-                            run_inference(fnames[1], args, output_path, w1, w2)
-                        else                     
+                    if debug                 
+                        # Run one test file
+                        run_inference(fnames[1], args, output_path, w1, w2)
+                    else  
+                        if parallel    
+                            # Distribute to workers
+                            pmap(fname -> run_inference(fname, args, output_path, w1, w2), fnames)
+                            println("DONE")
+                        else
                             # Run all files on one process
                             for fname in fnames
                                 println(fname)
@@ -68,12 +67,11 @@ function main()
                         
                     end
 
-                end
-            end
-        end
-    end
+    #            end
+    #        end
+    #    end
+    #end
     
-
   
     #=
     # Close writers
