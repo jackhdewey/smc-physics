@@ -3,15 +3,13 @@ Inferring latent physical properties of soft bodies from trajectory observations
 
 # Use
 
-This codebase requires knowledge of one code file - args.jl - to run experiments. 
-
 First, it is necessary to place any 'ground truth' (synthetic) data you wish to use to perform inference in the "Data" folder.  
 
 There are three subfolders currently located in the Data folder, one for data generated using RealFlow, and another for data generated using Bullet (more specifically, PyBullet).
 
 Whenever you wish to test the modeling / inference pipeline on a new set of data, simply add a new sub-subfolder with the name of that 'experiment' to one of these (or add an entirely new one, for example if you want to test on synthetic data generated using some different simulator).
 
-When you wish to run inference on a particular dataset, you will work from "args.jl".  This is a struct containing a set of global parameters to modeling and inference.
+When you wish to run inference on a particular dataset, you will work from "args.jl".  This is a struct containing a set of global parameters to modeling and inference.  For most users this one code file is all you need to run experiments. 
 
 First, you will want to set expt_id to a string indicating the folder you want to pull your 'ground truth' data from.  Currently this can be either "BulletTest_[Sphere, Cube]", or "Expt[1, 2, 3, 4]".  If you wish to extend these naming conventions, you will have to modify the statement in main.jl that parse this string to the appropriate directory path.
 
