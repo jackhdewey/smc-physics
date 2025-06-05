@@ -1,4 +1,3 @@
-# Data analysis
 # Generates 3D plots showing particle trajectories and ground truth, i.e. displaying particle filter state at each time step
 
 # QUESTION: Are the 'identities' of particles consistent across time, i.e. do they survive resampling?
@@ -19,36 +18,6 @@ include("utils.jl")
 # Plotting variables
 interactive = false
 plot_interval = 5
-
-# Displays (prints) the given particle filter states for the specified time steps
-function display_data_frames(reader, particle_indices, interval)
-
-    # For the files starting at the selected indices
-    for particle_index in particle_indices
-
-        # For an interval of particle filter time steps
-        for t=interval[1]:interval[2]
-            file = reader.files[particle_index + t - 1]
-            data = CSV.File(read(file)) |> DataFrame
-
-            # Select only one frame for each particle
-            time_step = data[data.frame.==1, :]
-
-            # For each particle, check if its elasticity is unique
-            unique = Dict()
-            for i=1:num_particles
-                if !haskey(unique, time_step[i, 2])
-                    unique[time_step[i, 2]] = 1
-                else   
-                    unique[time_step[i, 2]] += 1
-                end
-            end
-            println(unique)
-        end
-    end
-
-end
-
 
 function main()
 

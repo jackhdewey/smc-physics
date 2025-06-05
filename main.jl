@@ -17,7 +17,7 @@ zip = false
 
 function main()
 
-    # Instance of modeling and inference arguments
+    # Instantiate of modeling and inference arguments
     args = Args()
 
     # Extract ground truth trajectory files from appropriate directory
@@ -38,10 +38,10 @@ function main()
     println("Output Filepath... ", output_path)
 
     # Generate writers (not currently used)
-    w1, w2 = nothing, nothing
     #w1, w2 = make_writers(output_path, args.algorithm)
 
     # Iterate over all parameter settings
+<<<<<<< HEAD
     for o_noise in args.observation_noise
         for t_noise in args.transition_noise
             for n_p in args.num_particles

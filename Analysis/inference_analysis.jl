@@ -1,6 +1,6 @@
 # Evaluate and plot model performance at inferring elasticity relative to ground truth
-# Evaluate and plots model-inferred elasticities vs human judgments
-#   Identify trials with poor model / human correlation by absolute error
+# Evaluate and plot model-inferred vs human elasticity judgments
+# Identify trials with poor model / human correlation by absolute error
 
 using DataFrames
 using DataFramesMeta
@@ -29,7 +29,7 @@ function main()
     # Generate plots
 
     # Generate output filepath for plots
-    plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, inference_param_id, "TestJudgments")
+    plots_path = generate_plot_path(args.expt_id, args.model_id, args.target_id, noise_id, inference_param_id, "Judgments")
     println("Plots Path: ", plots_path)
 
     # Set plot marker shape
