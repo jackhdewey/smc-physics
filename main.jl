@@ -46,7 +46,7 @@ function main()
         for t_noise in args.transition_noise
             for n_p in args.num_particles
                 for r_m in args.rejuvenation_moves
-                    params = [o_noise t_noise, n_p, r_m]
+                    params = [o_noise, t_noise, n_p, r_m]
 
                     # Execute particle filter on all observed trajectories
                     if parallel    
