@@ -5,7 +5,7 @@ Inferring latent physical properties of soft bodies from trajectory observations
 
 First, place any 'ground truth' (synthetic) data you wish to use to perform inference in the "Data" folder.  
 
-There are three subfolders currently located in the "Data" folder, one for data generated using RealFlow, and another for data generated using Bullet (more specifically, PyBullet).
+There are two subfolders currently located in the "Data" folder, one for data generated using RealFlow, and another for data generated using Bullet (more specifically, PyBullet).
 
 To test the modeling / inference pipeline on a new dataset, simply add a new sub-subfolder with the name of that 'experiment' to one of these subfolders, or you can add an entirely new folder for example if you want to test on synthetic data generated using some different simulator.
 
