@@ -11,7 +11,7 @@ To test the modeling / inference pipeline on a new dataset, simply add a new sub
 
 To run inference on a particular dataset, you will work from "args.jl".  This is a struct containing a set of global parameters to modeling and inference.  For most users this one code file is all you need to run experiments. 
 
-First, you will want to set expt_id to a string indicating the folder you want to pull your 'ground truth' data from.  Currently this can be either "BulletTest_[Sphere, Cube]", or "Expt[1, 2, 3, 4]".  If you wish to extend these naming conventions, you will have to modify the statement in main.jl that parse this string to the appropriate directory path.
+First, you will want to set expt_id to a string indicating the folder you want to pull your 'ground truth' data from.  Currently this can be either "BulletTest_[Sphere, Cube]", or "Expt[1, 2, 3, 4]".  If you wish to extend these naming conventions, you will have to modify a statement in main.jl that parses this string to the appropriate directory path.
 
 Next are a pair of string parameters referring to the generative model.  The current iteration of the model is "Modelv5".  If an engineer makes substantial changes to the structure of the model, you will likely want to update this to 'v6', etc.  Otherwise, leave this parameter unchanged.  Next is a parameter that allows you to specify whether the generative model should represent the physical object it is attempting to predict as a "Sphere" or a "Cube".  These are the only two options currently supported.  Again, should an engineer choose to extend to more shapes, they would simply modify the statements in "init_target_state" in "bouncing_object.jl" to support parsing into additonal shapes.
 
