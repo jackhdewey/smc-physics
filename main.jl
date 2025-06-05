@@ -1,6 +1,6 @@
-# Starting point for performing inference with a probabilistic generative model, with options to:
-#    1. debug (run and display a single trace of the generative model)
-#    2. run in parallel or on a single process
+# Starting point for inference using a probabilistic generative model, with options to:
+#    1. debug the model (run and display a single trace)
+#    2. run inference in parallel or on a single process
 
 using Distributed
 if nworkers() == 1
@@ -17,10 +17,10 @@ zip = false
 
 function main()
 
-    # Instantiate of modeling and inference arguments
+    # Instance of modeling and inference arguments
     args = Args()
 
-    # Extract ground truth trajectory files from appropriate directory
+    # Extract ground truth trajectory files from relevant directory
     if contains(args.expt_id, "Bullet")  
         bullet_shape = split(args.expt_id, "_")[2] 
         dir = string("Data/BulletStimulus/New/", bullet_shape, "/") 
@@ -39,9 +39,9 @@ function main()
 
     # Generate writers (not currently used)
     #w1, w2 = make_writers(output_path, args.algorithm)
+    w1, w2 = nothing, nothing
 
     # Iterate over all parameter settings
-<<<<<<< HEAD
     for o_noise in args.observation_noise
         for t_noise in args.transition_noise
             for n_p in args.num_particles
