@@ -73,7 +73,6 @@ function main()
         end
     end
     
-
   
     #=
     # Close writers
